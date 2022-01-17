@@ -1,6 +1,10 @@
 const std = @import("std");
 const Input = @import("Input.zig");
 
+const gfx_api: enum {
+    opengl,
+} = .opengl;
+
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var window_resized: bool = false;
@@ -20,6 +24,9 @@ pub fn run(args: struct {
     const allocator = gpa.allocator();
 
     const windowing = X11;
+    const gfx = switch (gfx_api) {
+        .opengl => OpenGL,
+    };
 
     window_width = args.pxwidth;
     window_height = args.pxheight;
@@ -46,11 +53,6 @@ pub fn run(args: struct {
             &window_closed,
         );
 
-        if (window_resized) {
-            // TODO(chris): set framebuffer size / recreate swapchain
-            window_resized = false;
-        }
-
         const input = Input{
             .key_presses = key_presses.items,
             .key_releases = key_releases.items,
@@ -61,21 +63,58 @@ pub fn run(args: struct {
 
         const quit = args.update_fn(input);
 
+        if (window_resized) {
+            gfx.setViewport(0, 0, window_width, window_height);
+            window_resized = false;
+        }
+
+        gfx.clear(1, 0.5, 0);
+        windowing.swapBuffers();
+
         if (quit) break;
     }
 }
+
+const OpenGL = struct {
+    const c = @cImport({
+        @cInclude("GL/gl.h");
+    });
+
+    pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
+        c.glViewport(x, y, width, height);
+    }
+
+    pub fn clear(r: f32, g: f32, b: f32) void {
+        c.glClearColor(r, g, b, 1);
+        c.glClear(c.GL_COLOR_BUFFER_BIT);
+    }
+};
 
 const X11 = struct {
     const c = @cImport({
         @cInclude("X11/Xlib-xcb.h");
         @cInclude("X11/XKBlib.h");
+        switch (gfx_api) {
+            .opengl => {
+                @cInclude("GL/glx.h");
+            },
+        }
     });
+
+    const FrameBufferConfig = switch (gfx_api) {
+        .opengl => c.GLXFBConfig,
+    };
+
+    const GraphicsContext = switch (gfx_api) {
+        .opengl => c.GLXContext,
+    };
 
     var display: *c.Display = undefined;
     var connection: *c.xcb_connection_t = undefined;
     var atom_protocols: *c.xcb_intern_atom_reply_t = undefined;
     var atom_delete_window: *c.xcb_intern_atom_reply_t = undefined;
     var window: u32 = undefined;
+    var fb_config: FrameBufferConfig = undefined;
 
     fn init(window_title: []const u8) !void {
         c.XrmInitialize();
@@ -87,9 +126,24 @@ const X11 = struct {
         connection = c.XGetXCBConnection(display) orelse return error.XGetXCBConnectionFailed;
         errdefer c.xcb_disconnect(connection);
 
-        const screen = (c.xcb_setup_roots_iterator(c.xcb_get_setup(connection))).data;
-
         c.XSetEventQueueOwner(display, c.XCBOwnsEventQueue);
+
+        const default_screen_num = c.XDefaultScreen(display);
+
+        var screen: ?*c.xcb_screen_t = null;
+        {
+            var iter = c.xcb_setup_roots_iterator(c.xcb_get_setup(connection));
+            var screen_num: u32 = 0;
+            while (iter.rem > 0) : ({
+                c.xcb_screen_next(&iter);
+                screen_num += 1;
+            }) {
+                if (screen_num == default_screen_num) screen = iter.data;
+            }
+        }
+        if (screen == null) return error.FailedToFindXCBScreen;
+
+        const screen_root = screen.?.*.root;
 
         atom_protocols = c.xcb_intern_atom_reply(
             connection,
@@ -105,32 +159,80 @@ const X11 = struct {
         );
         errdefer _ = c.XFree(atom_delete_window);
 
+        var visual_info: *c.XVisualInfo = undefined;
+
+        switch (gfx_api) {
+            .opengl => {
+                // query opengl version
+                var glx_ver_min: c_int = undefined;
+                var glx_ver_maj: c_int = undefined;
+                if (c.glXQueryVersion(display, &glx_ver_maj, &glx_ver_min) == 0) return error.FailedToQueryGLXVersion;
+                std.log.debug("GLX version {}.{}", .{ glx_ver_maj, glx_ver_min });
+
+                // query framebuffer configurations that match visual_attribs
+                const attrib_list = [_]c_int{
+                    c.GLX_X_RENDERABLE,  c.True,
+                    c.GLX_DRAWABLE_TYPE, c.GLX_WINDOW_BIT,
+                    c.GLX_RENDER_TYPE,   c.GLX_RGBA_BIT,
+                    c.GLX_X_VISUAL_TYPE, c.GLX_TRUE_COLOR,
+                    c.GLX_RED_SIZE,      8,
+                    c.GLX_GREEN_SIZE,    8,
+                    c.GLX_BLUE_SIZE,     8,
+                    c.GLX_ALPHA_SIZE,    8,
+                    c.GLX_DEPTH_SIZE,    24,
+                    c.GLX_STENCIL_SIZE,  8,
+                    c.GLX_DOUBLEBUFFER,  c.True,
+                    //c.GLX_SAMPLE_BUFFERS  , 1,
+                    //c.GLX_SAMPLES         , 4,
+                    c.None,
+                };
+                var num_fb_configs: c_int = 0;
+                const fb_configs = c.glXChooseFBConfig(
+                    display,
+                    default_screen_num,
+                    &attrib_list,
+                    &num_fb_configs,
+                );
+                if (fb_configs == null) return error.FailedToQueryGLXFramebufferConfigs;
+                if (num_fb_configs == 0) return error.GLXFoundNoCompatibleFramebufferConfigs;
+                defer _ = c.XFree(fb_configs);
+
+                // use the first config and get visual info
+                fb_config = fb_configs[0];
+                visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
+            },
+        }
+
+        // create colormap
+
         // create xcb window
         window = c.xcb_generate_id(connection);
-        _ = c.xcb_create_window(
+        if (c.xcb_request_check(
             connection,
-            c.XCB_COPY_FROM_PARENT,
-            window,
-            screen.*.root,
-            0,
-            0,
-            window_width,
-            window_height,
-            0,
-            c.XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            screen.*.root_visual,
-            c.XCB_CW_BACK_PIXEL | c.XCB_CW_EVENT_MASK,
-            &[_]u32{
-                screen.*.black_pixel,
-                c.XCB_EVENT_MASK_EXPOSURE |
-                    c.XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                    c.XCB_EVENT_MASK_RESIZE_REDIRECT |
-                    c.XCB_EVENT_MASK_KEY_PRESS |
-                    c.XCB_EVENT_MASK_KEY_RELEASE |
-                    c.XCB_EVENT_MASK_BUTTON_PRESS |
-                    c.XCB_EVENT_MASK_BUTTON_RELEASE,
-            },
-        );
+            c.xcb_create_window_checked(
+                connection,
+                c.XCB_COPY_FROM_PARENT,
+                window,
+                screen_root,
+                0,
+                0,
+                window_width,
+                window_height,
+                0,
+                c.XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                @intCast(u32, c.XVisualIDFromVisual(visual_info.visual)),
+                c.XCB_CW_EVENT_MASK,
+                &[_]u32{
+                    c.XCB_EVENT_MASK_EXPOSURE |
+                        c.XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                        c.XCB_EVENT_MASK_KEY_PRESS |
+                        c.XCB_EVENT_MASK_KEY_RELEASE |
+                        c.XCB_EVENT_MASK_BUTTON_PRESS |
+                        c.XCB_EVENT_MASK_BUTTON_RELEASE,
+                    0,
+                },
+            ),
+        ) != null) return error.FailedToCreateWindow;
 
         // hook up close button event
         _ = c.xcb_change_property(
@@ -159,12 +261,45 @@ const X11 = struct {
 
         _ = c.xcb_map_window(connection, window);
         _ = c.xcb_flush(connection);
+
+        switch (gfx_api) {
+            .opengl => {
+                // create an oldschool context first so we can get a fn ptr for glXCreateContextAttribsARB
+                const temp_context = c.glXCreateContext(display, visual_info, null, c.True);
+                if (temp_context == null) return error.FailedToCreateGLXContext;
+                const glXCreateContextAttribsARB = try glXGetProcAddress(fn (*c.Display, c.GLXFBConfig, c.GLXContext, c.Bool, ?*const c_int) callconv(.C) c.GLXContext, "glXCreateContextAttribsARB");
+                _ = c.glXMakeCurrent(display, 0, null);
+                c.glXDestroyContext(display, temp_context);
+
+                // create modern context and set it as current
+                const context = glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
+                if (context == null) return error.FailedToCreateGLXContext;
+
+                if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
+            },
+        }
+    }
+
+    fn glXGetProcAddress(comptime T: type, sym_name: [*c]const u8) !T {
+        const fn_ptr = c.glXGetProcAddress(sym_name) orelse return error.FailedToGetProcAddress;
+        return @ptrCast(T, fn_ptr);
     }
 
     fn deinit() void {
+        switch (gfx_api) {
+            .opengl => {
+                const context = c.glXGetCurrentContext();
+                _ = c.glXMakeCurrent(display, 0, null);
+                c.glXDestroyContext(display, context);
+            },
+        }
         _ = c.XFree(atom_delete_window);
         _ = c.XFree(atom_protocols);
         c.xcb_disconnect(connection);
+    }
+
+    fn swapBuffers() void {
+        c.glXSwapBuffers(display, window);
     }
 
     fn onWindowResize(event: anytype) void {
@@ -198,10 +333,6 @@ const X11 = struct {
                 c.XCB_CONFIGURE_NOTIFY => {
                     const xcb_config_event = @ptrCast(*c.xcb_configure_notify_event_t, xcb_event);
                     onWindowResize(xcb_config_event);
-                },
-                c.XCB_RESIZE_REQUEST => {
-                    const xcb_resize_event = @ptrCast(*c.xcb_resize_request_event_t, xcb_event);
-                    onWindowResize(xcb_resize_event);
                 },
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
