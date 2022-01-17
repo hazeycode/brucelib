@@ -1,8 +1,11 @@
 const std = @import("std");
-const ziggylib = @import("ziggylib");
+
+const BruceLib = @import("BruceLib");
+const Input = BruceLib.Input;
+const gfx = BruceLib.gfx;
 
 pub fn main() anyerror!void {
-    try ziggylib.run(.{
+    try BruceLib.run(.{
         .title = "example",
         .pxwidth = 854,
         .pxheight = 480,
@@ -12,6 +15,7 @@ pub fn main() anyerror!void {
 
 var state: struct {} = .{};
 
-fn update(input: ziggylib.Input) bool {
+fn update(input: BruceLib.Input) bool {
+    gfx.clear(1, 0.5, 0);
     return input.quit_requested;
 }

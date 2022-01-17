@@ -5,6 +5,10 @@ const gfx_api: enum {
     opengl,
 } = .opengl;
 
+pub const gfx = switch (gfx_api) {
+    .opengl => @import("opengl.zig"),
+};
+
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var window_resized: bool = false;
@@ -24,9 +28,6 @@ pub fn run(args: struct {
     const allocator = gpa.allocator();
 
     const windowing = X11;
-    const gfx = switch (gfx_api) {
-        .opengl => OpenGL,
-    };
 
     window_width = args.pxwidth;
     window_height = args.pxheight;
@@ -53,42 +54,24 @@ pub fn run(args: struct {
             &window_closed,
         );
 
-        const input = Input{
-            .key_presses = key_presses.items,
-            .key_releases = key_releases.items,
-            .mouse_button_presses = mouse_button_presses.items,
-            .mouse_button_releases = mouse_button_releases.items,
-            .quit_requested = window_closed,
-        };
-
-        const quit = args.update_fn(input);
-
         if (window_resized) {
             gfx.setViewport(0, 0, window_width, window_height);
             window_resized = false;
         }
 
-        gfx.clear(1, 0.5, 0);
+        const quit = args.update_fn(.{
+            .key_presses = key_presses.items,
+            .key_releases = key_releases.items,
+            .mouse_button_presses = mouse_button_presses.items,
+            .mouse_button_releases = mouse_button_releases.items,
+            .quit_requested = window_closed,
+        });
+
         windowing.swapBuffers();
 
         if (quit) break;
     }
 }
-
-const OpenGL = struct {
-    const c = @cImport({
-        @cInclude("GL/gl.h");
-    });
-
-    pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
-        c.glViewport(x, y, width, height);
-    }
-
-    pub fn clear(r: f32, g: f32, b: f32) void {
-        c.glClearColor(r, g, b, 1);
-        c.glClear(c.GL_COLOR_BUFFER_BIT);
-    }
-};
 
 const X11 = struct {
     const c = @cImport({
@@ -302,14 +285,6 @@ const X11 = struct {
         c.glXSwapBuffers(display, window);
     }
 
-    fn onWindowResize(event: anytype) void {
-        if (event.width != window_width or event.height != window_height) {
-            window_width = event.width;
-            window_height = event.height;
-            window_resized = true;
-        }
-    }
-
     fn processEvents(
         key_presses: anytype,
         key_releases: anytype,
@@ -332,7 +307,11 @@ const X11 = struct {
                 },
                 c.XCB_CONFIGURE_NOTIFY => {
                     const xcb_config_event = @ptrCast(*c.xcb_configure_notify_event_t, xcb_event);
-                    onWindowResize(xcb_config_event);
+                    if (xcb_config_event.width != window_width or xcb_config_event.height != window_height) {
+                        window_width = xcb_config_event.width;
+                        window_height = xcb_config_event.height;
+                        window_resized = true;
+                    }
                 },
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
