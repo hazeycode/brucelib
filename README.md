@@ -10,6 +10,8 @@ A library of common primitives pertaining to the development of cross-platform g
 ## Features
 - [ ] Platform abstraction for input, windowing, graphics context creation, audio playback and file system operations
 - [ ] Cross-compilation from all popular development environments to all supported targets
+- [ ] Hot-code reloading
+- [ ] Game state recording and playback
 - [ ] High-level graphics API
 - [ ] High-level audio playback API
 - [ ] Immediate-mode GUI API
