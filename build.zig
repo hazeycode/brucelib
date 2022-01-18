@@ -37,5 +37,6 @@ fn addPlatformDependencies(step: *std.build.LibExeObjStep) void {
         step.addIncludeDir("/usr/include");
         step.linkSystemLibrary("X11-xcb");
         step.linkSystemLibrary("GL");
+        step.linkSystemLibrary("epoxy");
     }
 }

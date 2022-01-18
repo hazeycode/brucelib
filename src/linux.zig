@@ -1,13 +1,6 @@
 const std = @import("std");
+const gfx = @import("gfx.zig");
 const Input = @import("Input.zig");
-
-const gfx_api: enum {
-    opengl,
-} = .opengl;
-
-pub const gfx = switch (gfx_api) {
-    .opengl => @import("opengl.zig"),
-};
 
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
@@ -20,7 +13,7 @@ pub fn run(args: struct {
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
-    update_fn: fn (Input) bool,
+    update_fn: fn (Input) anyerror!bool,
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -54,18 +47,16 @@ pub fn run(args: struct {
             &window_closed,
         );
 
-        if (window_resized) {
-            gfx.setViewport(0, 0, window_width, window_height);
-            window_resized = false;
-        }
-
-        const quit = args.update_fn(.{
+        const quit = !(try args.update_fn(.{
+            .frame_arena_allocator = arena_allocator,
             .key_presses = key_presses.items,
             .key_releases = key_releases.items,
             .mouse_button_presses = mouse_button_presses.items,
             .mouse_button_releases = mouse_button_releases.items,
+            .canvas_width = window_width,
+            .canvas_height = window_height,
             .quit_requested = window_closed,
-        });
+        }));
 
         windowing.swapBuffers();
 
@@ -77,18 +68,18 @@ const X11 = struct {
     const c = @cImport({
         @cInclude("X11/Xlib-xcb.h");
         @cInclude("X11/XKBlib.h");
-        switch (gfx_api) {
+        switch (gfx.api) {
             .opengl => {
-                @cInclude("GL/glx.h");
+                @cInclude("epoxy/glx.h");
             },
         }
     });
 
-    const FrameBufferConfig = switch (gfx_api) {
+    const FrameBufferConfig = switch (gfx.api) {
         .opengl => c.GLXFBConfig,
     };
 
-    const GraphicsContext = switch (gfx_api) {
+    const GraphicsContext = switch (gfx.api) {
         .opengl => c.GLXContext,
     };
 
@@ -144,13 +135,13 @@ const X11 = struct {
 
         var visual_info: *c.XVisualInfo = undefined;
 
-        switch (gfx_api) {
+        switch (gfx.api) {
             .opengl => {
                 // query opengl version
                 var glx_ver_min: c_int = undefined;
                 var glx_ver_maj: c_int = undefined;
                 if (c.glXQueryVersion(display, &glx_ver_maj, &glx_ver_min) == 0) return error.FailedToQueryGLXVersion;
-                std.log.debug("GLX version {}.{}", .{ glx_ver_maj, glx_ver_min });
+                std.log.info("GLX version {}.{}", .{ glx_ver_maj, glx_ver_min });
 
                 // query framebuffer configurations that match visual_attribs
                 const attrib_list = [_]c_int{
@@ -245,20 +236,13 @@ const X11 = struct {
         _ = c.xcb_map_window(connection, window);
         _ = c.xcb_flush(connection);
 
-        switch (gfx_api) {
+        switch (gfx.api) {
             .opengl => {
-                // create an oldschool context first so we can get a fn ptr for glXCreateContextAttribsARB
-                const temp_context = c.glXCreateContext(display, visual_info, null, c.True);
-                if (temp_context == null) return error.FailedToCreateGLXContext;
-                const glXCreateContextAttribsARB = try glXGetProcAddress(fn (*c.Display, c.GLXFBConfig, c.GLXContext, c.Bool, ?*const c_int) callconv(.C) c.GLXContext, "glXCreateContextAttribsARB");
-                _ = c.glXMakeCurrent(display, 0, null);
-                c.glXDestroyContext(display, temp_context);
-
-                // create modern context and set it as current
-                const context = glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
+                // create context and set it as current
+                const context = c.glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
                 if (context == null) return error.FailedToCreateGLXContext;
-
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
+                std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
         }
     }
@@ -269,7 +253,7 @@ const X11 = struct {
     }
 
     fn deinit() void {
-        switch (gfx_api) {
+        switch (gfx.api) {
             .opengl => {
                 const context = c.glXGetCurrentContext();
                 _ = c.glXMakeCurrent(display, 0, null);

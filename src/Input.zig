@@ -1,9 +1,14 @@
+const std = @import("std");
+
 pub const Input = @This();
 
+frame_arena_allocator: std.mem.Allocator,
 key_presses: []KeyPressEvent,
 key_releases: []Key,
 mouse_button_presses: []MouseButtonEvent,
 mouse_button_releases: []MouseButtonEvent,
+canvas_width: u16,
+canvas_height: u16,
 quit_requested: bool,
 
 pub const MouseButtonEvent = struct {

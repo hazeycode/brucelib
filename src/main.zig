@@ -4,7 +4,7 @@ const std = @import("std");
 const platform_layer = @import("linux.zig");
 
 pub const run = platform_layer.run;
-pub const gfx = platform_layer.gfx;
+pub const gfx = @import("gfx.zig");
 pub const Input = @import("Input.zig");
 
 test {

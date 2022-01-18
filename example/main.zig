@@ -15,7 +15,21 @@ pub fn main() anyerror!void {
 
 var state: struct {} = .{};
 
-fn update(input: BruceLib.Input) bool {
-    gfx.clear(1, 0.5, 0);
-    return input.quit_requested;
+fn update(input: Input) !bool {
+    if (input.quit_requested) return false;
+
+    var draw_list = try gfx.beginDrawing(input.frame_arena_allocator);
+    try draw_list.setViewport(0, 0, input.canvas_width, input.canvas_height);
+    try draw_list.clearViewport(gfx.Colour.black);
+    try draw_list.setDrawColour(gfx.Colour.orange);
+    try draw_list.drawTriangles(&[_][3][3]f32{
+        .{
+            .{ -0.5, -0.5, 0.0 },
+            .{ 0.5, -0.5, 0.0 },
+            .{ 0.0, 0.5, 0.0 },
+        },
+    });
+    gfx.submitDrawList(draw_list);
+
+    return true;
 }
