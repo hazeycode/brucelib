@@ -75,13 +75,19 @@ pub fn bindShaderProgram(program_handle: u32) void {
     c.glUseProgram(program_handle);
 }
 
-pub fn draw(offset: u32, count: u32) void {
+pub fn writeUniform(location: u32, components: []const f32) void {
+    switch (components.len) {
+        4 => c.glUniform4f(@intCast(c_int, location), components[0], components[1], components[2], components[3]),
+        else => std.debug.assert(false),
+    }
+}
+
+pub fn draw(offset: u32, count: usize) void {
     c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
 }
 
-pub fn createDefaultShaderProgram(allocator: std.mem.Allocator) !ShaderProgramHandle {
+pub fn createSolidColourShader(allocator: std.mem.Allocator) !ShaderProgramHandle {
     const vert_shader_src =
-        \\
         \\#version 330 core
         \\layout (location = 0) in vec3 aPos;
         \\
@@ -93,13 +99,15 @@ pub fn createDefaultShaderProgram(allocator: std.mem.Allocator) !ShaderProgramHa
     ;
 
     const frag_shader_src =
-        \\
         \\#version 330 core
-        \\out vec4 FragColor;
+        \\
+        \\uniform vec4 colour_in;
+        \\
+        \\out vec4 colour_out;
         \\
         \\void main()
         \\{
-        \\    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+        \\    colour_out = colour_in;
         \\}
         \\
     ;

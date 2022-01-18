@@ -21,14 +21,16 @@ fn update(input: Input) !bool {
     var draw_list = try gfx.beginDrawing(input.frame_arena_allocator);
     try draw_list.setViewport(0, 0, input.canvas_width, input.canvas_height);
     try draw_list.clearViewport(gfx.Colour.black);
-    try draw_list.setDrawColour(gfx.Colour.orange);
-    try draw_list.drawTriangles(&[_][3][3]f32{
-        .{
-            .{ -0.5, -0.5, 0.0 },
-            .{ 0.5, -0.5, 0.0 },
-            .{ 0.0, 0.5, 0.0 },
+    try draw_list.drawTriangles(
+        gfx.Colour.orange,
+        &[_][3][3]f32{
+            .{
+                .{ -0.5, -0.5, 0.0 },
+                .{ 0.5, -0.5, 0.0 },
+                .{ 0.0, 0.5, 0.0 },
+            },
         },
-    });
+    );
     gfx.submitDrawList(draw_list);
 
     return true;
