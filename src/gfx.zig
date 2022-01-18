@@ -20,14 +20,34 @@ pub const Colour = packed struct {
     b: f32,
     a: f32,
 
-    pub fn make(r: f32, g: f32, b: f32, a: f32) Colour {
-        return .{ .r = r, .g = g, .b = b, .a = a };
+    pub const black = fromRGB(0, 0, 0);
+    pub const white = fromRGB(1, 1, 1);
+    pub const red = fromRGB(1, 0, 0);
+    pub const orange = fromRGB(1, 0.5, 0);
+
+    pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
+        return .{ .r = r, .g = g, .b = b, .a = 1 };
     }
 
-    pub const black = make(0, 0, 0, 1);
-    pub const white = make(1, 1, 1, 1);
-    pub const red = make(1, 0, 0, 1);
-    pub const orange = make(1, 0.5, 0, 1);
+    pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
+        // TODO(chris): branchless algorithm
+        std.debug.assert(h >= 0.0 and h < 360.0);
+        const c = s * v;
+        const x = c * (1 - @fabs(@mod(h / 60.0, 2) - 1));
+        const m = v - c;
+        const rgb = if (h >= 0.0 and h < 60.0) [3]f32{ c, x, 0.0 } //
+        else if (h >= 60 and h < 120) [3]f32{ x, c, 0.0 } //
+        else if (h >= 120 and h < 180) [3]f32{ 0.0, c, x } //
+        else if (h >= 180 and h < 240) [3]f32{ 0.0, x, c } //
+        else if (h >= 240 and h < 300) [3]f32{ x, 0.0, c } //
+        else [3]f32{ c, 0.0, x };
+        return .{
+            .r = rgb[0] + m,
+            .g = rgb[1] + m,
+            .b = rgb[2] + m,
+            .a = 1.0,
+        };
+    }
 };
 
 pub const Rect = struct {
