@@ -1,4 +1,5 @@
 const std = @import("std");
+const objc = @import("objc.zig");
 const gfx = @import("gfx.zig");
 const Input = @import("Input.zig");
 
@@ -12,8 +13,9 @@ pub fn run(args: struct {
 }) !void {
     _ = args;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+    const NSApplication = try objc.lookupClass("NSApplication");
 
-    // const allocator = gpa.allocator();
+    const application = objc.msgSend(NSApplication, "sharedApplication", .{}, objc.id);
+
+    objc.msgSend(application, "run", .{}, void);
 }
