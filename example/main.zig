@@ -1,11 +1,11 @@
 const std = @import("std");
 
-const BruceLib = @import("BruceLib");
-const Input = BruceLib.Input;
-const gfx = BruceLib.gfx;
+const brucelib = @import("brucelib");
+const Input = brucelib.Input;
+const gfx = brucelib.gfx;
 
 pub fn main() anyerror!void {
-    try BruceLib.run(.{
+    try brucelib.run(.{
         .title = "example",
         .pxwidth = 854,
         .pxheight = 480,

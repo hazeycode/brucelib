@@ -6,7 +6,7 @@ pub fn build(b: *std.build.Builder) !void {
     const mode = b.standardReleaseOptions();
 
     const package = std.build.Pkg{
-        .name = "BruceLib",
+        .name = "brucelib",
         .path = .{ .path = "src/main.zig" },
         .dependencies = &.{},
     };
