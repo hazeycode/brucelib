@@ -74,15 +74,18 @@ const X11 = struct {
             .opengl => {
                 @cInclude("epoxy/glx.h");
             },
+            else => @compileError("Unsupported graphics API"),
         }
     });
 
     const FrameBufferConfig = switch (gfx_api) {
         .opengl => c.GLXFBConfig,
+        else => @compileError("Unsupported graphics API"),
     };
 
     const GraphicsContext = switch (gfx_api) {
         .opengl => c.GLXContext,
+        else => @compileError("Unsupported graphics API"),
     };
 
     var display: *c.Display = undefined;
@@ -177,6 +180,7 @@ const X11 = struct {
                 fb_config = fb_configs[0];
                 visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
             },
+            else => @compileError("Unsupported graphics API"),
         }
 
         // create colormap
@@ -246,6 +250,7 @@ const X11 = struct {
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
                 std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
+            else => @compileError("Unsupported graphics API"),
         }
     }
 
@@ -261,6 +266,7 @@ const X11 = struct {
                 _ = c.glXMakeCurrent(display, 0, null);
                 c.glXDestroyContext(display, context);
             },
+            else => @compileError("Unsupported graphics API"),
         }
         _ = c.XFree(atom_delete_window);
         _ = c.XFree(atom_protocols);
