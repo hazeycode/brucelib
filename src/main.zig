@@ -1,10 +1,14 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
-// TODO(chris): switch platform on target
-const platform_layer = @import("linux.zig");
+const target_backend = switch (builtin.os.tag) {
+    .linux => @import("linux.zig"),
+    .macos => @import("macos.zig"),
+    else => @compileError("Unsupported target"),
+};
 
-pub const run = platform_layer.run;
-pub const gfx = @import("gfx.zig");
+pub const run = target_backend.run;
+pub const gfx = @import("gfx.zig").Interface(target_backend.gfx_api);
 pub const Input = @import("Input.zig");
 
 test {

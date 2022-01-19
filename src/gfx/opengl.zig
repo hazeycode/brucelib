@@ -1,10 +1,6 @@
 const std = @import("std");
 
 const types = @import("types.zig");
-const ShaderProgramHandle = types.ShaderProgramHandle;
-const VertexBufferHandle = types.VertexBufferHandle;
-const VertexLayoutDesc = types.VertexLayoutDesc;
-const VertexLayoutHandle = types.VertexLayoutHandle;
 
 const c = @cImport({
     @cInclude("epoxy/gl.h");
@@ -20,19 +16,19 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     c.glClear(c.GL_COLOR_BUFFER_BIT);
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) VertexBufferHandle {
+pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) types.VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
     writeBytesToVertexBuffer(vbo, bytes);
     return vbo;
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: VertexBufferHandle, bytes: []const u8) void {
+pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) void {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, buffer_id);
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
 }
 
-pub fn createVertexLayout(layout_desc: VertexLayoutDesc) VertexLayoutHandle {
+pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
     var vao: c.GLuint = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
@@ -67,7 +63,7 @@ pub fn createVertexLayout(layout_desc: VertexLayoutDesc) VertexLayoutHandle {
     return vao;
 }
 
-pub fn bindVertexLayout(layout_handle: VertexLayoutHandle) void {
+pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(layout_handle);
 }
 
@@ -86,7 +82,7 @@ pub fn draw(offset: u32, count: usize) void {
     c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
 }
 
-pub fn createSolidColourShader(allocator: std.mem.Allocator) !ShaderProgramHandle {
+pub fn createSolidColourShader(allocator: std.mem.Allocator) !types.ShaderProgramHandle {
     const vert_shader_src =
         \\#version 330 core
         \\layout (location = 0) in vec3 aPos;

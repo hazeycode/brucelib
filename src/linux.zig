@@ -9,6 +9,8 @@ var window_resized: bool = false;
 const num_keys = std.meta.fields(Input.Key).len;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
 
+pub const gfx_api = gfx.API.opengl;
+
 pub fn run(args: struct {
     title: []const u8 = "",
     pxwidth: u16 = 854,
@@ -68,18 +70,18 @@ const X11 = struct {
     const c = @cImport({
         @cInclude("X11/Xlib-xcb.h");
         @cInclude("X11/XKBlib.h");
-        switch (gfx.api) {
+        switch (gfx_api) {
             .opengl => {
                 @cInclude("epoxy/glx.h");
             },
         }
     });
 
-    const FrameBufferConfig = switch (gfx.api) {
+    const FrameBufferConfig = switch (gfx_api) {
         .opengl => c.GLXFBConfig,
     };
 
-    const GraphicsContext = switch (gfx.api) {
+    const GraphicsContext = switch (gfx_api) {
         .opengl => c.GLXContext,
     };
 
@@ -135,7 +137,7 @@ const X11 = struct {
 
         var visual_info: *c.XVisualInfo = undefined;
 
-        switch (gfx.api) {
+        switch (gfx_api) {
             .opengl => {
                 // query opengl version
                 var glx_ver_min: c_int = undefined;
@@ -236,7 +238,7 @@ const X11 = struct {
         _ = c.xcb_map_window(connection, window);
         _ = c.xcb_flush(connection);
 
-        switch (gfx.api) {
+        switch (gfx_api) {
             .opengl => {
                 // create context and set it as current
                 const context = c.glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
@@ -253,7 +255,7 @@ const X11 = struct {
     }
 
     fn deinit() void {
-        switch (gfx.api) {
+        switch (gfx_api) {
             .opengl => {
                 const context = c.glXGetCurrentContext();
                 _ = c.glXMakeCurrent(display, 0, null);
