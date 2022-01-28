@@ -158,6 +158,7 @@ fn createShaderProgram(allocator: std.mem.Allocator, vertex_shader_handle: u32, 
     c.glGetProgramiv(program, c.GL_LINK_STATUS, &link_status);
     if (link_status == 0) {
         var log_len: c.GLint = undefined;
+        c.glGetProgramiv(program, c.GL_INFO_LOG_LENGTH, &log_len);
         if (log_len > 0) {
             const log_buffer = try allocator.alloc(u8, @intCast(usize, log_len));
             defer allocator.free(log_buffer);
