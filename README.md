@@ -20,7 +20,7 @@ A monorepo of libraries (modules) for developing cross-platform games, simulatio
 
 
 ## Supported platforms 
-Many modules have no system dependencies and will just work on many targets thanks to Zig's awesome portabilty. Platform support for the `platform` and `graphics` module will be somewhat more limited and currently the planned scope of this project is to target all the popular native desktop, mobile platforms and console platforms.
+Many modules have no system dependencies and will just work on many targets thanks to Zig's awesome portabilty. Platform support for the `platform` and `graphics` modules will be somewhat more limited and currently the planned scope of this project is to target all the popular native desktop, mobile and console platforms.
 
 Console backends for the `platform` and `graphics` modules are planned but will not provided by this repository. Access will be granted to registered NDA'd developers on request.
 
