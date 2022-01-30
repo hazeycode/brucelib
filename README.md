@@ -2,7 +2,7 @@
 
 WORK IN PROGRESS
 
-A library of common primitives pertaining to the development of cross-platform games, simulations and media-rich applications. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib is designed to provide everything you need for rapid prototyping; in a modular, hackable way such that prototype code can be taken into production. Use only the bits you need.
+A monorepo of libraries for developing cross-platform games, simulations and media-rich applications. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib is designed to be hackable and can be used for rapid prototyping, game jams and fully-fledged products. Use only the bits you need.
 
 "Absorb what is useful, discard what is useless and add what is specifically your own” - Bruce Lee
 
@@ -20,7 +20,7 @@ A library of common primitives pertaining to the development of cross-platform g
 - [ ] Noise functions
 
 
-## Platform support matrix 
+## Supported platforms 
 brucelib will support cross compilation to popular targets from all major development environments out-of-the-box but if your target is not supported it will be trivial to plug-in your own backend
 
 Console backends are planned but will not provided by this repository. Access will be granted to registered NDA'd developers on request.
