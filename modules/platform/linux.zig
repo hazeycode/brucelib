@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("gfx.zig");
+const core = @import("core");
 const Input = @import("Input.zig");
 
 var window_width: u16 = undefined;
@@ -9,9 +9,12 @@ var window_resized: bool = false;
 const num_keys = std.meta.fields(Input.Key).len;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
 
-pub const gfx_api = gfx.API.opengl;
+pub const default_graphics_api = core.GraphicsAPI.opengl;
+
+var graphics_api: core.GraphicsAPI = undefined;
 
 pub fn run(args: struct {
+    graphics_api: core.GraphicsAPI = default_graphics_api,
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -67,33 +70,19 @@ pub fn run(args: struct {
 }
 
 const X11 = struct {
+    // TODO(chris): remove system header imports
     const c = @cImport({
         @cInclude("X11/Xlib-xcb.h");
         @cInclude("X11/XKBlib.h");
-        switch (gfx_api) {
-            .opengl => {
-                @cInclude("epoxy/glx.h");
-            },
-            else => @compileError("Unsupported graphics API"),
-        }
+        @cInclude("epoxy/glx.h");
     });
-
-    const FrameBufferConfig = switch (gfx_api) {
-        .opengl => c.GLXFBConfig,
-        else => @compileError("Unsupported graphics API"),
-    };
-
-    const GraphicsContext = switch (gfx_api) {
-        .opengl => c.GLXContext,
-        else => @compileError("Unsupported graphics API"),
-    };
 
     var display: *c.Display = undefined;
     var connection: *c.xcb_connection_t = undefined;
     var atom_protocols: *c.xcb_intern_atom_reply_t = undefined;
     var atom_delete_window: *c.xcb_intern_atom_reply_t = undefined;
     var window: u32 = undefined;
-    var fb_config: FrameBufferConfig = undefined;
+    var fb_config: c.GLXFBConfig = undefined;
 
     fn init(window_title: []const u8) !void {
         c.XrmInitialize();
@@ -140,7 +129,7 @@ const X11 = struct {
 
         var visual_info: *c.XVisualInfo = undefined;
 
-        switch (gfx_api) {
+        switch (graphics_api) {
             .opengl => {
                 // query opengl version
                 var glx_ver_min: c_int = undefined;
@@ -172,15 +161,15 @@ const X11 = struct {
                     &attrib_list,
                     &num_fb_configs,
                 );
-                if (fb_configs == null) return error.FailedToQueryGLXFramebufferConfigs;
-                if (num_fb_configs == 0) return error.GLXFoundNoCompatibleFramebufferConfigs;
+                if (fb_configs == null) return error.FailedToQueryFramebufferConfigs;
+                if (num_fb_configs == 0) return error.NoCompatibleFramebufferConfigsFound;
                 defer _ = c.XFree(fb_configs);
 
                 // use the first config and get visual info
                 fb_config = fb_configs[0];
                 visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
             },
-            else => @compileError("Unsupported graphics API"),
+            else => std.debug.panic("Unsupported graphics API", .{}),
         }
 
         // create colormap
@@ -242,7 +231,7 @@ const X11 = struct {
         _ = c.xcb_map_window(connection, window);
         _ = c.xcb_flush(connection);
 
-        switch (gfx_api) {
+        switch (graphics_api) {
             .opengl => {
                 // create context and set it as current
                 const context = c.glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
@@ -250,7 +239,7 @@ const X11 = struct {
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
                 std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
-            else => @compileError("Unsupported graphics API"),
+            else => std.debug.panic("Unsupported graphics API", .{}),
         }
     }
 
@@ -260,13 +249,13 @@ const X11 = struct {
     }
 
     fn deinit() void {
-        switch (gfx_api) {
+        switch (graphics_api) {
             .opengl => {
                 const context = c.glXGetCurrentContext();
                 _ = c.glXMakeCurrent(display, 0, null);
                 c.glXDestroyContext(display, context);
             },
-            else => @compileError("Unsupported graphics API"),
+            else => std.debug.panic("Unsupported graphics API", .{}),
         }
         _ = c.XFree(atom_delete_window);
         _ = c.XFree(atom_protocols);

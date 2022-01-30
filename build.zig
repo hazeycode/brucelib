@@ -1,27 +1,53 @@
 const std = @import("std");
 
+const core = std.build.Pkg{
+    .name = "core",
+    .path = .{ .path = "modules/core/main.zig" },
+    .dependencies = &.{},
+};
+
+const platform = std.build.Pkg{
+    .name = "platform",
+    .path = .{ .path = "modules/platform/main.zig" },
+    .dependencies = &.{core},
+};
+
+const graphics = std.build.Pkg{
+    .name = "graphics",
+    .path = .{ .path = "modules/graphics/main.zig" },
+    .dependencies = &.{core},
+};
+
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const package = std.build.Pkg{
-        .name = "brucelib",
-        .path = .{ .path = "src/main.zig" },
-        .dependencies = &.{},
-    };
+    { // tests
+        const core_tests = b.addTest(core.path.path);
+        core_tests.setBuildMode(mode);
 
-    const tests = b.addTest("src/main.zig");
-    try addPlatformDependencies(b.allocator, tests);
-    tests.setBuildMode(mode);
+        const platform_tests = b.addTest(platform.path.path);
+        for (platform.dependencies.?) |dep| platform_tests.addPackage(dep);
+        try addPlatformDependencies(b.allocator, platform_tests);
+        platform_tests.setBuildMode(mode);
 
-    const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&tests.step);
+        const graphics_tests = b.addTest(graphics.path.path);
+        for (platform.dependencies.?) |dep| graphics_tests.addPackage(dep);
+        graphics_tests.setBuildMode(mode);
+
+        const test_step = b.step("test", "Run all tests");
+        test_step.dependOn(&core_tests.step);
+        test_step.dependOn(&platform_tests.step);
+        test_step.dependOn(&graphics_tests.step);
+    }
 
     const example = b.addExecutable("example", "example/main.zig");
     example.setTarget(b.standardTargetOptions(.{}));
     example.setBuildMode(mode);
-    example.addPackage(package);
+    example.addPackage(core);
+    example.addPackage(platform);
+    example.addPackage(graphics);
     try addPlatformDependencies(b.allocator, example);
 
     const example_runstep = example.run();

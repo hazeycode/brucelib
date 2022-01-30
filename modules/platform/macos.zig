@@ -1,11 +1,12 @@
 const std = @import("std");
+const core = @import("core");
 const objc = @import("objc.zig");
-const gfx = @import("gfx.zig");
 const Input = @import("Input.zig");
 
-pub const gfx_api = gfx.API.metal;
+pub const default_graphics_api = core.GraphicsAPI.metal;
 
 pub fn run(args: struct {
+    graphics_api: core.GraphicsAPI = default_graphics_api,
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,

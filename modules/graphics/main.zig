@@ -1,20 +1,15 @@
 const std = @import("std");
+const core = @import("core");
 
-pub const API = enum {
-    opengl,
-    metal,
-    d3d11,
-};
-
-pub fn Interface(comptime api: API) type {
+pub fn usingAPI(comptime api: core.GraphicsAPI) type {
     return struct {
         pub const backend = switch (api) {
-            .opengl => @import("gfx/opengl.zig"),
-            .metal => @import("gfx/metal.zig"),
-            .d3d11 => @import("gfx/d3d11.zig"),
+            .opengl => @import("opengl.zig"),
+            .metal => @import("metal.zig"),
+            .d3d11 => @import("d3d11.zig"),
         };
 
-        const types = @import("gfx/types.zig");
+        const types = @import("types.zig");
         pub const ShaderProgramHandle = types.ShaderProgramHandle;
         pub const VertexBufferHandle = types.VertexBufferHandle;
         pub const VertexLayoutDesc = types.VertexLayoutDesc;
@@ -147,4 +142,8 @@ pub fn Interface(comptime api: API) type {
         var _solid_colour_shader: ShaderProgramHandle = undefined;
         var _draw_colour: Colour = undefined;
     };
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }
