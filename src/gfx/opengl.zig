@@ -2,6 +2,7 @@ const std = @import("std");
 
 const types = @import("types.zig");
 
+// TODO(chris): Remove epoxy system dependency
 const c = @cImport({
     @cInclude("epoxy/gl.h");
     @cInclude("epoxy/glx.h"); // TODO(chris): only include this when actually using glx

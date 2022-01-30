@@ -30,6 +30,7 @@ pub fn build(b: *std.build.Builder) !void {
     b.step("run-example", "Build and run example").dependOn(&example_runstep.step);
 }
 
+// TODO(hazeycode): Remove system dependencies
 fn addPlatformDependencies(allocator: std.mem.Allocator, step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
@@ -46,6 +47,10 @@ fn addPlatformDependencies(allocator: std.mem.Allocator, step: *std.build.LibExe
         step.addFrameworkDir(framework_dir);
         step.addIncludeDir(usrinclude_dir);
         step.linkFramework("AppKit");
+    } else if (step.target.isWindows()) {
+        step.linkLibC();
+        step.linkSystemLibrary("Kernel32");
+        step.linkSystemLibrary("User32");
     } else {
         return error.UnsupportedTarget;
     }

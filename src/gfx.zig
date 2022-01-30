@@ -3,6 +3,7 @@ const std = @import("std");
 pub const API = enum {
     opengl,
     metal,
+    d3d11,
 };
 
 pub fn Interface(comptime api: API) type {
@@ -10,6 +11,7 @@ pub fn Interface(comptime api: API) type {
         pub const backend = switch (api) {
             .opengl => @import("gfx/opengl.zig"),
             .metal => @import("gfx/metal.zig"),
+            .d3d11 => @import("gfx/d3d11.zig"),
         };
 
         const types = @import("gfx/types.zig");
