@@ -3,19 +3,25 @@ const std = @import("std");
 const core = std.build.Pkg{
     .name = "core",
     .path = .{ .path = "modules/core/main.zig" },
-    .dependencies = &.{},
 };
 
 const platform = std.build.Pkg{
     .name = "platform",
     .path = .{ .path = "modules/platform/main.zig" },
-    .dependencies = &.{core},
+    .dependencies = &.{ core, external.zig_objcrt },
 };
 
 const graphics = std.build.Pkg{
     .name = "graphics",
     .path = .{ .path = "modules/graphics/main.zig" },
     .dependencies = &.{core},
+};
+
+const external = struct {
+    const zig_objcrt = std.build.Pkg{
+        .name = "zig-objcrt",
+        .path = .{ .path = "external/zig-objcrt/src/main.zig" },
+    };
 };
 
 pub fn build(b: *std.build.Builder) !void {
@@ -29,7 +35,7 @@ pub fn build(b: *std.build.Builder) !void {
 
         const platform_tests = b.addTest(platform.path.path);
         for (platform.dependencies.?) |dep| platform_tests.addPackage(dep);
-        try addPlatformDependencies(b.allocator, platform_tests);
+        try addPlatformSystemDependencies(platform_tests);
         platform_tests.setBuildMode(mode);
 
         const graphics_tests = b.addTest(graphics.path.path);
@@ -48,7 +54,7 @@ pub fn build(b: *std.build.Builder) !void {
     example.addPackage(core);
     example.addPackage(platform);
     example.addPackage(graphics);
-    try addPlatformDependencies(b.allocator, example);
+    try addPlatformSystemDependencies(example);
 
     const example_runstep = example.run();
     example_runstep.step.dependOn(b.getInstallStep());
@@ -57,7 +63,7 @@ pub fn build(b: *std.build.Builder) !void {
 }
 
 // TODO(hazeycode): Remove system dependencies
-fn addPlatformDependencies(allocator: std.mem.Allocator, step: *std.build.LibExeObjStep) !void {
+fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
         step.addIncludeDir("/usr/include");
@@ -65,14 +71,11 @@ fn addPlatformDependencies(allocator: std.mem.Allocator, step: *std.build.LibExe
         step.linkSystemLibrary("GL");
         step.linkSystemLibrary("epoxy");
     } else if (step.target.isDarwin()) {
-        const host = try std.zig.system.NativeTargetInfo.detect(allocator, .{});
-        const sdk = std.zig.system.darwin.getDarwinSDK(allocator, host.target) orelse return error.FailedToGetDarwinSDK;
-        defer sdk.deinit(allocator);
-        const framework_dir = try std.mem.concat(allocator, u8, &[_][]const u8{ sdk.path, "/System/Library/Frameworks" });
-        const usrinclude_dir = try std.mem.concat(allocator, u8, &[_][]const u8{ sdk.path, "/usr/include" });
-        step.addFrameworkDir(framework_dir);
-        step.addIncludeDir(usrinclude_dir);
         step.linkFramework("AppKit");
+        step.linkFramework("MetalKit");
+        step.linkFramework("OpenGL");
+        step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
+        step.addPackage(external.zig_objcrt);
     } else if (step.target.isWindows()) {
         step.linkLibC();
         step.linkSystemLibrary("Kernel32");
