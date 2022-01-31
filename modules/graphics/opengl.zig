@@ -5,7 +5,6 @@ const types = @import("types.zig");
 // TODO(chris): Remove epoxy system dependency
 const c = @cImport({
     @cInclude("epoxy/gl.h");
-    @cInclude("epoxy/glx.h"); // TODO(chris): only include this when actually using glx
 });
 
 pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {

@@ -74,6 +74,7 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkFramework("AppKit");
         step.linkFramework("MetalKit");
         step.linkFramework("OpenGL");
+        step.linkSystemLibrary("epoxy");
         step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
         step.addPackage(external.zig_objcrt);
     } else if (step.target.isWindows()) {

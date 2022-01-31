@@ -40,7 +40,7 @@ extern void frame(int, int);
     instance.window.acceptsMouseMovedEvents = YES;
     instance.window.restorable = YES;
 
-    instance.window.title = [NSString stringWithUTF8String:windowTitle];
+    instance.window.title = windowTitle;
 
     { // opengl
         NSOpenGLPixelFormatAttribute attrs[32];
