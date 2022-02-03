@@ -38,7 +38,13 @@ pub fn run(args: struct {
         args.pxheight,
     );
 
-    while (true) {}
+    while (true) {
+        var msg: user32.MSG = undefined;
+        while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
+            _ = user32.translateMessage(&msg);
+            _ = user32.dispatchMessageW(&msg);
+        }
+    }
 }
 
 fn wndProc(hwnd: w.HWND, msg: w.UINT, wparam: w.WPARAM, lparam: w.LPARAM) callconv(.C) w.LRESULT {
@@ -72,8 +78,8 @@ fn createWindow(
     window_height: u16,
 ) !w.HWND {
     var rect = w.RECT{
-        .left = 0,
-        .top = 0,
+        .left = 60,
+        .top = 60,
         .right = window_width,
         .bottom = window_height,
     };
