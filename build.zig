@@ -62,7 +62,7 @@ pub fn build(b: *std.build.Builder) !void {
     b.step("run-example", "Build and run example").dependOn(&example_runstep.step);
 }
 
-// TODO(hazeycode): Remove system dependencies
+// TODO(hazeycode): Remove system dependencies / support cross-compilation
 fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
