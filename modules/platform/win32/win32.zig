@@ -1,0 +1,16 @@
+pub const base = @import("windows.zig");
+pub const dwrite = @import("dwrite.zig");
+pub const dxgi = @import("dxgi.zig");
+pub const d3d11 = @import("d3d11.zig");
+pub const d3d12 = @import("d3d12.zig");
+pub const d3d12d = @import("d3d12sdklayers.zig");
+pub const d3d = @import("d3dcommon.zig");
+pub const d2d1 = @import("d2d1.zig");
+pub const d3d11on12 = @import("d3d11on12.zig");
+pub const wic = @import("wincodec.zig");
+pub const wasapi = @import("wasapi.zig");
+pub const directml = @import("directml.zig");
+pub const mf = @import("mf.zig");
+pub const xaudio2 = @import("xaudio2.zig");
+pub const xaudio2fx = @import("xaudio2fx.zig");
+pub const xapo = @import("xapo.zig");

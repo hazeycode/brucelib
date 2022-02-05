@@ -1,10 +1,13 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const core = @import("core");
 const Input = @import("Input.zig");
 
-const w = std.os.windows;
-const kernel32 = w.kernel32;
-const user32 = w.user32;
+const win32 = @import("win32/windows.zig");
+const kernel32 = win32.kernel32;
+const user32 = win32.user32;
+
+const dxgi = @import("win32/dxgi.zig");
 
 pub const default_graphics_api = core.GraphicsAPI.d3d11;
 
@@ -19,7 +22,7 @@ pub fn run(args: struct {
     pxheight: u16 = 480,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
-    const hinstance = @ptrCast(w.HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
+    const hinstance = @ptrCast(win32.HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
         std.log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
         return Error.FailedToGetModuleHandle;
     });
@@ -52,7 +55,7 @@ pub fn run(args: struct {
     }
 }
 
-fn wndProc(hwnd: w.HWND, msg: w.UINT, wparam: w.WPARAM, lparam: w.LPARAM) callconv(.C) w.LRESULT {
+fn wndProc(hwnd: win32.HWND, msg: win32.UINT, wparam: win32.WPARAM, lparam: win32.LPARAM) callconv(.C) win32.LRESULT {
     switch (msg) {
         user32.WM_DESTROY => user32.postQuitMessage(0),
         else => {},
@@ -60,7 +63,7 @@ fn wndProc(hwnd: w.HWND, msg: w.UINT, wparam: w.WPARAM, lparam: w.LPARAM) callco
     return user32.defWindowProcW(hwnd, msg, wparam, lparam);
 }
 
-fn registerClass(hinstance: w.HINSTANCE, name: w.LPCWSTR) !void {
+fn registerClass(hinstance: win32.HINSTANCE, name: win32.LPCWSTR) !void {
     var wndclass = user32.WNDCLASSEXW{
         .cbSize = @sizeOf(user32.WNDCLASSEXW),
         .style = 0,
@@ -80,19 +83,19 @@ fn registerClass(hinstance: w.HINSTANCE, name: w.LPCWSTR) !void {
 }
 
 fn createWindow(
-    hinstance: w.HINSTANCE,
-    class_name: w.LPCWSTR,
-    window_name: w.LPCWSTR,
+    hinstance: win32.HINSTANCE,
+    class_name: win32.LPCWSTR,
+    window_name: win32.LPCWSTR,
     window_width: u16,
     window_height: u16,
-) !w.HWND {
-    var rect = w.RECT{
+) !win32.HWND {
+    var rect = win32.RECT{
         .left = 60,
         .top = 60,
         .right = window_width,
         .bottom = window_height,
     };
-    const style: w.DWORD = user32.WS_OVERLAPPEDWINDOW;
+    const style: win32.DWORD = user32.WS_OVERLAPPEDWINDOW;
     try user32.adjustWindowRectEx(&rect, style, false, 0);
     const actual_window_width = rect.right - rect.left;
     const actual_window_height = rect.bottom - rect.top;

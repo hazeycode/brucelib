@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub usingnamespace switch (builtin.os.tag) {
     .linux => @import("linux.zig"),
     .macos => @import("macos.zig"),
-    .windows => @import("windows.zig"),
+    .windows => @import("win32.zig"),
     else => @compileError("Unsupported target"),
 };
 
