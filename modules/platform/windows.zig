@@ -38,16 +38,25 @@ pub fn run(args: struct {
         args.pxheight,
     );
 
-    while (true) {
+    var quit = false;
+    while (quit == false) {
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
             _ = user32.translateMessage(&msg);
             _ = user32.dispatchMessageW(&msg);
+            if (msg.message == user32.WM_QUIT) {
+                quit = true;
+                break;
+            }
         }
     }
 }
 
 fn wndProc(hwnd: w.HWND, msg: w.UINT, wparam: w.WPARAM, lparam: w.LPARAM) callconv(.C) w.LRESULT {
+    switch (msg) {
+        user32.WM_DESTROY => user32.postQuitMessage(0),
+        else => {},
+    }
     return user32.defWindowProcW(hwnd, msg, wparam, lparam);
 }
 
