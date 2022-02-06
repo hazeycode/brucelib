@@ -8,7 +8,7 @@ const core = std.build.Pkg{
 const platform = std.build.Pkg{
     .name = "platform",
     .path = .{ .path = "modules/platform/main.zig" },
-    .dependencies = &.{ core, external.zig_objcrt },
+    .dependencies = &.{ core, external.zig_objcrt, external.zig_gamedev_win32 },
 };
 
 const graphics = std.build.Pkg{
@@ -21,6 +21,10 @@ const external = struct {
     const zig_objcrt = std.build.Pkg{
         .name = "zig-objcrt",
         .path = .{ .path = "external/zig-objcrt/src/main.zig" },
+    };
+    const zig_gamedev_win32 = std.build.Pkg{
+        .name = "zig-gamedev-win32",
+        .path = .{ .path = "external/zig-gamedev-win32/win32.zig" },
     };
 };
 
@@ -55,6 +59,7 @@ pub fn build(b: *std.build.Builder) !void {
     example.addPackage(platform);
     example.addPackage(graphics);
     try addPlatformSystemDependencies(example);
+    example.install();
 
     const example_runstep = example.run();
     example_runstep.step.dependOn(b.getInstallStep());
@@ -62,7 +67,6 @@ pub fn build(b: *std.build.Builder) !void {
     b.step("run-example", "Build and run example").dependOn(&example_runstep.step);
 }
 
-// TODO(hazeycode): Remove system dependencies / support cross-compilation
 fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
@@ -78,9 +82,11 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
         step.addPackage(external.zig_objcrt);
     } else if (step.target.isWindows()) {
-        step.linkLibC();
         step.linkSystemLibrary("Kernel32");
         step.linkSystemLibrary("User32");
+        step.linkSystemLibrary("d3d11");
+        step.linkSystemLibrary("dxgi");
+        step.addPackage(external.zig_gamedev_win32);
     } else {
         return error.UnsupportedTarget;
     }
