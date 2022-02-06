@@ -23,7 +23,7 @@ pub const CREATE_DEVICE_PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY = 0x80;
 pub const CREATE_DEVICE_DISABLE_GPU_TIMEOUT = 0x100;
 pub const CREATE_DEVICE_VIDEO_SUPPORT = 0x800;
 
-pub const D3D11_SDK_VERSION: UINT = 7;
+pub const SDK_VERSION: UINT = 7;
 
 pub const BIND_FLAG = UINT;
 pub const BIND_VERTEX_BUFFER = 0x1;
@@ -136,10 +136,10 @@ pub const IDeviceChild = extern struct {
     pub fn VTable(comptime T: type) type {
         _ = T;
         return extern struct {
-            GetDevice: fn (*T, **IDevice) callconv(WINAPI) HRESULT,
-            GetPrivateData: fn (*T, *GUID, *UINT) callconv(WINAPI) HRESULT,
-            SetPrivateData: fn (*T, *GUID, UINT) callconv(WINAPI) HRESULT,
-            SetPrivateDataInterface: fn (*T, *GUID) callconv(WINAPI) HRESULT,
+            GetDevice: *anyopaque,
+            GetPrivateData: *anyopaque,
+            SetPrivateData: *anyopaque,
+            SetPrivateDataInterface: *anyopaque,
         };
     }
 };
@@ -164,9 +164,9 @@ pub const IResource = extern struct {
     pub fn VTable(comptime T: type) type {
         _ = T;
         return extern struct {
-            GetType: fn (*T, *RESOURCE_DIMENSION) callconv(WINAPI) HRESULT,
-            SetEvictionPriority: fn (*T, UINT) callconv(WINAPI) HRESULT,
-            GetEvictionPriority: fn (*T, *UINT) callconv(WINAPI) HRESULT,
+            GetType: *anyopaque,
+            SetEvictionPriority: *anyopaque,
+            GetEvictionPriority: *anyopaque,
         };
     }
 };
@@ -316,16 +316,19 @@ pub const IDevice = extern struct {
     usingnamespace Methods(Self);
 
     pub fn Methods(comptime T: type) type {
-        _ = T;
         return extern struct {
-            pub inline fn CreateRenderTargetView(self: *const T, pResource: ?*IResource, pDesc: ?*const RENDER_TARGET_VIEW_DESC, ppRTView: ?*?*IRenderTargetView) HRESULT {
+            pub inline fn CreateRenderTargetView(
+                self: *T,
+                pResource: ?*IResource,
+                pDesc: ?*const RENDER_TARGET_VIEW_DESC,
+                ppRTView: ?*?*IRenderTargetView,
+            ) HRESULT {
                 return self.v.device.CreateRenderTargetView(self, pResource, pDesc, ppRTView);
             }
         };
     }
 
     pub fn VTable(comptime T: type) type {
-        _ = T;
         return extern struct {
             CreateBuffer: *anyopaque,
             CreateTexture1D: *anyopaque,
@@ -333,7 +336,12 @@ pub const IDevice = extern struct {
             CreateTexture3D: *anyopaque,
             CreateShaderResourceView: *anyopaque,
             CreateUnorderedAccessView: *anyopaque,
-            CreateRenderTargetView: fn (*const IDevice, ?*IResource, ?*const RENDER_TARGET_VIEW_DESC, ?*?*IRenderTargetView) callconv(WINAPI) HRESULT,
+            CreateRenderTargetView: fn (
+                *T,
+                ?*IResource,
+                ?*const RENDER_TARGET_VIEW_DESC,
+                ?*?*IRenderTargetView,
+            ) callconv(WINAPI) HRESULT,
             CreateDepthStencilView: *anyopaque,
             CreateInputLayout: *anyopaque,
             CreateVertexShader: *anyopaque,

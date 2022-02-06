@@ -217,7 +217,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) HResultError!void {
         flags,
         null,
         0,
-        d3d11.D3D11_SDK_VERSION,
+        d3d11.SDK_VERSION,
         &swapchain_desc,
         &swap_chain,
         &d3d11_device,
