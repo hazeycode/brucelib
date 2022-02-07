@@ -14,7 +14,7 @@ const platform = std.build.Pkg{
 const graphics = std.build.Pkg{
     .name = "graphics",
     .path = .{ .path = "modules/graphics/main.zig" },
-    .dependencies = &.{core},
+    .dependencies = &.{ core, external.zig_gamedev_win32 },
 };
 
 const external = struct {
@@ -86,6 +86,7 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkSystemLibrary("User32");
         step.linkSystemLibrary("d3d11");
         step.linkSystemLibrary("dxgi");
+        step.linkSystemLibrary("D3DCompiler_47"); // TODO(hazeycode): get rid of this naughtyness and precompile your shaders like a good boy
         step.addPackage(external.zig_gamedev_win32);
     } else {
         return error.UnsupportedTarget;

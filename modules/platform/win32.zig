@@ -17,17 +17,14 @@ const HRESULT = win32.base.HRESULT;
 const HINSTANCE = win32.base.HINSTANCE;
 const HWND = win32.base.HWND;
 const RECT = win32.base.RECT;
-const E_FAIL = win32.base.E_FAIL;
-const E_INVALIDARG = win32.base.E_INVALIDARG;
-const E_OUTOFMEMORY = win32.base.E_OUTOFMEMORY;
-const E_NOTIMPL = win32.base.E_NOTIMPL;
-const S_FALSE = win32.base.S_FALSE;
-const S_OK = win32.base.S_OK;
 const kernel32 = win32.base.kernel32;
 const user32 = win32.base.user32;
 const dxgi = win32.dxgi;
 const d3d = win32.d3d;
 const d3d11 = win32.d3d11;
+const d3dcompiler = win32.d3dcompiler;
+
+const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
 pub const default_graphics_api = core.GraphicsAPI.d3d11;
 
@@ -178,7 +175,7 @@ var d3d11_device: ?*d3d11.IDevice = null;
 var d3d11_device_context: ?*d3d11.IDeviceContext = null;
 var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
 
-fn createDeviceAndSwapchain(hwnd: HWND) HResultError!void {
+fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
     var swapchain_desc: dxgi.SWAP_CHAIN_DESC = .{
         .BufferDesc = .{
             .Width = 0,
@@ -210,7 +207,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) HResultError!void {
 
     var feature_level: d3d.FEATURE_LEVEL = .FL_11_0;
 
-    try checkResult(d3d11.D3D11CreateDeviceAndSwapChain(
+    try win32.hrErrorOnFail(d3d11.D3D11CreateDeviceAndSwapChain(
         null,
         d3d.DRIVER_TYPE.HARDWARE,
         null,
@@ -226,14 +223,14 @@ fn createDeviceAndSwapchain(hwnd: HWND) HResultError!void {
     ));
 }
 
-fn createRenderTargetView() HResultError!void {
+fn createRenderTargetView() win32.HResultError!void {
     var framebuffer: *d3d11.IResource = undefined;
-    try checkResult(swap_chain.?.GetBuffer(
+    try win32.hrErrorOnFail(swap_chain.?.GetBuffer(
         0,
         &d3d11.IID_IResource,
         @ptrCast(*?*anyopaque, &framebuffer),
     ));
-    try checkResult(d3d11_device.?.CreateRenderTargetView(
+    try win32.hrErrorOnFail(d3d11_device.?.CreateRenderTargetView(
         framebuffer,
         null,
         &d3d11_render_target_view,
@@ -241,89 +238,6 @@ fn createRenderTargetView() HResultError!void {
     _ = framebuffer.Release();
 }
 
-const HResultError = DXGIError || D3D11Error || error{
-    UNKNOWN_ERROR,
-    E_FAIL,
-    E_INVALIDARG,
-    E_OUTOFMEMORY,
-    E_NOTIMPL,
-    S_FALSE,
-};
-
-const DXGIError = error{
-    ACCESS_DENIED,
-    ACCESS_LOST,
-    ALREADY_EXISTS,
-    CANNOT_PROTECT_CONTENT,
-    DEVICE_HUNG,
-    DEVICE_REMOVED,
-    DEVICE_RESET,
-    DRIVER_INTERNAL_ERROR,
-    FRAME_STATISTICS_DISJOINT,
-    GRAPHICS_VIDPN_SOURCE_IN_USE,
-    INVALID_CALL,
-    MORE_DATA,
-    NAME_ALREADY_EXISTS,
-    NONEXCLUSIVE,
-    NOT_CURRENTLY_AVAILABLE,
-    NOT_FOUND,
-    REMOTE_CLIENT_DISCONNECTED,
-    REMOTE_OUTOFMEMORY,
-    RESTRICT_TO_OUTPUT_STALE,
-    SDK_COMPONENT_MISSING,
-    SESSION_DISCONNECTED,
-    UNSUPPORTED,
-    WAIT_TIMEOUT,
-    WAS_STILL_DRAWING,
-};
-
-const D3D11Error = error{
-    FILE_NOT_FOUND,
-    TOO_MANY_UNIQUE_STATE_OBJECTS,
-    TOO_MANY_UNIQUE_VIEW_OBJECTS,
-    DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD,
-};
-
-fn hresultToError(hresult: HRESULT) HResultError {
-    return switch (hresult) {
-        dxgi.ERROR_ACCESS_DENIED => DXGIError.ACCESS_DENIED,
-        dxgi.ERROR_ACCESS_LOST => DXGIError.ACCESS_LOST,
-        dxgi.ERROR_ALREADY_EXISTS => DXGIError.ALREADY_EXISTS,
-        dxgi.ERROR_CANNOT_PROTECT_CONTENT => DXGIError.CANNOT_PROTECT_CONTENT,
-        dxgi.ERROR_DEVICE_HUNG => DXGIError.DEVICE_HUNG,
-        dxgi.ERROR_DEVICE_REMOVED => DXGIError.DEVICE_REMOVED,
-        dxgi.ERROR_DEVICE_RESET => DXGIError.DEVICE_RESET,
-        dxgi.ERROR_DRIVER_INTERNAL_ERROR => DXGIError.DRIVER_INTERNAL_ERROR,
-        dxgi.ERROR_FRAME_STATISTICS_DISJOINT => DXGIError.FRAME_STATISTICS_DISJOINT,
-        dxgi.ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE => DXGIError.GRAPHICS_VIDPN_SOURCE_IN_USE,
-        dxgi.ERROR_INVALID_CALL => DXGIError.INVALID_CALL,
-        dxgi.ERROR_MORE_DATA => DXGIError.MORE_DATA,
-        dxgi.ERROR_NAME_ALREADY_EXISTS => DXGIError.NAME_ALREADY_EXISTS,
-        dxgi.ERROR_NONEXCLUSIVE => DXGIError.NONEXCLUSIVE,
-        dxgi.ERROR_NOT_CURRENTLY_AVAILABLE => DXGIError.NOT_CURRENTLY_AVAILABLE,
-        dxgi.ERROR_NOT_FOUND => DXGIError.NOT_FOUND,
-        dxgi.ERROR_REMOTE_CLIENT_DISCONNECTED => DXGIError.REMOTE_CLIENT_DISCONNECTED,
-        dxgi.ERROR_REMOTE_OUTOFMEMORY => DXGIError.REMOTE_OUTOFMEMORY,
-        dxgi.ERROR_RESTRICT_TO_OUTPUT_STALE => DXGIError.RESTRICT_TO_OUTPUT_STALE,
-        dxgi.ERROR_SDK_COMPONENT_MISSING => DXGIError.SDK_COMPONENT_MISSING,
-        dxgi.ERROR_SESSION_DISCONNECTED => DXGIError.SESSION_DISCONNECTED,
-        dxgi.ERROR_UNSUPPORTED => DXGIError.UNSUPPORTED,
-        dxgi.ERROR_WAIT_TIMEOUT => DXGIError.WAIT_TIMEOUT,
-        dxgi.ERROR_WAS_STILL_DRAWING => DXGIError.WAS_STILL_DRAWING,
-        d3d11.ERROR_FILE_NOT_FOUND => D3D11Error.FILE_NOT_FOUND,
-        d3d11.ERROR_TOO_MANY_UNIQUE_STATE_OBJECTS => D3D11Error.TOO_MANY_UNIQUE_STATE_OBJECTS,
-        d3d11.ERROR_TOO_MANY_UNIQUE_VIEW_OBJECTS => D3D11Error.TOO_MANY_UNIQUE_VIEW_OBJECTS,
-        d3d11.ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD => D3D11Error.DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD,
-        E_FAIL => HResultError.E_FAIL,
-        E_INVALIDARG => HResultError.E_INVALIDARG,
-        E_OUTOFMEMORY => HResultError.E_OUTOFMEMORY,
-        E_NOTIMPL => HResultError.E_NOTIMPL,
-        S_FALSE => HResultError.S_FALSE,
-        else => HResultError.UNKNOWN_ERROR,
-    };
-}
-
-fn checkResult(hresult: HRESULT) HResultError!void {
-    if (hresult == S_OK) return;
-    return hresultToError(hresult);
+export fn getD3D11Device() *d3d11.IDevice {
+    return d3d11_device.?;
 }
