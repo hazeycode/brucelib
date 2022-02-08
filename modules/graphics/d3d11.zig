@@ -51,12 +51,12 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
             .MaxDepth = 1.0,
         },
     };
-    getD3D11DeviceContext().RSSetViewports(1, @ptrCast(*const d3d11.VIEWPORT, &viewports));
+    getD3D11DeviceContext().RSSetViewports(1, &viewports);
 }
 
 pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     const colour = [4]FLOAT{ r, g, b, a };
-    getD3D11DeviceContext().ClearRenderTargetView(getD3D11RenderTargetView(), colour);
+    getD3D11DeviceContext().ClearRenderTargetView(getD3D11RenderTargetView(), &colour);
 }
 
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
