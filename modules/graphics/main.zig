@@ -89,23 +89,31 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             max_y: f32,
         };
 
-        pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
-            if (_initilised == false) {
-                _solid_colour_shader = try backend.createSolidColourShader(allocator);
+        pub fn init(allocator: std.mem.Allocator) !void {
+            backend.init(allocator);
 
-                const zeros = [_]u8{0} ** _vertex_buffer_size;
-                _vertex_buffer = backend.createDynamicVertexBufferWithBytes(&zeros);
-                _vertex_layout = backend.createVertexLayout(.{
+            _solid_colour_shader = try backend.createSolidColourShader();
+
+            const zeros = [_]u8{0} ** _vertex_buffer_size;
+            _vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
+            _vertex_layout = backend.createVertexLayout(
+                _solid_colour_shader,
+                .{
                     .attributes = &[_]VertexLayoutDesc.Attribute{
                         .{
                             .buffer_handle = _vertex_buffer,
                             .num_components = 3,
                         },
                     },
-                });
+                },
+            );
+        }
 
-                _initilised = true;
-            }
+        pub fn deinit() void {
+            backend.deinit();
+        }
+
+        pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
             return DrawList{
                 .entries = std.ArrayList(DrawList.Entry).init(allocator),
             };
@@ -122,7 +130,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
                     },
                     .draw_verts => |e| {
-                        // TODO(hazeycode): only write to buffer if verts have changed
+                        //TODO(hazeycode): only write to buffer if verts have changed
                         backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
                         backend.bindVertexLayout(_vertex_layout);
                         backend.bindShaderProgram(_solid_colour_shader);
@@ -135,7 +143,6 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
         // temporary private stuff to get something going
         // TODO(hazeycode): support for multiple vertex buffers (or slices into a single one) with caching
-        var _initilised: bool = false;
         var _vertex_buffer: VertexBufferHandle = undefined;
         var _vertex_layout: VertexLayoutHandle = undefined;
         const _vertex_buffer_size = @sizeOf(f32) * 1e3;

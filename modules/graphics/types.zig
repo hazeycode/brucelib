@@ -1,6 +1,6 @@
-pub const ShaderProgramHandle = u32;
-pub const VertexBufferHandle = u32;
-pub const VertexLayoutHandle = u32;
+pub const ShaderProgramHandle = u64;
+pub const VertexBufferHandle = u64;
+pub const VertexLayoutHandle = u64;
 
 pub const VertexLayoutDesc = struct {
     pub const Attribute = struct {

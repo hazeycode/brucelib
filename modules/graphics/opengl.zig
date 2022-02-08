@@ -7,6 +7,14 @@ const c = @cImport({
     @cInclude("epoxy/gl.h");
 });
 
+var allocator: std.mem.Allocator = undefined;
+
+pub fn init(_allocator: std.mem.Allocator) void {
+    allocator = _allocator;
+}
+
+pub fn deinit() void {}
+
 pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
     c.glViewport(x, y, width, height);
 }
@@ -16,7 +24,7 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     c.glClear(c.GL_COLOR_BUFFER_BIT);
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) types.VertexBufferHandle {
+pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
     writeBytesToVertexBuffer(vbo, bytes);
@@ -28,7 +36,7 @@ pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []co
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
 }
 
-pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
+pub fn createVertexLayout(_: types.ShaderProgramHandle, layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
     var vao: c.GLuint = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
@@ -67,7 +75,7 @@ pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(layout_handle);
 }
 
-pub fn bindShaderProgram(program_handle: u32) void {
+pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(program_handle);
 }
 
@@ -82,7 +90,7 @@ pub fn draw(offset: u32, count: usize) void {
     c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
 }
 
-pub fn createSolidColourShader(allocator: std.mem.Allocator) !types.ShaderProgramHandle {
+pub fn createSolidColourShader() !types.ShaderProgramHandle {
     const vert_shader_src =
         \\#version 330 core
         \\layout (location = 0) in vec3 aPos;
@@ -108,16 +116,19 @@ pub fn createSolidColourShader(allocator: std.mem.Allocator) !types.ShaderProgra
         \\
     ;
 
-    const vertex_shader = try compileShaderSource(allocator, .vertex, vert_shader_src);
+    const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
     defer c.glDeleteShader(vertex_shader);
 
-    const fragment_shader = try compileShaderSource(allocator, .fragment, frag_shader_src);
+    const fragment_shader = try compileShaderSource(.fragment, frag_shader_src);
     defer c.glDeleteShader(fragment_shader);
 
-    return createShaderProgram(allocator, vertex_shader, fragment_shader);
+    return createShaderProgram(vertex_shader, fragment_shader);
 }
 
-fn compileShaderSource(allocator: std.mem.Allocator, stage: enum { vertex, fragment }, source: [:0]const u8) !u32 {
+fn compileShaderSource(stage: enum { vertex, fragment }, source: [:0]const u8) !u32 {
+    var temp_arena = std.heap.ArenaAllocator.init(allocator);
+    defer temp_arena.deinit();
+
     const shader = c.glCreateShader(switch (stage) {
         .vertex => c.GL_VERTEX_SHADER,
         .fragment => c.GL_FRAGMENT_SHADER,
@@ -133,8 +144,7 @@ fn compileShaderSource(allocator: std.mem.Allocator, stage: enum { vertex, fragm
         var log_len: c.GLint = undefined;
         c.glGetShaderiv(shader, c.GL_INFO_LOG_LENGTH, &log_len);
         if (log_len > 0) {
-            const log_buffer = try allocator.alloc(u8, @intCast(usize, log_len));
-            defer allocator.free(log_buffer);
+            const log_buffer = try temp_arena.allocator().alloc(u8, @intCast(usize, log_len));
             c.glGetShaderInfoLog(shader, log_len, &log_len, @ptrCast([*c]u8, log_buffer));
             std.log.err("{s}", .{log_buffer});
         }
@@ -145,7 +155,10 @@ fn compileShaderSource(allocator: std.mem.Allocator, stage: enum { vertex, fragm
     return shader;
 }
 
-fn createShaderProgram(allocator: std.mem.Allocator, vertex_shader_handle: u32, fragment_shader_handle: u32) !u32 {
+fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !u32 {
+    var temp_arena = std.heap.ArenaAllocator.init(allocator);
+    defer temp_arena.deinit();
+
     const program = c.glCreateProgram();
     errdefer c.glDeleteProgram(program);
 
@@ -160,8 +173,7 @@ fn createShaderProgram(allocator: std.mem.Allocator, vertex_shader_handle: u32, 
         var log_len: c.GLint = undefined;
         c.glGetProgramiv(program, c.GL_INFO_LOG_LENGTH, &log_len);
         if (log_len > 0) {
-            const log_buffer = try allocator.alloc(u8, @intCast(usize, log_len));
-            defer allocator.free(log_buffer);
+            const log_buffer = try temp_arena.allocator().alloc(u8, @intCast(usize, log_len));
             c.glGetProgramInfoLog(program, log_len, &log_len, log_buffer.ptr);
             std.log.err("{s}", .{log_buffer});
         }

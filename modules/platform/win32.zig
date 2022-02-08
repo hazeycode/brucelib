@@ -35,12 +35,15 @@ pub const Error = error{
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var window_resized: bool = false;
+var window_closed = false;
 
 pub fn run(args: struct {
     graphics_api: core.GraphicsAPI = default_graphics_api,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
+    init_fn: fn (std.mem.Allocator) anyerror!void,
+    deinit_fn: fn () void,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -71,7 +74,11 @@ pub fn run(args: struct {
     try createDeviceAndSwapchain(hwnd);
     try createRenderTargetView();
 
-    while (true) {
+    try args.init_fn(allocator);
+    defer args.deinit_fn();
+
+    var quit = false;
+    while (quit == false) main_loop: {
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
 
@@ -81,19 +88,18 @@ pub fn run(args: struct {
         var key_releases = std.ArrayList(Input.KeyReleaseEvent).init(arena_allocator);
         var mouse_button_presses = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
         var mouse_button_releases = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
-        var window_closed = false;
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
             _ = user32.translateMessage(&msg);
             _ = user32.dispatchMessageW(&msg);
-            if (msg.message == user32.WM_DESTROY) {
-                std.log.debug("CLOSE!", .{});
-                window_closed = true;
+            if (msg.message == user32.WM_QUIT) {
+                quit = true;
+                break :main_loop;
             }
         }
 
-        const quit = !(try args.update_fn(.{
+        quit = !(try args.update_fn(.{
             .frame_arena_allocator = arena_allocator,
             .key_presses = key_presses.items,
             .key_releases = key_releases.items,
@@ -104,12 +110,16 @@ pub fn run(args: struct {
             .quit_requested = window_closed,
         }));
 
-        if (quit) break;
+        try win32.hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
     }
 }
 
 fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
     switch (msg) {
+        user32.WM_CLOSE => {
+            window_closed = true;
+            return 0;
+        },
         user32.WM_DESTROY => user32.postQuitMessage(0),
         else => {},
     }
@@ -169,8 +179,7 @@ fn createWindow(
     return hwnd;
 }
 
-var swap_chain: ?*dxgi.ISwapChain = null;
-
+var dxgi_swap_chain: ?*dxgi.ISwapChain = null;
 var d3d11_device: ?*d3d11.IDevice = null;
 var d3d11_device_context: ?*d3d11.IDeviceContext = null;
 var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
@@ -216,7 +225,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
         0,
         d3d11.SDK_VERSION,
         &swapchain_desc,
-        &swap_chain,
+        &dxgi_swap_chain,
         &d3d11_device,
         &feature_level,
         &d3d11_device_context,
@@ -225,7 +234,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
 
 fn createRenderTargetView() win32.HResultError!void {
     var framebuffer: *d3d11.IResource = undefined;
-    try win32.hrErrorOnFail(swap_chain.?.GetBuffer(
+    try win32.hrErrorOnFail(dxgi_swap_chain.?.GetBuffer(
         0,
         &d3d11.IID_IResource,
         @ptrCast(*?*anyopaque, &framebuffer),
@@ -240,4 +249,12 @@ fn createRenderTargetView() win32.HResultError!void {
 
 export fn getD3D11Device() *d3d11.IDevice {
     return d3d11_device.?;
+}
+
+export fn getD3D11DeviceContext() *d3d11.IDeviceContext {
+    return d3d11_device_context.?;
+}
+
+export fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
+    return d3d11_render_target_view.?;
 }

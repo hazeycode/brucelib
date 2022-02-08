@@ -18,6 +18,8 @@ pub fn run(args: struct {
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
+    init_fn: fn (std.mem.Allocator) anyerror!void,
+    deinit_fn: fn () void,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -32,6 +34,9 @@ pub fn run(args: struct {
 
     try windowing.init(args.title);
     defer windowing.deinit();
+
+    try args.init_fn(allocator);
+    defer args.deinit_fn();
 
     while (true) {
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);

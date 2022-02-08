@@ -9,6 +9,8 @@ pub fn main() anyerror!void {
         .title = "example",
         .pxwidth = 854,
         .pxheight = 480,
+        .init_fn = init,
+        .deinit_fn = deinit,
         .update_fn = update,
     });
 }
@@ -17,8 +19,19 @@ var state: struct {
     triangle_hue: f32 = 0,
 } = .{};
 
+fn init(allocator: std.mem.Allocator) !void {
+    try graphics.init(allocator);
+}
+
+fn deinit() void {
+    graphics.deinit();
+}
+
 fn update(input: platform.Input) !bool {
-    if (input.quit_requested) return false;
+    if (input.quit_requested) {
+        std.log.debug("quit requested", .{});
+        return false;
+    }
 
     state.triangle_hue = @mod(state.triangle_hue + 1.0, 360.0);
 
