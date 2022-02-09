@@ -27,58 +27,58 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
-    writeBytesToVertexBuffer(vbo, bytes);
+    try writeBytesToVertexBuffer(vbo, bytes);
     return vbo;
 }
 
 pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) !void {
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, buffer_id);
-    c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, buffer_id));
+    c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c.GLuint, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
 }
 
-pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
+pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {
     var vao: c.GLuint = undefined;
     c.glGenVertexArrays(1, &vao);
-    c.glBindVertexArray(vao);
+    c.glBindVertexArray(@intCast(c.GLuint, vao));
 
     for (layout_desc.entries) |entry, i| {
-        c.glBindBuffer(c.GL_ARRAY_BUFFER, entry.buffer_handle);
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLuint, entry.buffer_handle));
 
         var attrib_offset: usize = 0;
         for (entry.attributes) |attr, j| {
             const num_components = attr.getNumComponents();
-            const component_type = switch (attr) {
+            const component_type: c.GLenum = switch (attr.format) {
                 .f32x3, .f32x4 => c.GL_FLOAT,
             };
             c.glVertexAttribPointer(
-                @intCast(c_uint, j),
-                @intCast(c_int, num_components),
+                @intCast(c.GLuint, j),
+                @intCast(c.GLint, num_components),
                 component_type,
                 c.GL_FALSE,
-                @intCast(c_int, entry.getStride()),
+                @intCast(c.GLsizei, entry.getStride()),
                 if (attrib_offset == 0) null else @intToPtr(*anyopaque, attrib_offset),
             );
-            attrib_offset += num_components * @sizeOf(f32);
+            attrib_offset += attr.getSize();
         }
 
-        c.glEnableVertexAttribArray(@intCast(c_uint, i));
+        c.glEnableVertexAttribArray(@intCast(c.GLuint, i));
     }
 
     return vao;
 }
 
-pub fn createRasteriserState() types.RasteriserStateHandle {
+pub fn createRasteriserState() !types.RasteriserStateHandle {
     return 0;
 }
 
 pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
-    c.glBindVertexArray(layout_handle);
+    c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
-pub fn bindRasterizerState(_: types.RasteriserStateHandle) void {}
+pub fn bindRasteriserState(_: types.RasteriserStateHandle) void {}
 
 pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
-    c.glUseProgram(program_handle);
+    c.glUseProgram(@intCast(c.GLuint, program_handle));
 }
 
 // TODO(hazeycode): generalise this
@@ -125,7 +125,7 @@ pub fn createSolidColourShader() !types.ShaderProgramHandle {
     const fragment_shader = try compileShaderSource(.fragment, frag_shader_src);
     defer c.glDeleteShader(fragment_shader);
 
-    return createShaderProgram(vertex_shader, fragment_shader);
+    return try createShaderProgram(vertex_shader, fragment_shader);
 }
 
 fn compileShaderSource(stage: enum { vertex, fragment }, source: [:0]const u8) !u32 {
