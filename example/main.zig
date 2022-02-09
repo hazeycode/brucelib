@@ -48,7 +48,7 @@ fn update(input: platform.Input) !bool {
             },
         },
     );
-    graphics.submitDrawList(draw_list);
+    try graphics.submitDrawList(draw_list);
 
     return true;
 }

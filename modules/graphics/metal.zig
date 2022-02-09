@@ -32,13 +32,13 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     return 0;
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) void {
+pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) !void {
     _ = buffer_id;
     _ = bytes;
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn createVertexLayout(_: types.ShaderProgramHandle, layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
+pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
     _ = layout_desc;
     std.debug.panic("Unimplemented", .{});
     return 0;
@@ -60,7 +60,7 @@ pub fn writeUniform(location: u32, components: []const f32) void {
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn draw(offset: u32, count: usize) void {
+pub fn draw(offset: u32, count: u32) void {
     _ = offset;
     _ = count;
     std.debug.panic("Unimplemented", .{});

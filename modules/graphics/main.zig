@@ -14,6 +14,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const VertexBufferHandle = types.VertexBufferHandle;
         pub const VertexLayoutDesc = types.VertexLayoutDesc;
         pub const VertexLayoutHandle = types.VertexLayoutHandle;
+        pub const RasteriserStateHandle = types.RasteriserStateHandle;
 
         pub const DrawList = struct {
             pub const Entry = union(enum) {
@@ -58,21 +59,20 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 return .{ .r = r, .g = g, .b = b, .a = 1 };
             }
 
+            /// Returns a Colour for a given hue, saturation and value
+            /// h, s, v are assumed to be in the range 0...1
             pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
-                // TODO(hazeycode): branchless algorithm
-                std.debug.assert(h >= 0.0 and h < 360.0);
                 const c = s * v;
                 const x = c * (1 - @fabs(@mod(h / 60.0, 2) - 1));
                 const m = v - c;
                 // zig fmt: off
-        const rgb =
-            if (h >= 0.0 and h < 60.0) [3]f32{ c, x, 0.0 }
-            else if (h >= 60 and h < 120) [3]f32{ x, c, 0.0 }
-            else if (h >= 120 and h < 180) [3]f32{ 0.0, c, x }
-            else if (h >= 180 and h < 240) [3]f32{ 0.0, x, c }
-            else if (h >= 240 and h < 300) [3]f32{ x, 0.0, c }
-            else [3]f32{ c, 0.0, x };
-        // zig fmt: on
+                const rgb = if (h >= 0.0 and h < 60.0) [3]f32{ c, x, 0.0 }
+                    else if (h >= 60 and h < 120) [3]f32{ x, c, 0.0 }
+                    else if (h >= 120 and h < 180) [3]f32{ 0.0, c, x }
+                    else if (h >= 180 and h < 240) [3]f32{ 0.0, x, c }
+                    else if (h >= 240 and h < 300) [3]f32{ x, 0.0, c }
+                    else [3]f32{ c, 0.0, x };
+                // zig fmt: on
                 return .{
                     .r = rgb[0] + m,
                     .g = rgb[1] + m,
@@ -94,19 +94,21 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
             _solid_colour_shader = try backend.createSolidColourShader();
 
+            _rasteriser_state = try backend.createRasteriserState();
+
             const zeros = [_]u8{0} ** _vertex_buffer_size;
             _vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
-            _vertex_layout = backend.createVertexLayout(
-                _solid_colour_shader,
-                .{
-                    .attributes = &[_]VertexLayoutDesc.Attribute{
-                        .{
-                            .buffer_handle = _vertex_buffer,
-                            .num_components = 3,
+            _vertex_layout = try backend.createVertexLayout(.{
+                .entries = &[_]VertexLayoutDesc.Entry{
+                    .{
+                        .buffer_handle = _vertex_buffer,
+                        .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
+                            .{ .format = .f32x3 },
                         },
+                        .offset = 0,
                     },
                 },
-            );
+            });
         }
 
         pub fn deinit() void {
@@ -119,7 +121,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             };
         }
 
-        pub fn submitDrawList(draw_list: DrawList) void {
+        pub fn submitDrawList(draw_list: DrawList) !void {
             // TODO(hazeycode): sort draw list to minimise pipeline state changes
             for (draw_list.entries.items) |entry| {
                 switch (entry) {
@@ -131,11 +133,12 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     },
                     .draw_verts => |e| {
                         //TODO(hazeycode): only write to buffer if verts have changed
-                        backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
-                        backend.bindVertexLayout(_vertex_layout);
+                        try backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
                         backend.bindShaderProgram(_solid_colour_shader);
+                        backend.bindRasteriserState(_rasteriser_state);
+                        backend.bindVertexLayout(_vertex_layout);
                         backend.writeUniform(0, &.{ e.colour.r, e.colour.g, e.colour.b, e.colour.a });
-                        backend.draw(0, e.vertices.len);
+                        backend.draw(0, @intCast(u32, e.vertices.len));
                     },
                 }
             }
@@ -146,6 +149,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         var _vertex_buffer: VertexBufferHandle = undefined;
         var _vertex_layout: VertexLayoutHandle = undefined;
         const _vertex_buffer_size = @sizeOf(f32) * 1e3;
+        var _rasteriser_state: RasteriserStateHandle = undefined;
         var _solid_colour_shader: ShaderProgramHandle = undefined;
         var _draw_colour: Colour = undefined;
     };

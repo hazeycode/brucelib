@@ -31,54 +31,57 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     return vbo;
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) void {
+pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) !void {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, buffer_id);
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
 }
 
-pub fn createVertexLayout(_: types.ShaderProgramHandle, layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
+pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
     var vao: c.GLuint = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
 
-    const stride: usize = blk: {
-        var temp: usize = 0;
-        for (layout_desc.attributes) |attrib_desc| {
-            std.debug.assert(attrib_desc.num_components > 0 and attrib_desc.num_components <= 4);
-            temp += attrib_desc.num_components * @sizeOf(f32);
+    for (layout_desc.entries) |entry, i| {
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, entry.buffer_handle);
+
+        var attrib_offset: usize = 0;
+        for (entry.attributes) |attr, j| {
+            const num_components = attr.getNumComponents();
+            const component_type = switch (attr) {
+                .f32x3, .f32x4 => c.GL_FLOAT,
+            };
+            c.glVertexAttribPointer(
+                @intCast(c_uint, j),
+                @intCast(c_int, num_components),
+                component_type,
+                c.GL_FALSE,
+                @intCast(c_int, entry.getStride()),
+                if (attrib_offset == 0) null else @intToPtr(*anyopaque, attrib_offset),
+            );
+            attrib_offset += num_components * @sizeOf(f32);
         }
-        break :blk temp;
-    };
-
-    var byte_offset: usize = 0;
-    for (layout_desc.attributes) |attrib_desc, i| {
-        c.glBindBuffer(c.GL_ARRAY_BUFFER, attrib_desc.buffer_handle);
-
-        c.glVertexAttribPointer(
-            @intCast(c_uint, i),
-            @intCast(c_int, attrib_desc.num_components),
-            c.GL_FLOAT,
-            c.GL_FALSE,
-            @intCast(c_int, stride),
-            if (byte_offset == 0) null else @intToPtr(*anyopaque, byte_offset),
-        );
 
         c.glEnableVertexAttribArray(@intCast(c_uint, i));
-
-        byte_offset += attrib_desc.num_components * @sizeOf(f32);
     }
 
     return vao;
+}
+
+pub fn createRasteriserState() types.RasteriserStateHandle {
+    return 0;
 }
 
 pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(layout_handle);
 }
 
+pub fn bindRasterizerState(_: types.RasteriserStateHandle) void {}
+
 pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(program_handle);
 }
 
+// TODO(hazeycode): generalise this
 pub fn writeUniform(location: u32, components: []const f32) void {
     switch (components.len) {
         4 => c.glUniform4f(@intCast(c_int, location), components[0], components[1], components[2], components[3]),
@@ -86,7 +89,7 @@ pub fn writeUniform(location: u32, components: []const f32) void {
     }
 }
 
-pub fn draw(offset: u32, count: usize) void {
+pub fn draw(offset: u32, count: u32) void {
     c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
 }
 

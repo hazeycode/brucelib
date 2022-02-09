@@ -4,6 +4,9 @@ const builtin = @import("builtin");
 const types = @import("types.zig");
 
 const win32 = @import("zig-gamedev-win32");
+const BOOL = win32.base.BOOL;
+const TRUE = win32.base.TRUE;
+const FALSE = win32.base.FALSE;
 const UINT = win32.base.UINT;
 const FLOAT = win32.base.FLOAT;
 const S_OK = win32.base.S_OK;
@@ -26,12 +29,28 @@ const ShaderProgramList = std.ArrayList(struct {
 
 var shader_programs: ShaderProgramList = undefined;
 
+const VertexLayoutList = std.ArrayList(struct {
+    buffers: []*d3d11.IBuffer,
+    strides: []UINT,
+    offsets: []UINT,
+});
+
+var vertex_layouts: VertexLayoutList = undefined;
+
 pub fn init(_allocator: std.mem.Allocator) void {
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
+    vertex_layouts = VertexLayoutList.init(allocator);
 }
 
 pub fn deinit() void {
+    for (vertex_layouts.items) |layout| {
+        allocator.free(layout.buffers);
+        allocator.free(layout.strides);
+        allocator.free(layout.offsets);
+    }
+    vertex_layouts.deinit();
+
     for (shader_programs.items) |program| {
         _ = program.vs.Release();
         _ = program.ps.Release();
@@ -52,6 +71,15 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
         },
     };
     getD3D11DeviceContext().RSSetViewports(1, &viewports);
+
+    const render_target_views = [_]*d3d11.IRenderTargetView{
+        getD3D11RenderTargetView(),
+    };
+    getD3D11DeviceContext().OMSetRenderTargets(
+        1,
+        @ptrCast([*]const d3d11.IRenderTargetView, &render_target_views),
+        null,
+    );
 }
 
 pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
@@ -63,8 +91,9 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, bytes.len),
-        .Usage = d3d11.USAGE_DEFAULT,
+        .Usage = d3d11.USAGE_DYNAMIC,
         .BindFlags = d3d11.BIND_VERTEX_BUFFER,
+        .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
     };
     const subresouce_data = d3d11.SUBRESOURCE_DATA{
         .pSysMem = bytes.ptr,
@@ -74,39 +103,97 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
         &subresouce_data,
         &buffer,
     ));
-    return @ptrToInt(buffer);
+    return @ptrToInt(buffer.?);
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) void {
-    _ = buffer_id;
-    _ = bytes;
-    std.debug.panic("Unimplemented", .{});
+pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, bytes: []const u8) !void {
+    const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
+    const device_ctx = getD3D11DeviceContext();
+    var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
+    try win32.hrErrorOnFail(device_ctx.Map(
+        vertex_buffer,
+        0,
+        d3d11.MAP.WRITE_DISCARD,
+        0,
+        &subresource,
+    ));
+    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[0..bytes.len], bytes);
+    device_ctx.Unmap(vertex_buffer, 0);
 }
 
-pub fn createVertexLayout(shader_program_handle: types.ShaderProgramHandle, _: types.VertexLayoutDesc) types.VertexLayoutHandle {
-    return @ptrToInt(shader_programs.items[shader_program_handle].input_layout);
+pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {
+    const num_entries = vertex_layout_desc.entries.len;
+
+    var buffers = try allocator.alloc(*d3d11.IBuffer, num_entries);
+    errdefer allocator.free(buffers);
+
+    var strides = try allocator.alloc(UINT, num_entries);
+    errdefer allocator.free(strides);
+
+    var offsets = try allocator.alloc(UINT, num_entries);
+    errdefer allocator.free(offsets);
+
+    for (vertex_layout_desc.entries) |entry, i| {
+        buffers[i] = @intToPtr(*d3d11.IBuffer, entry.buffer_handle);
+        strides[i] = entry.getStride();
+        offsets[i] = entry.offset;
+    }
+
+    try vertex_layouts.append(.{
+        .buffers = buffers,
+        .strides = strides,
+        .offsets = offsets,
+    });
+
+    return (vertex_layouts.items.len - 1);
 }
 
-pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
-    _ = layout_handle;
-    std.debug.panic("Unimplemented", .{});
+pub fn createUniformBuffer() void {}
+
+pub fn createRasteriserState() !types.RasteriserStateHandle {
+    var res: ?*d3d11.IRasterizerState = null;
+    const desc = d3d11.RASTERIZER_DESC{
+        .FrontCounterClockwise = TRUE,
+    };
+    try win32.hrErrorOnFail(getD3D11Device().CreateRasterizerState(&desc, &res));
+    return @ptrToInt(res);
+}
+
+pub fn bindVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
+    const vertex_layout = vertex_layouts.items[vertex_layout_handle];
+    getD3D11DeviceContext().IASetVertexBuffers(
+        0,
+        1,
+        vertex_layout.buffers.ptr,
+        vertex_layout.strides.ptr,
+        vertex_layout.offsets.ptr,
+    );
+}
+
+pub fn bindRasteriserState(state_handle: types.RasteriserStateHandle) void {
+    const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
+    getD3D11DeviceContext().RSSetState(state);
 }
 
 pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
-    _ = program_handle;
-    std.debug.panic("Unimplemented", .{});
+    const device_ctx = getD3D11DeviceContext();
+    const shader_program = shader_programs.items[program_handle];
+    device_ctx.IASetInputLayout(shader_program.input_layout);
+    device_ctx.VSSetShader(shader_program.vs, null, 0);
+    device_ctx.PSSetShader(shader_program.ps, null, 0);
 }
 
+// TODO(hazeycode): generalise this
 pub fn writeUniform(location: u32, components: []const f32) void {
     _ = location;
     _ = components;
-    std.debug.panic("Unimplemented", .{});
+    // std.debug.panic("Unimplemented", .{});
 }
 
-pub fn draw(offset: u32, count: usize) void {
-    _ = offset;
-    _ = count;
-    std.debug.panic("Unimplemented", .{});
+pub fn draw(offset: u32, count: u32) void {
+    const device_ctx = getD3D11DeviceContext();
+    device_ctx.IASetPrimitiveTopology(d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST);
+    device_ctx.Draw(count, offset);
 }
 
 pub fn createSolidColourShader() !types.ShaderProgramHandle {
