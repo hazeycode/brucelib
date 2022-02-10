@@ -34,7 +34,6 @@ pub const Error = error{
 
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
-var window_resized: bool = false;
 var window_closed = false;
 
 pub fn run(args: struct {
@@ -150,16 +149,16 @@ fn createWindow(
     class_name: LPCWSTR,
     window_name: LPCWSTR,
 ) !HWND {
+    const offset_x = 60;
+    const offset_y = 60;
     var rect = RECT{
-        .left = 60,
-        .top = 60,
-        .right = window_width,
-        .bottom = window_height,
+        .left = offset_x,
+        .top = offset_y,
+        .right = offset_x + window_width,
+        .bottom = offset_y + window_height,
     };
     const style: DWORD = user32.WS_OVERLAPPEDWINDOW;
     try user32.adjustWindowRectEx(&rect, style, false, 0);
-    const actual_window_width = rect.right - rect.left;
-    const actual_window_height = rect.bottom - rect.top;
     const hwnd = try user32.createWindowExW(
         0,
         class_name,
@@ -167,8 +166,8 @@ fn createWindow(
         style,
         rect.left,
         rect.top,
-        actual_window_width,
-        actual_window_height,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
         null,
         null,
         hinstance,
