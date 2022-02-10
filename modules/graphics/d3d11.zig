@@ -174,9 +174,13 @@ pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
 pub fn bindConstantBuffer(
     slot: u32,
     buffer_handle: types.ConstantBufferHandle,
+    size: usize,
+    width: usize,
 ) void {
     _ = slot;
     _ = buffer_handle;
+    _ = size;
+    _ = width;
     std.debug.panic("Unimplemented", .{});
 }
 
