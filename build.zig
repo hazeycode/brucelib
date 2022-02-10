@@ -52,19 +52,42 @@ pub fn build(b: *std.build.Builder) !void {
         test_step.dependOn(&graphics_tests.step);
     }
 
-    const example = b.addExecutable("example", "example/main.zig");
-    example.setTarget(b.standardTargetOptions(.{}));
-    example.setBuildMode(mode);
-    example.addPackage(core);
-    example.addPackage(platform);
-    example.addPackage(graphics);
-    try addPlatformSystemDependencies(example);
-    example.install();
+    { // examples
+        const dir = try std.fs.cwd().openDir("examples", .{ .iterate = true });
 
-    const example_runstep = example.run();
-    example_runstep.step.dependOn(b.getInstallStep());
-    if (b.args) |args| example_runstep.addArgs(args);
-    b.step("run-example", "Build and run example").dependOn(&example_runstep.step);
+        var example_id: usize = 0;
+        var dir_it = dir.iterate();
+        while (try dir_it.next()) |entry| {
+            switch (entry.kind) {
+                .Directory => {
+                    example_id += 1;
+
+                    const example = b.addExecutable(
+                        entry.name,
+                        try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
+                    );
+                    example.setTarget(b.standardTargetOptions(.{}));
+                    example.setBuildMode(mode);
+                    example.addPackage(core);
+                    example.addPackage(platform);
+                    example.addPackage(graphics);
+                    try addPlatformSystemDependencies(example);
+                    example.install();
+
+                    const example_runstep = example.run();
+                    example_runstep.step.dependOn(b.getInstallStep());
+                    if (b.args) |args| example_runstep.addArgs(args);
+
+                    var run = b.step(
+                        try std.fmt.allocPrint(b.allocator, "run-example-{:0>3}", .{example_id}),
+                        try std.fmt.allocPrint(b.allocator, "Build and run example {s}", .{entry.name}),
+                    );
+                    run.dependOn(&example_runstep.step);
+                },
+                else => {},
+            }
+        }
+    }
 }
 
 fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {

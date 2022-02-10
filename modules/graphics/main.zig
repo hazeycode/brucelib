@@ -17,6 +17,9 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const RasteriserStateHandle = types.RasteriserStateHandle;
         pub const VertexLayoutDesc = types.VertexLayoutDesc;
 
+        const pi = std.math.pi;
+        const tao = 2 * std.math.pi;
+
         pub const DrawList = struct {
             pub const Entry = union(enum) {
                 set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
@@ -62,24 +65,28 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
             /// Returns a Colour for a given hue, saturation and value
             /// h, s, v are assumed to be in the range 0...1
+            /// Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
             pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
-                const c = s * v;
-                const x = c * (1 - @fabs(@mod(h / 60.0, 2) - 1));
+                const hp = (h * 360) / 60;
+                const c = v * s;
+                const x = c * (1 - @fabs(@mod(hp, 2) - 1));
                 const m = v - c;
-                // zig fmt: off
-                const rgb = if (h >= 0.0 and h < 60.0) [3]f32{ c, x, 0.0 }
-                    else if (h >= 60 and h < 120) [3]f32{ x, c, 0.0 }
-                    else if (h >= 120 and h < 180) [3]f32{ 0.0, c, x }
-                    else if (h >= 180 and h < 240) [3]f32{ 0.0, x, c }
-                    else if (h >= 240 and h < 300) [3]f32{ x, 0.0, c }
-                    else [3]f32{ c, 0.0, x };
-                // zig fmt: on
-                return .{
-                    .r = rgb[0] + m,
-                    .g = rgb[1] + m,
-                    .b = rgb[2] + m,
-                    .a = 1.0,
-                };
+                if (hp <= 1) {
+                    return Colour.fromRGB(c + m, x + m, m);
+                } else if (hp <= 2) {
+                    return Colour.fromRGB(x + m, c + m, m);
+                } else if (hp <= 3) {
+                    return Colour.fromRGB(m, c + m, x + m);
+                } else if (hp <= 4) {
+                    return Colour.fromRGB(m, x + m, c + m);
+                } else if (hp <= 5) {
+                    return Colour.fromRGB(x + m, m, c + m);
+                } else if (hp <= 6) {
+                    return Colour.fromRGB(c + m, m, x + m);
+                } else {
+                    std.debug.assert(false);
+                    return Colour.fromRGB(0, 0, 0);
+                }
             }
         };
 
