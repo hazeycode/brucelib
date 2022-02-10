@@ -1,4 +1,5 @@
 pub const ShaderProgramHandle = u64;
+pub const ConstantBufferHandle = u64;
 pub const VertexBufferHandle = u64;
 pub const VertexLayoutHandle = u64;
 pub const RasteriserStateHandle = u64;

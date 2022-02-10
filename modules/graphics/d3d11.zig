@@ -87,6 +87,12 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     getD3D11DeviceContext().ClearRenderTargetView(getD3D11RenderTargetView(), &colour);
 }
 
+pub fn draw(offset: u32, count: u32) void {
+    const device_ctx = getD3D11DeviceContext();
+    device_ctx.IASetPrimitiveTopology(d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST);
+    device_ctx.Draw(count, offset);
+}
+
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
@@ -148,18 +154,7 @@ pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.Ver
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn createUniformBuffer() void {}
-
-pub fn createRasteriserState() !types.RasteriserStateHandle {
-    var res: ?*d3d11.IRasterizerState = null;
-    const desc = d3d11.RASTERIZER_DESC{
-        .FrontCounterClockwise = TRUE,
-    };
-    try win32.hrErrorOnFail(getD3D11Device().CreateRasterizerState(&desc, &res));
-    return @ptrToInt(res);
-}
-
-pub fn bindVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
+pub fn useVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
     getD3D11DeviceContext().IASetVertexBuffers(
         0,
@@ -170,30 +165,57 @@ pub fn bindVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     );
 }
 
-pub fn bindRasteriserState(state_handle: types.RasteriserStateHandle) void {
+pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
+    _ = size;
+    std.debug.panic("Unimplemented", .{});
+    return 0;
+}
+
+pub fn bindConstantBuffer(
+    slot: u32,
+    buffer_handle: types.ConstantBufferHandle,
+) void {
+    _ = slot;
+    _ = buffer_handle;
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn writeShaderConstant(
+    buffer_handle: types.ConstantBufferHandle,
+    offset: usize,
+    bytes: []const u8,
+) void {
+    _ = buffer_handle;
+    _ = offset;
+    _ = bytes;
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+    _ = buffer_handle;
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn createRasteriserState() !types.RasteriserStateHandle {
+    var res: ?*d3d11.IRasterizerState = null;
+    const desc = d3d11.RASTERIZER_DESC{
+        .FrontCounterClockwise = TRUE,
+    };
+    try win32.hrErrorOnFail(getD3D11Device().CreateRasterizerState(&desc, &res));
+    return @ptrToInt(res);
+}
+
+pub fn useRasteriserState(state_handle: types.RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
     getD3D11DeviceContext().RSSetState(state);
 }
 
-pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     const device_ctx = getD3D11DeviceContext();
     const shader_program = shader_programs.items[program_handle];
     device_ctx.IASetInputLayout(shader_program.input_layout);
     device_ctx.VSSetShader(shader_program.vs, null, 0);
     device_ctx.PSSetShader(shader_program.ps, null, 0);
-}
-
-// TODO(hazeycode): generalise this
-pub fn writeUniform(location: u32, components: []const f32) void {
-    _ = location;
-    _ = components;
-    // std.debug.panic("Unimplemented", .{});
-}
-
-pub fn draw(offset: u32, count: u32) void {
-    const device_ctx = getD3D11DeviceContext();
-    device_ctx.IASetPrimitiveTopology(d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST);
-    device_ctx.Draw(count, offset);
 }
 
 pub fn createSolidColourShader() !types.ShaderProgramHandle {

@@ -11,10 +11,11 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
         const types = @import("types.zig");
         pub const ShaderProgramHandle = types.ShaderProgramHandle;
+        pub const ConstantBufferHandle = types.ConstantBufferHandle;
         pub const VertexBufferHandle = types.VertexBufferHandle;
-        pub const VertexLayoutDesc = types.VertexLayoutDesc;
         pub const VertexLayoutHandle = types.VertexLayoutHandle;
         pub const RasteriserStateHandle = types.RasteriserStateHandle;
+        pub const VertexLayoutDesc = types.VertexLayoutDesc;
 
         pub const DrawList = struct {
             pub const Entry = union(enum) {
@@ -44,7 +45,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
         };
 
-        pub const Colour = packed struct {
+        pub const Colour = extern struct {
             r: f32,
             g: f32,
             b: f32,
@@ -94,6 +95,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
             _solid_colour_shader = try backend.createSolidColourShader();
 
+            _constant_buffer = try backend.createConstantBuffer(0x1000);
+
             _rasteriser_state = try backend.createRasteriserState();
 
             const zeros = [_]u8{0} ** _vertex_buffer_size;
@@ -132,12 +135,27 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
                     },
                     .draw_verts => |e| {
+                        //TODO(hazeycode): cache constant buffer binding state
+                        backend.bindConstantBuffer(0, _constant_buffer, 0, @sizeOf(Colour));
+
                         //TODO(hazeycode): only write to buffer if verts have changed
                         try backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
-                        backend.bindShaderProgram(_solid_colour_shader);
-                        backend.bindRasteriserState(_rasteriser_state);
-                        backend.bindVertexLayout(_vertex_layout);
-                        backend.writeUniform(0, &.{ e.colour.r, e.colour.g, e.colour.b, e.colour.a });
+                        
+                        backend.useShaderProgram(_solid_colour_shader);
+                        backend.useRasteriserState(_rasteriser_state);
+                        backend.useVertexLayout(_vertex_layout);
+
+                        { // update colour constant
+                            var buf: [@sizeOf(Colour)]u8 = undefined;
+                            const src = std.mem.sliceAsBytes(
+                                @ptrCast([*]const f32, &e.colour)[0..@sizeOf(Colour)/@sizeOf(f32)]
+                            );
+                            std.mem.copy(u8, buf[0..], src[0..]);
+                            backend.writeShaderConstant(_constant_buffer, 0, &buf);
+                        }
+
+                        backend.useConstantBuffer(_constant_buffer);
+                        
                         backend.draw(0, @intCast(u32, e.vertices.len));
                     },
                 }
@@ -150,6 +168,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         var _vertex_layout: VertexLayoutHandle = undefined;
         const _vertex_buffer_size = @sizeOf(f32) * 1e3;
         var _rasteriser_state: RasteriserStateHandle = undefined;
+        var _constant_buffer: ConstantBufferHandle = undefined;
         var _solid_colour_shader: ShaderProgramHandle = undefined;
         var _draw_colour: Colour = undefined;
     };

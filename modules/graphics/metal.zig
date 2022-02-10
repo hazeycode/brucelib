@@ -26,6 +26,12 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     std.debug.panic("Unimplemented", .{});
 }
 
+pub fn draw(offset: u32, count: u32) void {
+    _ = offset;
+    _ = count;
+    std.debug.panic("Unimplemented", .{});
+}
+
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     _ = bytes;
     std.debug.panic("Unimplemented", .{});
@@ -44,25 +50,52 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayou
     return 0;
 }
 
-pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
+pub fn useVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     _ = layout_handle;
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
-    _ = program_handle;
+pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
+    _ = size;
+    std.debug.panic("Unimplemented", .{});
+    return 0;
+}
+
+pub fn bindConstantBuffer(
+    slot: u32,
+    buffer_handle: types.ConstantBufferHandle,
+) void {
+    _ = slot;
+    _ = buffer_handle;
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn writeUniform(location: u32, components: []const f32) void {
-    _ = location;
-    _ = components;
-    std.debug.panic("Unimplemented", .{});
-}
-
-pub fn draw(offset: u32, count: u32) void {
+pub fn writeShaderConstant(
+    buffer_handle: types.ConstantBufferHandle,
+    offset: usize,
+    bytes: []const u8,
+) void {
+    _ = buffer_handle;
     _ = offset;
-    _ = count;
+    _ = bytes;
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+    _ = buffer_handle;
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn createRasteriserState() !types.RasteriserStateHandle {
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn useRasteriserState(_: types.RasteriserStateHandle) void {
+    std.debug.panic("Unimplemented", .{});
+}
+
+pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
+    _ = program_handle;
     std.debug.panic("Unimplemented", .{});
 }
 

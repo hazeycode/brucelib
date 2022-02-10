@@ -24,6 +24,10 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     c.glClear(c.GL_COLOR_BUFFER_BIT);
 }
 
+pub fn draw(offset: u32, count: u32) void {
+    c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
+}
+
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
@@ -67,54 +71,89 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayo
     return vao;
 }
 
+pub fn useVertexLayout(layout_handle: types.VertexLayoutHandle) void {
+    c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
+}
+
+pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
+    var ubo: c.GLuint = undefined;
+    c.glGenBuffers(1, &ubo);
+    c.glBindBuffer(c.GL_UNIFORM_BUFFER, ubo);
+    c.glBufferData(
+        c.GL_UNIFORM_BUFFER,
+        @intCast(c.GLsizeiptr, size),
+        null,
+        c.GL_DYNAMIC_DRAW
+    );
+    return ubo;
+}
+
+pub fn bindConstantBuffer(
+    slot: u32,
+    buffer_handle: types.ConstantBufferHandle,
+    offset: usize,
+    width: usize,
+) void {
+    c.glBindBufferRange(
+        c.GL_UNIFORM_BUFFER,
+        slot,
+        @intCast(c.GLuint, buffer_handle),
+        @intCast(c.GLintptr, offset),
+        @intCast(c.GLsizeiptr, width),
+    );
+}
+
+pub fn writeShaderConstant(
+    buffer_handle: types.ConstantBufferHandle,
+    offset: usize,
+    bytes: []const u8,
+) void {
+    c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
+    c.glBufferSubData(
+        c.GL_UNIFORM_BUFFER,
+        @intCast(c.GLintptr, offset),
+        @intCast(c.GLsizeiptr, bytes.len),
+        bytes.ptr,
+    );
+}
+
+pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+    c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
+}
+
 pub fn createRasteriserState() !types.RasteriserStateHandle {
     return 0;
 }
 
-pub fn bindVertexLayout(layout_handle: types.VertexLayoutHandle) void {
-    c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
-}
+pub fn useRasteriserState(_: types.RasteriserStateHandle) void {}
 
-pub fn bindRasteriserState(_: types.RasteriserStateHandle) void {}
-
-pub fn bindShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(@intCast(c.GLuint, program_handle));
-}
-
-// TODO(hazeycode): generalise this
-pub fn writeUniform(location: u32, components: []const f32) void {
-    switch (components.len) {
-        4 => c.glUniform4f(@intCast(c_int, location), components[0], components[1], components[2], components[3]),
-        else => std.debug.assert(false),
-    }
-}
-
-pub fn draw(offset: u32, count: u32) void {
-    c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
 }
 
 pub fn createSolidColourShader() !types.ShaderProgramHandle {
     const vert_shader_src =
-        \\#version 330 core
+        \\#version 420 core
+        \\
         \\layout (location = 0) in vec3 aPos;
         \\
-        \\void main()
-        \\{
+        \\void main() {
         \\    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
         \\}
         \\
     ;
 
     const frag_shader_src =
-        \\#version 330 core
+        \\#version 420 core
         \\
-        \\uniform vec4 colour_in;
+        \\layout (std140, binding = 0) uniform UniformBlock {
+        \\    vec4 colour;
+        \\};
         \\
         \\out vec4 colour_out;
         \\
-        \\void main()
-        \\{
-        \\    colour_out = colour_in;
+        \\void main() {
+        \\    colour_out = colour;
         \\}
         \\
     ;
