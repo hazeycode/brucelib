@@ -8,9 +8,10 @@ graphics:
 - support multiple render targets i.e. implement graphics.setRenderTarget
 - persistently mapped buffers (i.e. ARB_buffer_storage) instead of mapping/unmapping buffers
 - (sparse) bindless texture arrays
-- shared UBOs 
+- shared UBOs, partial support already in openGL backend - how to map to d3d11???
 - ARB_multi_draw_indirect
 - remove libepoxy dependency
 - implement destroyViewLayout
 - implement destroyShaderProgram
+- implement destroyConstantBuffer
 - implement metal backend

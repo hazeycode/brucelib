@@ -37,13 +37,26 @@ const VertexLayoutList = std.ArrayList(struct {
 
 var vertex_layouts: VertexLayoutList = undefined;
 
+const ConstantBufferList = std.ArrayList(struct {
+    slot: UINT,
+    buffer: *d3d11.IBuffer,
+});
+
+var constant_buffers: ConstantBufferList = undefined;
+
 pub fn init(_allocator: std.mem.Allocator) void {
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
     vertex_layouts = VertexLayoutList.init(allocator);
+    constant_buffers = ConstantBufferList.init(allocator);
 }
 
 pub fn deinit() void {
+    for (constant_buffers.items) |constant_buffer| {
+        _ = constant_buffer.buffer.Release();
+    }
+    constant_buffers.deinit();
+
     for (vertex_layouts.items) |layout| {
         allocator.free(layout.buffers);
         allocator.free(layout.strides);
@@ -72,6 +85,7 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
     };
     getD3D11DeviceContext().RSSetViewports(1, &viewports);
 
+    // TODO(hazeycode): delete in favour of setRenderTarget fn?
     const render_target_views = [_]*d3d11.IRenderTargetView{
         getD3D11RenderTargetView(),
     };
@@ -166,38 +180,76 @@ pub fn useVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
-    _ = size;
-    std.debug.panic("Unimplemented", .{});
-    return 0;
+    var buffer: ?*d3d11.IBuffer = null;
+    const desc = d3d11.BUFFER_DESC{
+        .ByteWidth = @intCast(UINT, size),
+        .Usage = d3d11.USAGE_DYNAMIC,
+        .BindFlags = d3d11.BIND_CONSTANT_BUFFER,
+        .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
+    };
+    try win32.hrErrorOnFail(getD3D11Device().CreateBuffer(
+        &desc,
+        null,
+        &buffer,
+    ));
+    errdefer _ = buffer.?.Release();
+
+    try constant_buffers.append(.{
+        .slot = undefined,
+        .buffer = buffer.?,
+    });
+
+    return (constant_buffers.items.len - 1);
 }
 
 pub fn bindConstantBuffer(
     slot: u32,
     buffer_handle: types.ConstantBufferHandle,
-    size: usize,
-    width: usize,
+    _: usize,
+    _: usize,
 ) void {
-    _ = slot;
-    _ = buffer_handle;
-    _ = size;
-    _ = width;
-    std.debug.panic("Unimplemented", .{});
+    constant_buffers.items[buffer_handle].slot = slot;
 }
 
 pub fn writeShaderConstant(
     buffer_handle: types.ConstantBufferHandle,
     offset: usize,
     bytes: []const u8,
-) void {
-    _ = buffer_handle;
-    _ = offset;
-    _ = bytes;
-    std.debug.panic("Unimplemented", .{});
+) !void {
+    const constant_buffer = @ptrCast(
+        *d3d11.IResource,
+        constant_buffers.items[buffer_handle].buffer,
+    );
+    const device_ctx = getD3D11DeviceContext();
+    var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
+    try win32.hrErrorOnFail(device_ctx.Map(
+        constant_buffer,
+        0,
+        d3d11.MAP.WRITE_DISCARD,
+        0,
+        &subresource,
+    ));
+    std.mem.copy(
+        u8,
+        @ptrCast([*]u8, subresource.pData)[offset..(offset + bytes.len)],
+        bytes,
+    );
+    device_ctx.Unmap(constant_buffer, 0);
 }
 
 pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
-    _ = buffer_handle;
-    std.debug.panic("Unimplemented", .{});
+    const buffer = constant_buffers.items[buffer_handle];
+    const buffers = [_]*d3d11.IBuffer{buffer.buffer};
+    getD3D11DeviceContext().VSSetConstantBuffers(
+        buffer.slot,
+        1,
+        @ptrCast([*]const *d3d11.IBuffer, &buffers),
+    );
+    getD3D11DeviceContext().PSSetConstantBuffers(
+        buffer.slot,
+        1,
+        @ptrCast([*]const *d3d11.IBuffer, &buffers),
+    );
 }
 
 pub fn createRasteriserState() !types.RasteriserStateHandle {
@@ -224,22 +276,26 @@ pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
 
 pub fn createSolidColourShader() !types.ShaderProgramHandle {
     const shader_src =
-        \\struct vs_in {
+        \\struct VS_Input {
         \\    float3 position_local : POS;
         \\};
         \\
-        \\struct vs_out {
+        \\struct VS_Output {
         \\    float4 position_clip : SV_POSITION;
         \\};
         \\
-        \\vs_out vs_main(vs_in input) {
-        \\    vs_out output = (vs_out)0;
+        \\cbuffer Constants {
+        \\    float4 colour;
+        \\}
+        \\
+        \\VS_Output vs_main(VS_Input input) {
+        \\    VS_Output output = (VS_Output)0;
         \\    output.position_clip = float4(input.position_local, 1.0);
         \\    return output;
         \\}
         \\
-        \\float4 ps_main(vs_out input) : SV_TARGET {
-        \\    return float4( 1.0, 0.0, 1.0, 1.0 );
+        \\float4 ps_main(VS_Output input) : SV_TARGET {
+        \\    return colour;
         \\}
         \\
     ;

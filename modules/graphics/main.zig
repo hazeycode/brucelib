@@ -140,22 +140,20 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         //TODO(hazeycode): only write to buffer if verts have changed
                         try backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
-                        
+
                         backend.useShaderProgram(_solid_colour_shader);
                         backend.useRasteriserState(_rasteriser_state);
                         backend.useVertexLayout(_vertex_layout);
 
                         { // update colour constant
                             var buf: [@sizeOf(Colour)]u8 = undefined;
-                            const src = std.mem.sliceAsBytes(
-                                @ptrCast([*]const f32, &e.colour)[0..@sizeOf(Colour)/@sizeOf(f32)]
-                            );
+                            const src = std.mem.sliceAsBytes(@ptrCast([*]const f32, &e.colour)[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
                             std.mem.copy(u8, buf[0..], src[0..]);
-                            backend.writeShaderConstant(_constant_buffer, 0, &buf);
+                            try backend.writeShaderConstant(_constant_buffer, 0, &buf);
                         }
 
                         backend.useConstantBuffer(_constant_buffer);
-                        
+
                         backend.draw(0, @intCast(u32, e.vertices.len));
                     },
                 }

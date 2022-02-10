@@ -74,7 +74,7 @@ pub fn writeShaderConstant(
     buffer_handle: types.ConstantBufferHandle,
     offset: usize,
     bytes: []const u8,
-) void {
+) !void {
     _ = buffer_handle;
     _ = offset;
     _ = bytes;

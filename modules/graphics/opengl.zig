@@ -79,12 +79,7 @@ pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
     var ubo: c.GLuint = undefined;
     c.glGenBuffers(1, &ubo);
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, ubo);
-    c.glBufferData(
-        c.GL_UNIFORM_BUFFER,
-        @intCast(c.GLsizeiptr, size),
-        null,
-        c.GL_DYNAMIC_DRAW
-    );
+    c.glBufferData(c.GL_UNIFORM_BUFFER, @intCast(c.GLsizeiptr, size), null, c.GL_DYNAMIC_DRAW);
     return ubo;
 }
 
@@ -107,7 +102,7 @@ pub fn writeShaderConstant(
     buffer_handle: types.ConstantBufferHandle,
     offset: usize,
     bytes: []const u8,
-) void {
+) !void {
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
     c.glBufferSubData(
         c.GL_UNIFORM_BUFFER,
