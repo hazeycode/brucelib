@@ -3,6 +3,7 @@ platform:
 - gamepad input
 - migrate all objective-c code to zig using zig-objcrt
 - audio output
+- win32: update while moving window or resizing
 
 graphics:
 - support multiple render targets i.e. implement graphics.setRenderTarget
