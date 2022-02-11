@@ -4,10 +4,10 @@ const Input = @import("Input.zig");
 
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
-var window_resized: bool = false;
 
 const num_keys = std.meta.fields(Input.Key).len;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
+var maybe_last_key_event: ?*Input.KeyEvent = null;
 
 pub const default_graphics_api = core.GraphicsAPI.opengl;
 
@@ -44,27 +44,21 @@ pub fn run(args: struct {
 
         const arena_allocator = frame_mem_arena.allocator();
 
-        var key_presses = std.ArrayList(Input.KeyPressEvent).init(arena_allocator);
-        var key_releases = std.ArrayList(Input.KeyReleaseEvent).init(arena_allocator);
-        var mouse_button_presses = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
-        var mouse_button_releases = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
+        var key_events = std.ArrayList(Input.KeyEvent).init(arena_allocator);
+        var mouse_button_events = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
         var window_closed = false;
+
         try windowing.processEvents(
-            &key_presses,
-            &key_releases,
-            &mouse_button_presses,
-            &mouse_button_releases,
+            &key_events,
+            &mouse_button_events,
             &window_closed,
         );
 
         const quit = !(try args.update_fn(.{
             .frame_arena_allocator = arena_allocator,
-            .key_presses = key_presses.items,
-            .key_releases = key_releases.items,
-            .mouse_button_presses = mouse_button_presses.items,
-            .mouse_button_releases = mouse_button_releases.items,
-            .canvas_width = window_width,
-            .canvas_height = window_height,
+            .key_events = key_events.items,
+            .mouse_button_events = mouse_button_events.items,
+            .canvas_size = .{ .width = window_width, .height = window_height },
             .quit_requested = window_closed,
         }));
 
@@ -272,10 +266,8 @@ const X11 = struct {
     }
 
     fn processEvents(
-        key_presses: anytype,
-        key_releases: anytype,
-        mouse_button_presses: anytype,
-        mouse_button_releases: anytype,
+        key_events: anytype,
+        mouse_button_events: anytype,
         window_closed: *bool,
     ) !void {
         var xcb_event = c.xcb_poll_for_event(connection);
@@ -296,15 +288,30 @@ const X11 = struct {
                     if (xcb_config_event.width != window_width or xcb_config_event.height != window_height) {
                         window_width = xcb_config_event.width;
                         window_height = xcb_config_event.height;
-                        window_resized = true;
                     }
                 },
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
                     if (translateKey(xcb_key_press_event.detail)) |key| {
-                        const repeats = &key_repeats[@enumToInt(key)];
-                        try key_presses.append(.{ .key = key, .repeat_count = repeats.* });
-                        repeats.* += 1;
+                        if (key_repeats[@enumToInt(key)] > 0) {
+                            key_repeats[@enumToInt(key)] += 1;
+                            if (maybe_last_key_event) |last_key_event| {
+                                if (last_key_event.action == .repeat and last_key_event.key == key) {
+                                    last_key_event.action.repeat += 1;
+                                }
+                            }
+                            try key_events.append(.{
+                                .action = .{ .repeat = key_repeats[@enumToInt(key)] },
+                                .key = key,
+                            });
+                        } else {
+                            key_repeats[@enumToInt(key)] = 1;
+                            try key_events.append(.{
+                                .action = .press,
+                                .key = key,
+                            });
+                        }
+                        maybe_last_key_event = &key_events.items[key_events.items.len - 1];
                     } else {
                         std.log.debug("press {}", .{xcb_key_press_event.detail});
                     }
@@ -312,22 +319,32 @@ const X11 = struct {
                 c.XCB_KEY_RELEASE => {
                     const xcb_key_release_event = @ptrCast(*c.xcb_key_release_event_t, xcb_event);
                     if (translateKey(xcb_key_release_event.detail)) |key| {
+                        try key_events.append(.{
+                            .action = .release,
+                            .key = key,
+                        });
                         key_repeats[@enumToInt(key)] = 0;
-                        try key_releases.append(key);
+                        maybe_last_key_event = &key_events.items[key_events.items.len - 1];
                     }
                 },
                 c.XCB_BUTTON_PRESS => {
                     const xcb_button_press_event = @ptrCast(*c.xcb_button_press_event_t, xcb_event);
-                    try mouse_button_presses.append(.{
-                        .button = xcb_button_press_event.detail,
+                    try mouse_button_events.append(.{
+                        .button = .{
+                            .action = .press,
+                            .index = xcb_button_press_event.detail,
+                        },
                         .x = xcb_button_press_event.event_x,
                         .y = xcb_button_press_event.event_y,
                     });
                 },
                 c.XCB_BUTTON_RELEASE => {
                     const xcb_button_release_event = @ptrCast(*c.xcb_button_release_event_t, xcb_event);
-                    try mouse_button_releases.append(.{
-                        .button = xcb_button_release_event.detail,
+                    try mouse_button_events.append(.{
+                        .button = .{
+                            .action = .release,
+                            .index = xcb_button_release_event.detail,
+                        },
                         .x = xcb_button_release_event.event_x,
                         .y = xcb_button_release_event.event_y,
                     });

@@ -3,23 +3,27 @@ const std = @import("std");
 pub const Input = @This();
 
 frame_arena_allocator: std.mem.Allocator,
-key_presses: []KeyPressEvent,
-key_releases: []Key,
-mouse_button_presses: []MouseButtonEvent,
-mouse_button_releases: []MouseButtonEvent,
-canvas_width: u16,
-canvas_height: u16,
+key_events: []KeyEvent,
+mouse_button_events: []MouseButtonEvent,
+canvas_size: struct { width: u16, height: u16 },
 quit_requested: bool,
 
 pub const MouseButtonEvent = struct {
-    button: u16,
-    x: i16,
-    y: i16,
+    button: struct {
+        action: enum { press, release },
+        index: u16,
+    },
+    x: i32,
+    y: i32,
 };
 
-pub const KeyPressEvent = struct {
+pub const KeyEvent = struct {
+    action: union(enum) {
+        press: void,
+        release: void,
+        repeat: u32,
+    },
     key: Key,
-    repeat_count: u32,
 };
 
 pub const KeyReleaseEvent = Key;

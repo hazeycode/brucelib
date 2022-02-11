@@ -35,7 +35,7 @@ fn update(input: platform.Input) !bool {
     state.triangle_hue = @mod(state.triangle_hue + 1e-2, 1.0);
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
-    try draw_list.setViewport(0, 0, input.canvas_width, input.canvas_height);
+    try draw_list.setViewport(0, 0, input.canvas_size.width, input.canvas_size.height);
     try draw_list.clearViewport(graphics.Colour.black);
     try draw_list.drawTriangles(
         graphics.Colour.fromHSV(state.triangle_hue, 0.5, 1.0),

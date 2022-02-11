@@ -64,20 +64,18 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
 
     const arena_allocator = frame_mem_arena.allocator();
 
-    var key_presses = std.ArrayList(Input.KeyPressEvent).init(arena_allocator);
-    var key_releases = std.ArrayList(Input.KeyReleaseEvent).init(arena_allocator);
-    var mouse_button_presses = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
-    var mouse_button_releases = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
+    var key_events = std.ArrayList(Input.KeyEvent).init(arena_allocator);
+    var mouse_button_events = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
     var window_closed = false;
 
     _ = !(update_fn(.{
         .frame_arena_allocator = arena_allocator,
-        .key_presses = key_presses.items,
-        .key_releases = key_releases.items,
-        .mouse_button_presses = mouse_button_presses.items,
-        .mouse_button_releases = mouse_button_releases.items,
-        .canvas_width = @intCast(u16, view_width),
-        .canvas_height = @intCast(u16, view_height),
+        .key_events = key_events.items,
+        .mouse_button_events = mouse_button_events.items,
+        .canvas_size = .{
+            .width = @intCast(u16, view_width),
+            .height = @intCast(u16, view_height),
+        },
         .quit_requested = window_closed,
     }) catch unreachable);
 }

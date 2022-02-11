@@ -83,10 +83,8 @@ pub fn run(args: struct {
 
         const arena_allocator = frame_mem_arena.allocator();
 
-        var key_presses = std.ArrayList(Input.KeyPressEvent).init(arena_allocator);
-        var key_releases = std.ArrayList(Input.KeyReleaseEvent).init(arena_allocator);
-        var mouse_button_presses = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
-        var mouse_button_releases = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
+        var key_events = std.ArrayList(Input.KeyEvent).init(arena_allocator);
+        var mouse_button_events = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
@@ -100,12 +98,12 @@ pub fn run(args: struct {
 
         quit = !(try args.update_fn(.{
             .frame_arena_allocator = arena_allocator,
-            .key_presses = key_presses.items,
-            .key_releases = key_releases.items,
-            .mouse_button_presses = mouse_button_presses.items,
-            .mouse_button_releases = mouse_button_releases.items,
-            .canvas_width = window_width,
-            .canvas_height = window_height,
+            .key_events = key_events.items,
+            .mouse_button_events = mouse_button_events.items,
+            .canvas_size = .{
+                .width = window_width,
+                .height = window_height,
+            },
             .quit_requested = window_closed,
         }));
 
