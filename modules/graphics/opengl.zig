@@ -140,7 +140,10 @@ pub fn createRasteriserState() !types.RasteriserStateHandle {
     return 0;
 }
 
-pub fn useRasteriserState(_: types.RasteriserStateHandle) void {}
+pub fn useRasteriserState(_: types.RasteriserStateHandle) void {
+    c.glEnable(c.GL_BLEND);
+    c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
+}
 
 pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(@intCast(c.GLuint, program_handle));
