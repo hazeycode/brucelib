@@ -35,7 +35,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         var _rasteriser_state: RasteriserStateHandle = undefined;
         var _constant_buffer: ConstantBufferHandle = undefined;
         var _solid_colour_shader: ShaderProgramHandle = undefined;
-        var _debug_font_texture: Texture = undefined;
+        var _debug_font_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator) !void {
             backend.init(allocator);
@@ -46,7 +46,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
             _rasteriser_state = try backend.createRasteriserState();
 
-            // _debug_font_texture = try Texture.fromPBM(@embedFile("debugfont.pbm"));
+            _debug_font_texture = try Texture2d.fromPBM(@embedFile("debugfont.pbm"));
 
             const zeros = [_]u8{0} ** _vertex_buffer_size;
             _vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
@@ -156,7 +156,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 } });
             }
 
-            pub fn drawTexturedTriangles(_: *@This(), _: Texture, _: []const Rect) !void {}
+            pub fn drawTexturedTriangles(_: *@This(), _: Texture2d, _: []const Rect) !void {}
         };
 
         pub const Colour = extern struct {
@@ -223,13 +223,13 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
         };
 
-        pub const Texture = extern struct {
+        pub const Texture2d = extern struct {
             handle: types.TextureHandle,
             format: types.TextureFormat,
             width: u32,
             height: u32,
 
-            pub fn fromPBM(pbm_bytes: []const u8) !Texture {
+            pub fn fromPBM(pbm_bytes: []const u8) !Texture2d {
                 return try pbm.parse(pbm_bytes);
             }
         };
@@ -285,7 +285,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         };
 
         pub const pbm = struct {
-            pub fn parse(bytes: []const u8) !Texture {
+            pub fn parse(bytes: []const u8) !Texture2d {
                 var parser = Parser{
                     .bytes = bytes,
                     .cur = 0,
@@ -297,7 +297,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 bytes: []const u8,
                 cur: usize,
 
-                fn parse(self: *@This()) !Texture {
+                fn parse(self: *@This()) !Texture2d {
                     const magic_number = try self.magicNumber();
                     self.whitespace();
                     const width = self.integer();
@@ -308,8 +308,13 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         .p1 => {
                             const texture_bytes = self.bytes[self.cur..];
                             const format = types.TextureFormat.uint8;
-                            return Texture{
-                                .handle = backend.createTextureWithBytes(texture_bytes, format),
+                            return Texture2d{
+                                .handle = try backend.createTexture2dWithBytes(
+                                    texture_bytes,
+                                    width,
+                                    height,
+                                    format,
+                                ),
                                 .format = format,
                                 .width = width,
                                 .height = height,
@@ -345,6 +350,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 fn integer(self: *@This()) u32 {
                     var res: u32 = 0;
                     for (self.bytes[self.cur..]) |c| {
+                        self.cur += 1;
+                        if (isWhitespace(c)) break;
                         res = (res << 3) +% (res << 1) +% (c -% '0');
                     }
                     return res;

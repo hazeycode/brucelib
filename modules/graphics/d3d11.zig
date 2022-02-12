@@ -180,11 +180,29 @@ pub fn useVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     );
 }
 
-pub fn createTextureWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
-    _ = bytes;
-    _ = format;
-    std.debug.panic("Unimplemented", .{});
-    return 0;
+pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: types.TextureFormat) !types.TextureHandle {
+    var texture: ?*d3d11.ITexture2D = null;
+    const desc = d3d11.TEXTURE2D_DESC{
+        .Width = width,
+        .Height = height,
+        .MipLevels = 1,
+        .ArraySize = 1,
+        .Format = formatToDxgiFormat(format),
+        .SampleDesc = .{
+            .Count = 1,
+            .Quality = 0,
+        },
+        .Usage = d3d11.USAGE_DEFAULT,
+        .BindFlags = d3d11.BIND_SHADER_RESOURCE,
+        .CPUAccessFlags = 0,
+        .MiscFlags = 0,
+    };
+    const subresouce_data = d3d11.SUBRESOURCE_DATA{
+        .pSysMem = bytes.ptr,
+        .SysMemPitch = width * 4,
+    };
+    try win32.hrErrorOnFail(getD3D11Device().CreateTexture2D(&desc, &subresouce_data, &texture));
+    return @ptrToInt(texture.?);
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
@@ -407,4 +425,10 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
     }
 
     return blob;
+}
+
+fn formatToDxgiFormat(format: types.TextureFormat) dxgi.FORMAT {
+    return switch (format) {
+        .uint8 => dxgi.FORMAT.R8_UINT,
+    };
 }

@@ -95,7 +95,7 @@ pub fn useVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
-pub fn createTextureWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
+pub fn createTexture2DWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
     _ = bytes;
     _ = format;
     std.debug.panic("Unimplemented", .{});

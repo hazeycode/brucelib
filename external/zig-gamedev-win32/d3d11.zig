@@ -221,6 +221,19 @@ pub const RASTERIZER_DESC = extern struct {
     AntialiasedLineEnable: BOOL = FALSE,
 };
 
+pub const TEXTURE2D_DESC = struct {
+    Width: UINT,
+    Height: UINT,
+    MipLevels: UINT,
+    ArraySize: UINT,
+    Format: dxgi.FORMAT,
+    SampleDesc: dxgi.SAMPLE_DESC,
+    Usage: USAGE,
+    BindFlags: BIND_FLAG,
+    CPUAccessFlags: CPU_ACCCESS_FLAG,
+    MiscFlags: UINT,
+};
+
 pub const IID_IDeviceChild = GUID.parse("{1841e5c8-16b0-489b-bcc8-44cfb0d5deae}");
 pub const IDeviceChild = extern struct {
     const Self = @This();
@@ -658,6 +671,19 @@ pub const IDevice = extern struct {
                     ppBuffer,
                 );
             }
+            pub inline fn CreateTexture2D(
+                self: *T,
+                pDesc: *const TEXTURE2D_DESC,
+                pInitialData: ?*const SUBRESOURCE_DATA,
+                ppTexture2D: ?*?*ITexture2D,
+            ) HRESULT {
+                return self.v.device.CreateTexture2D(
+                    self,
+                    pDesc,
+                    pInitialData,
+                    ppTexture2D,
+                );
+            }
             pub inline fn CreateRenderTargetView(
                 self: *T,
                 pResource: ?*IResource,
@@ -741,7 +767,12 @@ pub const IDevice = extern struct {
                 *?*IBuffer,
             ) callconv(WINAPI) HRESULT,
             CreateTexture1D: *anyopaque,
-            CreateTexture2D: *anyopaque,
+            CreateTexture2D: fn (
+                *T,
+                *const TEXTURE2D_DESC,
+                ?*const SUBRESOURCE_DATA,
+                ?*?*ITexture2D,
+            ) callconv(WINAPI) HRESULT,
             CreateTexture3D: *anyopaque,
             CreateShaderResourceView: *anyopaque,
             CreateUnorderedAccessView: *anyopaque,
