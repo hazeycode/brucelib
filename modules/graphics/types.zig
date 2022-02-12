@@ -44,3 +44,7 @@ pub const VertexLayoutDesc = struct {
         };
     };
 };
+
+pub const TextureFormat = enum(u16) {
+    uint8,
+};

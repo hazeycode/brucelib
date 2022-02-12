@@ -180,6 +180,13 @@ pub fn useVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     );
 }
 
+pub fn createTextureWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
+    _ = bytes;
+    _ = format;
+    std.debug.panic("Unimplemented", .{});
+    return 0;
+}
+
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{

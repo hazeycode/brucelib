@@ -27,160 +27,15 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             uv: VertexUV,
         };
 
-        pub const DrawList = struct {
-            pub const Entry = union(enum) {
-                set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
-                clear_viewport: Colour,
-                tris_solid_colour: struct {
-                    colour: Colour,
-                    vertices: []const VertexPosition,
-                },
-                tris_textured: struct {
-                    texture: TextureHandle,
-                    vertices: []const TexturedVertex,
-                },
-            };
-
-            entries: std.ArrayList(Entry),
-
-            pub fn setViewport(self: *@This(), x: u16, y: u16, width: u16, height: u16) !void {
-                try self.entries.append(.{ .set_viewport = .{ .x = x, .y = y, .width = width, .height = height } });
-            }
-
-            pub fn clearViewport(self: *@This(), colour: Colour) !void {
-                try self.entries.append(.{ .clear_viewport = colour });
-            }
-
-            pub fn drawVerts(self: *@This(), colour: Colour, verts: []const VertexPosition) !void {
-                try self.entries.append(.{ .tris_solid_colour = .{
-                    .colour = colour,
-                    .vertices = verts,
-                } });
-            }
-
-            pub fn drawTriangles(self: *@This(), colour: Colour, triangles: []const [3]VertexPosition) !void {
-                try self.entries.append(.{ .tris_solid_colour = .{
-                    .colour = colour,
-                    .vertices = std.mem.bytesAsSlice(VertexPosition, std.mem.sliceAsBytes(triangles)),
-                } });
-            }
-
-            pub fn drawTexturedTriangles(_: *@This(), _: Texture, _: []const Rect) !void {}
-        };
-
-        pub const Texture = extern struct {
-            handle: types.TextureHandle,
-            width: u32,
-            height: u32,
-        };
-
-        pub const Colour = extern struct {
-            r: f32,
-            g: f32,
-            b: f32,
-            a: f32,
-
-            pub const black = fromRGB(0, 0, 0);
-            pub const white = fromRGB(1, 1, 1);
-            pub const red = fromRGB(1, 0, 0);
-            pub const orange = fromRGB(1, 0.5, 0);
-
-            pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
-                return .{ .r = r, .g = g, .b = b, .a = 1 };
-            }
-
-            pub fn fromRGBA(r: f32, g: f32, b: f32, a: f32) Colour {
-                return .{ .r = r, .g = g, .b = b, .a = a };
-            }
-
-            /// Returns a Colour for a given hue, saturation and value
-            /// h, s, v are assumed to be in the range 0...1
-            /// Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
-            pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
-                const hp = (h * 360) / 60;
-                const c = v * s;
-                const x = c * (1 - @fabs(@mod(hp, 2) - 1));
-                const m = v - c;
-                if (hp <= 1) {
-                    return Colour.fromRGB(c + m, x + m, m);
-                } else if (hp <= 2) {
-                    return Colour.fromRGB(x + m, c + m, m);
-                } else if (hp <= 3) {
-                    return Colour.fromRGB(m, c + m, x + m);
-                } else if (hp <= 4) {
-                    return Colour.fromRGB(m, x + m, c + m);
-                } else if (hp <= 5) {
-                    return Colour.fromRGB(x + m, m, c + m);
-                } else if (hp <= 6) {
-                    return Colour.fromRGB(c + m, m, x + m);
-                } else {
-                    std.debug.assert(false);
-                    return Colour.fromRGB(0, 0, 0);
-                }
-            }
-        };
-
-        pub const Rect = extern struct {
-            min_x: f32,
-            min_y: f32,
-            max_x: f32,
-            max_y: f32,
-
-            pub fn vertices(self: Rect) [6]VertexPosition {
-                return [_]VertexPosition{
-                    VertexPosition{ self.min_x, self.min_y, 0.0 },
-                    VertexPosition{ self.min_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.min_y, 0.0 },
-                    VertexPosition{ self.min_x, self.min_y, 0.0 },
-                };
-            }
-        };
-
-        pub const DebugGUI = struct {
-            allocator: std.mem.Allocator,
-            draw_list: *DrawList,
-            canvas_width: f32,
-            canvas_height: f32,
-
-            pub fn begin(allocator: std.mem.Allocator, canvas_width: f32, canvas_height: f32, draw_list: *DrawList) DebugGUI {
-                return .{
-                    .allocator = allocator,
-                    .draw_list = draw_list,
-                    .canvas_width = canvas_width,
-                    .canvas_height = canvas_height,
-                };
-            }
-
-            pub fn end(_: *DebugGUI) void {}
-
-            pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
-                const bg_colour = Colour.fromRGBA(0, 0, 0, 0.67);
-                const menu_size = 42;
-
-                const rect = Rect{
-                    .min_x = -1,
-                    .min_y = 1,
-                    .max_x = 1,
-                    .max_y = 1 - menu_size / self.canvas_height,
-                };
-
-                const verts = try self.allocator.alloc(VertexPosition, 6);
-                errdefer self.allocator.free(verts);
-
-                std.mem.copy(VertexPosition, verts, &rect.vertices());
-
-                try self.draw_list.drawVerts(bg_colour, verts);
-            }
-
-            pub fn endMenu(_: *DebugGUI) void {}
-
-            pub fn label(_: *DebugGUI, fmt: []const u8, args: anytype) void {
-                _ = fmt;
-                _ = args;
-            }
-        };
+        // temporary private stuff to get something going
+        // TODO(hazeycode): support for multiple vertex buffers (or slices into a single one) with caching
+        var _vertex_buffer: VertexBufferHandle = undefined;
+        var _vertex_layout: VertexLayoutHandle = undefined;
+        const _vertex_buffer_size = @sizeOf(f32) * 1e3;
+        var _rasteriser_state: RasteriserStateHandle = undefined;
+        var _constant_buffer: ConstantBufferHandle = undefined;
+        var _solid_colour_shader: ShaderProgramHandle = undefined;
+        var _debug_font_texture: Texture = undefined;
 
         pub fn init(allocator: std.mem.Allocator) !void {
             backend.init(allocator);
@@ -190,6 +45,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             _constant_buffer = try backend.createConstantBuffer(0x1000);
 
             _rasteriser_state = try backend.createRasteriserState();
+
+            // _debug_font_texture = try Texture.fromPBM(@embedFile("debugfont.pbm"));
 
             const zeros = [_]u8{0} ** _vertex_buffer_size;
             _vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
@@ -261,15 +118,239 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
         }
 
-        // temporary private stuff to get something going
-        // TODO(hazeycode): support for multiple vertex buffers (or slices into a single one) with caching
-        var _vertex_buffer: VertexBufferHandle = undefined;
-        var _vertex_layout: VertexLayoutHandle = undefined;
-        const _vertex_buffer_size = @sizeOf(f32) * 1e3;
-        var _rasteriser_state: RasteriserStateHandle = undefined;
-        var _constant_buffer: ConstantBufferHandle = undefined;
-        var _solid_colour_shader: ShaderProgramHandle = undefined;
-        var _draw_colour: Colour = undefined;
+        pub const DrawList = struct {
+            pub const Entry = union(enum) {
+                set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
+                clear_viewport: Colour,
+                tris_solid_colour: struct {
+                    colour: Colour,
+                    vertices: []const VertexPosition,
+                },
+                tris_textured: struct {
+                    texture: TextureHandle,
+                    vertices: []const TexturedVertex,
+                },
+            };
+
+            entries: std.ArrayList(Entry),
+
+            pub fn setViewport(self: *@This(), x: u16, y: u16, width: u16, height: u16) !void {
+                try self.entries.append(.{ .set_viewport = .{ .x = x, .y = y, .width = width, .height = height } });
+            }
+
+            pub fn clearViewport(self: *@This(), colour: Colour) !void {
+                try self.entries.append(.{ .clear_viewport = colour });
+            }
+
+            pub fn drawVerts(self: *@This(), colour: Colour, verts: []const VertexPosition) !void {
+                try self.entries.append(.{ .tris_solid_colour = .{
+                    .colour = colour,
+                    .vertices = verts,
+                } });
+            }
+
+            pub fn drawTriangles(self: *@This(), colour: Colour, triangles: []const [3]VertexPosition) !void {
+                try self.entries.append(.{ .tris_solid_colour = .{
+                    .colour = colour,
+                    .vertices = std.mem.bytesAsSlice(VertexPosition, std.mem.sliceAsBytes(triangles)),
+                } });
+            }
+
+            pub fn drawTexturedTriangles(_: *@This(), _: Texture, _: []const Rect) !void {}
+        };
+
+        pub const Colour = extern struct {
+            r: f32,
+            g: f32,
+            b: f32,
+            a: f32,
+
+            pub const black = fromRGB(0, 0, 0);
+            pub const white = fromRGB(1, 1, 1);
+            pub const red = fromRGB(1, 0, 0);
+            pub const orange = fromRGB(1, 0.5, 0);
+
+            pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
+                return .{ .r = r, .g = g, .b = b, .a = 1 };
+            }
+
+            pub fn fromRGBA(r: f32, g: f32, b: f32, a: f32) Colour {
+                return .{ .r = r, .g = g, .b = b, .a = a };
+            }
+
+            /// Returns a Colour for a given hue, saturation and value
+            /// h, s, v are assumed to be in the range 0...1
+            /// Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
+            pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
+                const hp = (h * 360) / 60;
+                const c = v * s;
+                const x = c * (1 - @fabs(@mod(hp, 2) - 1));
+                const m = v - c;
+                if (hp <= 1) {
+                    return Colour.fromRGB(c + m, x + m, m);
+                } else if (hp <= 2) {
+                    return Colour.fromRGB(x + m, c + m, m);
+                } else if (hp <= 3) {
+                    return Colour.fromRGB(m, c + m, x + m);
+                } else if (hp <= 4) {
+                    return Colour.fromRGB(m, x + m, c + m);
+                } else if (hp <= 5) {
+                    return Colour.fromRGB(x + m, m, c + m);
+                } else if (hp <= 6) {
+                    return Colour.fromRGB(c + m, m, x + m);
+                } else {
+                    std.debug.assert(false);
+                    return Colour.fromRGB(0, 0, 0);
+                }
+            }
+        };
+
+        pub const Rect = extern struct {
+            min_x: f32,
+            min_y: f32,
+            max_x: f32,
+            max_y: f32,
+
+            pub fn vertices(self: Rect) [6]VertexPosition {
+                return [_]VertexPosition{
+                    VertexPosition{ self.min_x, self.min_y, 0.0 },
+                    VertexPosition{ self.min_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.min_y, 0.0 },
+                    VertexPosition{ self.min_x, self.min_y, 0.0 },
+                };
+            }
+        };
+
+        pub const Texture = extern struct {
+            handle: types.TextureHandle,
+            format: types.TextureFormat,
+            width: u32,
+            height: u32,
+
+            pub fn fromPBM(pbm_bytes: []const u8) !Texture {
+                return try pbm.parse(pbm_bytes);
+            }
+        };
+
+        pub const DebugGUI = struct {
+            allocator: std.mem.Allocator,
+            draw_list: *DrawList,
+            canvas_width: f32,
+            canvas_height: f32,
+
+            pub fn begin(allocator: std.mem.Allocator, canvas_width: f32, canvas_height: f32, draw_list: *DrawList) DebugGUI {
+                return .{
+                    .allocator = allocator,
+                    .draw_list = draw_list,
+                    .canvas_width = canvas_width,
+                    .canvas_height = canvas_height,
+                };
+            }
+
+            pub fn end(_: *DebugGUI) void {}
+
+            pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
+                const bg_colour = Colour.fromRGBA(0, 0, 0, 0.67);
+                const menu_size = 42;
+                // const menu_inset = 2;
+
+                const rect = Rect{
+                    .min_x = -1,
+                    .min_y = 1,
+                    .max_x = 1,
+                    .max_y = 1 - menu_size / self.canvas_height,
+                };
+
+                const verts = try self.allocator.alloc(VertexPosition, 6);
+                errdefer self.allocator.free(verts);
+
+                std.mem.copy(VertexPosition, verts, &rect.vertices());
+
+                try self.draw_list.drawVerts(bg_colour, verts);
+
+                // try self.draw_list.drawTexturedTriangles(
+                //     _debug_font_texture,
+                //     ..
+                // );
+            }
+
+            pub fn endMenu(_: *DebugGUI) void {}
+
+            pub fn label(_: *DebugGUI, fmt: []const u8, args: anytype) void {
+                _ = fmt;
+                _ = args;
+            }
+        };
+
+        pub const pbm = struct {
+            pub fn parse(bytes: []const u8) !Texture {
+                var parser = Parser{
+                    .bytes = bytes,
+                    .cur = 0,
+                };
+                return parser.parse();
+            }
+
+            pub const Parser = struct {
+                bytes: []const u8,
+                cur: usize,
+
+                fn parse(self: *@This()) !Texture {
+                    const magic_number = try self.magicNumber();
+                    self.whitespace();
+                    const width = self.integer();
+                    self.whitespace();
+                    const height = self.integer();
+                    self.whitespace();
+                    switch (magic_number) {
+                        .p1 => {
+                            const texture_bytes = self.bytes[self.cur..];
+                            const format = types.TextureFormat.uint8;
+                            return Texture{
+                                .handle = backend.createTextureWithBytes(texture_bytes, format),
+                                .format = format,
+                                .width = width,
+                                .height = height,
+                            };
+                        },
+                        .p4 => return error.Unimplemented,
+                    }
+                }
+
+                fn magicNumber(self: *@This()) !enum { p1, p4 } {
+                    if (self.bytes[self.cur] != 'P') return error.BadFormat;
+                    self.cur += 1;
+                    defer self.cur += 1;
+                    switch (self.bytes[self.cur]) {
+                        '1' => return .p1,
+                        '4' => return .p4,
+                        else => return error.BadFormat,
+                    }
+                }
+
+                fn whitespace(self: *@This()) void {
+                    while (isWhitespace(self.bytes[self.cur])) {
+                        self.cur += 1;
+                    }
+                }
+
+                inline fn isWhitespace(char: u8) bool {
+                    const whitespace_chars = "    \n\r";
+                    inline for (whitespace_chars) |wsc| if (wsc == char) return true;
+                    return false;
+                }
+
+                fn integer(self: *@This()) u32 {
+                    var res: u32 = 0;
+                    for (self.bytes[self.cur..]) |c| {
+                        res = (res << 3) +% (res << 1) +% (c -% '0');
+                    }
+                    return res;
+                }
+            };
+        };
     };
 }
 

@@ -95,6 +95,13 @@ pub fn useVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
+pub fn createTextureWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
+    _ = bytes;
+    _ = format;
+    std.debug.panic("Unimplemented", .{});
+    return 0;
+}
+
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
     var ubo: c.GLuint = undefined;
     c.glGenBuffers(1, &ubo);
