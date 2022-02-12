@@ -16,17 +16,28 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const VertexLayoutHandle = types.VertexLayoutHandle;
         pub const RasteriserStateHandle = types.RasteriserStateHandle;
         pub const VertexLayoutDesc = types.VertexLayoutDesc;
+        pub const TextureHandle = types.TextureHandle;
 
-        const pi = std.math.pi;
-        const tao = 2 * std.math.pi;
+        pub const VertexPosition = [3]f32;
+        pub const VertexIndex = u16;
+        pub const VertexUV = [2]f32;
+
+        pub const TexturedVertex = extern struct {
+            pos: VertexPosition,
+            uv: VertexUV,
+        };
 
         pub const DrawList = struct {
             pub const Entry = union(enum) {
                 set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
                 clear_viewport: Colour,
-                draw_verts: struct {
+                tris_solid_colour: struct {
                     colour: Colour,
-                    vertices: []const [3]f32,
+                    vertices: []const VertexPosition,
+                },
+                tris_textured: struct {
+                    texture: TextureHandle,
+                    vertices: []const TexturedVertex,
                 },
             };
 
@@ -40,12 +51,27 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 try self.entries.append(.{ .clear_viewport = colour });
             }
 
-            pub fn drawTriangles(self: *@This(), colour: Colour, vertices: []const [3][3]f32) !void {
-                try self.entries.append(.{ .draw_verts = .{
+            pub fn drawVerts(self: *@This(), colour: Colour, verts: []const VertexPosition) !void {
+                try self.entries.append(.{ .tris_solid_colour = .{
                     .colour = colour,
-                    .vertices = std.mem.bytesAsSlice([3]f32, std.mem.sliceAsBytes(vertices)),
+                    .vertices = verts,
                 } });
             }
+
+            pub fn drawTriangles(self: *@This(), colour: Colour, triangles: []const [3]VertexPosition) !void {
+                try self.entries.append(.{ .tris_solid_colour = .{
+                    .colour = colour,
+                    .vertices = std.mem.bytesAsSlice(VertexPosition, std.mem.sliceAsBytes(triangles)),
+                } });
+            }
+
+            pub fn drawTexturedTriangles(_: *@This(), _: Texture, _: []const Rect) !void {}
+        };
+
+        pub const Texture = extern struct {
+            handle: types.TextureHandle,
+            width: u32,
+            height: u32,
         };
 
         pub const Colour = extern struct {
@@ -61,6 +87,10 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
             pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
                 return .{ .r = r, .g = g, .b = b, .a = 1 };
+            }
+
+            pub fn fromRGBA(r: f32, g: f32, b: f32, a: f32) Colour {
+                return .{ .r = r, .g = g, .b = b, .a = a };
             }
 
             /// Returns a Colour for a given hue, saturation and value
@@ -90,11 +120,66 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
         };
 
-        pub const Rect = struct {
+        pub const Rect = extern struct {
             min_x: f32,
             min_y: f32,
             max_x: f32,
             max_y: f32,
+
+            pub fn vertices(self: Rect) [6]VertexPosition {
+                return [_]VertexPosition{
+                    VertexPosition{ self.min_x, self.min_y, 0.0 },
+                    VertexPosition{ self.min_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.max_y, 0.0 },
+                    VertexPosition{ self.max_x, self.min_y, 0.0 },
+                    VertexPosition{ self.min_x, self.min_y, 0.0 },
+                };
+            }
+        };
+
+        pub const DebugGUI = struct {
+            allocator: std.mem.Allocator,
+            draw_list: *DrawList,
+            canvas_width: f32,
+            canvas_height: f32,
+
+            pub fn begin(allocator: std.mem.Allocator, canvas_width: f32, canvas_height: f32, draw_list: *DrawList) DebugGUI {
+                return .{
+                    .allocator = allocator,
+                    .draw_list = draw_list,
+                    .canvas_width = canvas_width,
+                    .canvas_height = canvas_height,
+                };
+            }
+
+            pub fn end(_: *DebugGUI) void {}
+
+            pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
+                const bg_colour = Colour.fromRGBA(0.2, 0.2, 0.2, 0.3);
+                const menu_size = 42;
+
+                const rect = Rect{
+                    .min_x = -1,
+                    .min_y = 1,
+                    .max_x = 1,
+                    .max_y = 1 - menu_size / self.canvas_height,
+                };
+
+                const verts = try self.allocator.alloc(VertexPosition, 6);
+                errdefer self.allocator.free(verts);
+
+                std.mem.copy(VertexPosition, verts, &rect.vertices());
+
+                try self.draw_list.drawVerts(bg_colour, verts);
+            }
+
+            pub fn endMenu(_: *DebugGUI) void {}
+
+            pub fn label(_: *DebugGUI, fmt: []const u8, args: anytype) void {
+                _ = fmt;
+                _ = args;
+            }
         };
 
         pub fn init(allocator: std.mem.Allocator) !void {
@@ -133,6 +218,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
         pub fn submitDrawList(draw_list: DrawList) !void {
             // TODO(hazeycode): sort draw list to minimise pipeline state changes
+            var vert_cur: u32 = 0;
             for (draw_list.entries.items) |entry| {
                 switch (entry) {
                     .set_viewport => |viewport| {
@@ -141,12 +227,16 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .clear_viewport => |colour| {
                         backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
                     },
-                    .draw_verts => |e| {
+                    .tris_solid_colour => |desc| {
                         //TODO(hazeycode): cache constant buffer binding state
                         backend.bindConstantBuffer(0, _constant_buffer, 0, @sizeOf(Colour));
 
-                        //TODO(hazeycode): only write to buffer if verts have changed
-                        try backend.writeBytesToVertexBuffer(_vertex_buffer, std.mem.sliceAsBytes(e.vertices));
+                        //TODO(hazeycode): cache hashes of written ranges
+                        _ = try backend.writeBytesToVertexBuffer(
+                            _vertex_buffer,
+                            vert_cur * @sizeOf(VertexPosition),
+                            std.mem.sliceAsBytes(desc.vertices),
+                        );
 
                         backend.useShaderProgram(_solid_colour_shader);
                         backend.useRasteriserState(_rasteriser_state);
@@ -154,15 +244,19 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         { // update colour constant
                             var buf: [@sizeOf(Colour)]u8 = undefined;
-                            const src = std.mem.sliceAsBytes(@ptrCast([*]const f32, &e.colour)[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
+                            const src_ptr = @ptrCast([*]const f32, &desc.colour);
+                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
                             std.mem.copy(u8, buf[0..], src[0..]);
                             try backend.writeShaderConstant(_constant_buffer, 0, &buf);
                         }
 
                         backend.useConstantBuffer(_constant_buffer);
 
-                        backend.draw(0, @intCast(u32, e.vertices.len));
+                        backend.draw(vert_cur, @intCast(u32, desc.vertices.len));
+
+                        vert_cur += @intCast(u32, desc.vertices.len);
                     },
+                    .tris_textured => |_| {},
                 }
             }
         }

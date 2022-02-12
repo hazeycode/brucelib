@@ -126,7 +126,7 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     return @ptrToInt(buffer.?);
 }
 
-pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, bytes: []const u8) !void {
+pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, offset: usize, bytes: []const u8) !usize {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
     const device_ctx = getD3D11DeviceContext();
     var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
@@ -137,8 +137,9 @@ pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, bytes: 
         0,
         &subresource,
     ));
-    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[0..bytes.len], bytes);
+    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[offset..bytes.len], bytes);
     device_ctx.Unmap(vertex_buffer, 0);
+    return bytes.len;
 }
 
 pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {

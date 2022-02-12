@@ -3,6 +3,7 @@ pub const ConstantBufferHandle = u64;
 pub const VertexBufferHandle = u64;
 pub const VertexLayoutHandle = u64;
 pub const RasteriserStateHandle = u64;
+pub const TextureHandle = u64;
 
 pub const VertexLayoutDesc = struct {
     entries: []Entry,

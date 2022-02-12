@@ -25,19 +25,39 @@ pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
 }
 
 pub fn draw(offset: u32, count: u32) void {
-    c.glDrawArrays(c.GL_TRIANGLES, @intCast(c_int, offset), @intCast(c_int, count));
+    c.glDrawArrays(
+        c.GL_TRIANGLES,
+        @intCast(c.GLint, offset),
+        @intCast(c.GLsizei, count),
+    );
 }
 
 pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
-    try writeBytesToVertexBuffer(vbo, bytes);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, vbo));
+    c.glBufferData(
+        c.GL_ARRAY_BUFFER,
+        @intCast(c.GLsizeiptr, bytes.len),
+        bytes.ptr,
+        c.GL_DYNAMIC_DRAW,
+    );
     return vbo;
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) !void {
+pub fn writeBytesToVertexBuffer(
+    buffer_id: types.VertexBufferHandle,
+    offset: usize,
+    bytes: []const u8,
+) !usize {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, buffer_id));
-    c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c.GLuint, bytes.len), bytes.ptr, c.GL_DYNAMIC_DRAW);
+    c.glBufferSubData(
+        c.GL_ARRAY_BUFFER,
+        @intCast(c.GLintptr, offset),
+        @intCast(c.GLsizeiptr, bytes.len),
+        bytes.ptr,
+    );
+    return bytes.len;
 }
 
 pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {

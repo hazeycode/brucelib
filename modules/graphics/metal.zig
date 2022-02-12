@@ -38,10 +38,12 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     return 0;
 }
 
-pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, bytes: []const u8) !void {
+pub fn writeBytesToVertexBuffer(buffer_id: types.VertexBufferHandle, offset: usize, bytes: []const u8) !usize {
     _ = buffer_id;
+    _ = offset;
     _ = bytes;
     std.debug.panic("Unimplemented", .{});
+    return 0;
 }
 
 pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) types.VertexLayoutHandle {
