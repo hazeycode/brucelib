@@ -137,7 +137,7 @@ pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, offset:
         0,
         &subresource,
     ));
-    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[offset..bytes.len], bytes);
+    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[offset..(offset + bytes.len)], bytes);
     device_ctx.Unmap(vertex_buffer, 0);
     return bytes.len;
 }
