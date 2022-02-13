@@ -103,6 +103,15 @@ pub fn useRasteriserState(_: types.RasteriserStateHandle) void {
     std.debug.panic("Unimplemented", .{});
 }
 
+pub fn createBlendState() !types.BlendStateHandle {
+    std.debug.panic("Unimplemented", .{});
+    return 0;
+}
+
+pub fn setBlendState(_: type.BlendStateHandle) void {
+    std.debug.panic("Unimplemented", .{});
+}
+
 pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     _ = program_handle;
     std.debug.panic("Unimplemented", .{});

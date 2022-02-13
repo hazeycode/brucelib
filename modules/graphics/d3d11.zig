@@ -169,7 +169,7 @@ pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.Ver
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn useVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
+pub fn setVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
     getD3D11DeviceContext().IASetVertexBuffers(
         0,
@@ -263,7 +263,7 @@ pub fn writeShaderConstant(
     device_ctx.Unmap(constant_buffer, 0);
 }
 
-pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
     const buffer = constant_buffers.items[buffer_handle];
     const buffers = [_]*d3d11.IBuffer{buffer.buffer};
     getD3D11DeviceContext().VSSetConstantBuffers(
@@ -287,12 +287,46 @@ pub fn createRasteriserState() !types.RasteriserStateHandle {
     return @ptrToInt(res);
 }
 
-pub fn useRasteriserState(state_handle: types.RasteriserStateHandle) void {
+pub fn setRasteriserState(state_handle: types.RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
     getD3D11DeviceContext().RSSetState(state);
 }
 
-pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn createBlendState() !types.BlendStateHandle {
+    var blend_state: ?*d3d11.IBlendState = null;
+    var rt_blend_descs: [8]d3d11.RENDER_TARGET_BLEND_DESC = undefined;
+    rt_blend_descs[0] = .{
+        .BlendEnable = TRUE,
+        .SrcBlend = .SRC_ALPHA,
+        .DestBlend = .INV_SRC_ALPHA,
+        .BlendOp = .ADD,
+        .SrcBlendAlpha = .ONE,
+        .DestBlendAlpha = .ZERO,
+        .BlendOpAlpha = .ADD,
+        .RenderTargetWriteMask = d3d11.COLOR_WRITE_ENABLE_ALL,
+    };
+    const desc = d3d11.BLEND_DESC{
+        .AlphaToCoverageEnable = FALSE,
+        .IndependentBlendEnable = FALSE,
+        .RenderTarget = rt_blend_descs,
+    };
+    try win32.hrErrorOnFail(getD3D11Device().CreateBlendState(
+        &desc,
+        &blend_state,
+    ));
+    return @ptrToInt(blend_state);
+}
+
+pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
+    const blend_state = @intToPtr(*d3d11.IBlendState, blend_state_handle);
+    getD3D11DeviceContext().OMSetBlendState(
+        blend_state,
+        null,
+        0xffffffff,
+    );
+}
+
+pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
     const device_ctx = getD3D11DeviceContext();
     const shader_program = shader_programs.items[program_handle];
     device_ctx.IASetInputLayout(shader_program.input_layout);

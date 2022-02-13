@@ -53,6 +53,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     { // examples
+        // TODO(hazeycode): Use build root dir instead of cwd
         const dir = try std.fs.cwd().openDir("examples", .{ .iterate = true });
 
         var example_id: usize = 0;

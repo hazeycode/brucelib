@@ -15,8 +15,9 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const VertexBufferHandle = types.VertexBufferHandle;
         pub const VertexLayoutHandle = types.VertexLayoutHandle;
         pub const RasteriserStateHandle = types.RasteriserStateHandle;
-        pub const VertexLayoutDesc = types.VertexLayoutDesc;
+        pub const BlendStateHandle = types.BlendStateHandle;
         pub const TextureHandle = types.TextureHandle;
+        pub const VertexLayoutDesc = types.VertexLayoutDesc;
 
         pub const VertexPosition = [3]f32;
         pub const VertexIndex = u16;
@@ -35,6 +36,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         var _rasteriser_state: RasteriserStateHandle = undefined;
         var _constant_buffer: ConstantBufferHandle = undefined;
         var _solid_colour_shader: ShaderProgramHandle = undefined;
+        var _default_blend_state: BlendStateHandle = undefined;
         var _debug_font_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator) !void {
@@ -45,6 +47,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             _constant_buffer = try backend.createConstantBuffer(0x1000);
 
             _rasteriser_state = try backend.createRasteriserState();
+
+            _default_blend_state = try backend.createBlendState();
 
             _debug_font_texture = try Texture2d.fromPBM(@embedFile("debugfont.pbm"));
 
@@ -95,9 +99,10 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                             std.mem.sliceAsBytes(desc.vertices),
                         );
 
-                        backend.useShaderProgram(_solid_colour_shader);
-                        backend.useRasteriserState(_rasteriser_state);
-                        backend.useVertexLayout(_vertex_layout);
+                        backend.setShaderProgram(_solid_colour_shader);
+                        backend.setRasteriserState(_rasteriser_state);
+                        backend.setBlendState(_default_blend_state);
+                        backend.setVertexLayout(_vertex_layout);
 
                         { // update colour constant
                             var buf: [@sizeOf(Colour)]u8 = undefined;
@@ -107,7 +112,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                             try backend.writeShaderConstant(_constant_buffer, 0, &buf);
                         }
 
-                        backend.useConstantBuffer(_constant_buffer);
+                        backend.setConstantBuffer(_constant_buffer);
 
                         backend.draw(vert_cur, @intCast(u32, desc.vertices.len));
 

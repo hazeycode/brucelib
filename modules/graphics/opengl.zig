@@ -147,7 +147,13 @@ pub fn createRasteriserState() !types.RasteriserStateHandle {
     return 0;
 }
 
-pub fn useRasteriserState(_: types.RasteriserStateHandle) void {
+pub fn useRasteriserState(_: types.RasteriserStateHandle) void {}
+
+pub fn createBlendState() !types.BlendStateHandle {
+    return 0;
+}
+
+pub fn setBlendState(_: type.BlendStateHandle) void {
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 }
