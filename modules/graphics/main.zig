@@ -28,43 +28,76 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             uv: VertexUV,
         };
 
-        // temporary private stuff to get something going
-        // TODO(hazeycode): support for multiple vertex buffers (or slices into a single one) with caching
-        var _vertex_buffer: VertexBufferHandle = undefined;
-        var _vertex_layout: VertexLayoutHandle = undefined;
-        const _vertex_buffer_size = @sizeOf(f32) * 1e3;
-        var _rasteriser_state: RasteriserStateHandle = undefined;
-        var _constant_buffer: ConstantBufferHandle = undefined;
-        var _solid_colour_shader: ShaderProgramHandle = undefined;
-        var _default_blend_state: BlendStateHandle = undefined;
-        var _debug_font_texture: Texture2d = undefined;
+        const PipelineResources = struct {
+            program: ShaderProgramHandle,
+            vertex_buffer: VertexBufferHandle,
+            vertex_layout: VertexLayoutHandle,
+            rasteriser_state: RasteriserStateHandle,
+            blend_state: BlendStateHandle,
+            constant_buffer: ConstantBufferHandle = 0,
+        };
+
+        var pipeline_resources: struct {
+            uniform_colour_tris: PipelineResources,
+            textured_tris: PipelineResources,
+        } = undefined;
+
+        var debugfont_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator) !void {
             backend.init(allocator);
 
-            _solid_colour_shader = try backend.createSolidColourShader();
+            debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));
 
-            _constant_buffer = try backend.createConstantBuffer(0x1000);
-
-            _rasteriser_state = try backend.createRasteriserState();
-
-            _default_blend_state = try backend.createBlendState();
-
-            _debug_font_texture = try Texture2d.fromPBM(@embedFile("debugfont.pbm"));
-
-            const zeros = [_]u8{0} ** _vertex_buffer_size;
-            _vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
-            _vertex_layout = try backend.createVertexLayout(.{
-                .entries = &[_]VertexLayoutDesc.Entry{
-                    .{
-                        .buffer_handle = _vertex_buffer,
-                        .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
-                            .{ .format = .f32x3 },
+            {
+                const zeros = [_]u8{0} ** (@sizeOf(f32) * 1e3);
+                const vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
+                const vertex_layout = try backend.createVertexLayout(.{
+                    .entries = &[_]VertexLayoutDesc.Entry{
+                        .{
+                            .buffer_handle = vertex_buffer,
+                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
+                                .{ .format = .f32x3 },
+                            },
+                            .offset = 0,
                         },
-                        .offset = 0,
                     },
-                },
-            });
+                });
+
+                pipeline_resources.uniform_colour_tris = .{
+                    .program = try backend.createUniformColourShader(),
+                    .vertex_buffer = vertex_buffer,
+                    .vertex_layout = vertex_layout,
+                    .rasteriser_state = try backend.createRasteriserState(),
+                    .blend_state = try backend.createBlendState(),
+                    .constant_buffer = try backend.createConstantBuffer(0x1000),
+                };
+            }
+
+            {
+                const zeros = [_]u8{0} ** (@sizeOf(f32) * 1e3);
+                const vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
+                const vertex_layout = try backend.createVertexLayout(.{
+                    .entries = &[_]VertexLayoutDesc.Entry{
+                        .{
+                            .buffer_handle = vertex_buffer,
+                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
+                                .{ .format = .f32x3 },
+                                .{ .format = .f32x2 },
+                            },
+                            .offset = 0,
+                        },
+                    },
+                });
+
+                pipeline_resources.textured_tris = .{
+                    .program = try backend.createTexturedVertsShader(),
+                    .vertex_buffer = vertex_buffer,
+                    .vertex_layout = vertex_layout,
+                    .rasteriser_state = try backend.createRasteriserState(),
+                    .blend_state = try backend.createBlendState(),
+                };
+            }
         }
 
         pub fn deinit() void {
@@ -78,8 +111,9 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         }
 
         pub fn submitDrawList(draw_list: DrawList) !void {
-            // TODO(hazeycode): sort draw list to minimise pipeline state changes
-            var vert_cur: u32 = 0;
+            var uniform_colour_vert_cur: u32 = 0;
+            var textured_vert_cur: u32 = 0;
+
             for (draw_list.entries.items) |entry| {
                 switch (entry) {
                     .set_viewport => |viewport| {
@@ -88,37 +122,71 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .clear_viewport => |colour| {
                         backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
                     },
-                    .tris_solid_colour => |desc| {
+                    .uniform_colour_verts => |desc| {
+                        const resources = pipeline_resources.uniform_colour_tris;
+
                         //TODO(hazeycode): cache constant buffer binding state
-                        backend.bindConstantBuffer(0, _constant_buffer, 0, @sizeOf(Colour));
+                        backend.bindConstantBuffer(
+                            0,
+                            resources.constant_buffer,
+                            0,
+                            @sizeOf(Colour),
+                        );
 
                         //TODO(hazeycode): cache hashes of written ranges
                         _ = try backend.writeBytesToVertexBuffer(
-                            _vertex_buffer,
-                            vert_cur * @sizeOf(VertexPosition),
+                            resources.vertex_buffer,
+                            uniform_colour_vert_cur * @sizeOf(VertexPosition),
                             std.mem.sliceAsBytes(desc.vertices),
                         );
 
-                        backend.setShaderProgram(_solid_colour_shader);
-                        backend.setRasteriserState(_rasteriser_state);
-                        backend.setBlendState(_default_blend_state);
-                        backend.setVertexLayout(_vertex_layout);
+                        backend.setShaderProgram(resources.program);
+
+                        backend.setVertexLayout(resources.vertex_layout);
+
+                        backend.setRasteriserState(resources.rasteriser_state);
+
+                        backend.setBlendState(resources.blend_state);
 
                         { // update colour constant
                             var buf: [@sizeOf(Colour)]u8 = undefined;
                             const src_ptr = @ptrCast([*]const f32, &desc.colour);
                             const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
                             std.mem.copy(u8, buf[0..], src[0..]);
-                            try backend.writeShaderConstant(_constant_buffer, 0, &buf);
+                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
                         }
 
-                        backend.setConstantBuffer(_constant_buffer);
+                        backend.setConstantBuffer(resources.constant_buffer);
 
-                        backend.draw(vert_cur, @intCast(u32, desc.vertices.len));
+                        backend.draw(uniform_colour_vert_cur, @intCast(u32, desc.vertices.len));
 
-                        vert_cur += @intCast(u32, desc.vertices.len);
+                        uniform_colour_vert_cur += @intCast(u32, desc.vertices.len);
                     },
-                    .tris_textured => |_| {},
+                    .textured_verts => |desc| {
+                        _ = textured_vert_cur;
+                        const resources = pipeline_resources.textured_tris;
+
+                        //TODO(hazeycode): cache hashes of written ranges
+                        _ = try backend.writeBytesToVertexBuffer(
+                            resources.vertex_buffer,
+                            textured_vert_cur * @sizeOf(VertexPosition),
+                            std.mem.sliceAsBytes(desc.vertices),
+                        );
+
+                        backend.setShaderProgram(resources.program);
+
+                        backend.setVertexLayout(resources.vertex_layout);
+
+                        backend.setRasteriserState(resources.rasteriser_state);
+
+                        backend.setBlendState(resources.blend_state);
+
+                        backend.setTexture(0, desc.texture.handle);
+
+                        backend.draw(textured_vert_cur, @intCast(u32, desc.vertices.len));
+
+                        textured_vert_cur += @intCast(u32, desc.vertices.len);
+                    },
                 }
             }
         }
@@ -127,12 +195,12 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             pub const Entry = union(enum) {
                 set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
                 clear_viewport: Colour,
-                tris_solid_colour: struct {
+                uniform_colour_verts: struct {
                     colour: Colour,
                     vertices: []const VertexPosition,
                 },
-                tris_textured: struct {
-                    texture: TextureHandle,
+                textured_verts: struct {
+                    texture: Texture2d,
                     vertices: []const TexturedVertex,
                 },
             };
@@ -147,21 +215,19 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 try self.entries.append(.{ .clear_viewport = colour });
             }
 
-            pub fn drawVerts(self: *@This(), colour: Colour, verts: []const VertexPosition) !void {
-                try self.entries.append(.{ .tris_solid_colour = .{
+            pub fn drawUniformColourVerts(self: *@This(), colour: Colour, vertices: []const VertexPosition) !void {
+                try self.entries.append(.{ .uniform_colour_verts = .{
                     .colour = colour,
-                    .vertices = verts,
+                    .vertices = vertices,
                 } });
             }
 
-            pub fn drawTriangles(self: *@This(), colour: Colour, triangles: []const [3]VertexPosition) !void {
-                try self.entries.append(.{ .tris_solid_colour = .{
-                    .colour = colour,
-                    .vertices = std.mem.bytesAsSlice(VertexPosition, std.mem.sliceAsBytes(triangles)),
+            pub fn drawTexturedVerts(self: *@This(), texture: Texture2d, vertices: []const TexturedVertex) !void {
+                try self.entries.append(.{ .textured_verts = .{
+                    .texture = texture,
+                    .vertices = vertices,
                 } });
             }
-
-            pub fn drawTexturedTriangles(_: *@This(), _: Texture2d, _: []const Rect) !void {}
         };
 
         pub const Colour = extern struct {
@@ -226,6 +292,17 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     VertexPosition{ self.min_x, self.min_y, 0.0 },
                 };
             }
+
+            pub fn texturedVertices(self: Rect, uv_rect: Rect) [6]TexturedVertex {
+                return [_]TexturedVertex{
+                    TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
+                    TexturedVertex{ .pos = .{ self.min_x, self.max_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.max_y } },
+                    TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
+                    TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
+                    TexturedVertex{ .pos = .{ self.max_x, self.min_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.min_y } },
+                    TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
+                };
+            }
         };
 
         pub const Texture2d = extern struct {
@@ -234,8 +311,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             width: u32,
             height: u32,
 
-            pub fn fromPBM(pbm_bytes: []const u8) !Texture2d {
-                return try pbm.parse(pbm_bytes);
+            pub fn fromPBM(allocator: std.mem.Allocator, pbm_bytes: []const u8) !Texture2d {
+                return try pbm.parse(allocator, pbm_bytes);
             }
         };
 
@@ -257,7 +334,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             pub fn end(_: *DebugGUI) void {}
 
             pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
-                const bg_colour = Colour.fromRGBA(0, 0, 0, 0.67);
+                const bg_colour = Colour.fromRGBA(1.0, 0.7, 0.7, 0.67);
                 const menu_size = 42;
                 // const menu_inset = 2;
 
@@ -268,17 +345,30 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .max_y = 1 - menu_size / self.canvas_height,
                 };
 
-                const verts = try self.allocator.alloc(VertexPosition, 6);
-                errdefer self.allocator.free(verts);
+                {
+                    var verts = try self.allocator.alloc(VertexPosition, 6);
+                    errdefer self.allocator.free(verts);
 
-                std.mem.copy(VertexPosition, verts, &rect.vertices());
+                    std.mem.copy(VertexPosition, verts, &rect.vertices());
 
-                try self.draw_list.drawVerts(bg_colour, verts);
+                    try self.draw_list.drawUniformColourVerts(bg_colour, verts);
+                }
 
-                // try self.draw_list.drawTexturedTriangles(
-                //     _debug_font_texture,
-                //     ..
-                // );
+                {
+                    const uv_rect = Rect{
+                        .min_x = -1,
+                        .min_y = -1,
+                        .max_x = 1,
+                        .max_y = 1,
+                    };
+
+                    var verts = try self.allocator.alloc(TexturedVertex, 6);
+                    errdefer self.allocator.free(verts);
+
+                    std.mem.copy(TexturedVertex, verts, &rect.texturedVertices(uv_rect));
+
+                    try self.draw_list.drawTexturedVerts(debugfont_texture, verts);
+                }
             }
 
             pub fn endMenu(_: *DebugGUI) void {}
@@ -290,19 +380,22 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         };
 
         pub const pbm = struct {
-            pub fn parse(bytes: []const u8) !Texture2d {
+            pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) !Texture2d {
                 var parser = Parser{
                     .bytes = bytes,
                     .cur = 0,
                 };
-                return parser.parse();
+                return parser.parse(allocator);
             }
 
             pub const Parser = struct {
                 bytes: []const u8,
                 cur: usize,
 
-                fn parse(self: *@This()) !Texture2d {
+                fn parse(self: *@This(), allocator: std.mem.Allocator) !Texture2d {
+                    var texture_bytes = std.ArrayList(u8).init(allocator);
+                    defer texture_bytes.deinit();
+
                     const magic_number = try self.magicNumber();
                     self.whitespace();
                     const width = self.integer();
@@ -311,15 +404,24 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     self.whitespace();
                     switch (magic_number) {
                         .p1 => {
-                            const texture_bytes = self.bytes[self.cur..];
                             const format = types.TextureFormat.uint8;
+
+                            for (self.bytes[self.cur..]) |c| {
+                                if (isWhitespace(c)) continue;
+                                try texture_bytes.append(c);
+                            }
+
+                            std.debug.assert(texture_bytes.items.len == width * height);
+
+                            const handle = try backend.createTexture2dWithBytes(
+                                texture_bytes.items,
+                                width,
+                                height,
+                                format,
+                            );
+
                             return Texture2d{
-                                .handle = try backend.createTexture2dWithBytes(
-                                    texture_bytes,
-                                    width,
-                                    height,
-                                    format,
-                                ),
+                                .handle = handle,
                                 .format = format,
                                 .width = width,
                                 .height = height,

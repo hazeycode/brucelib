@@ -287,6 +287,103 @@ pub const TEXTURE2D_DESC = struct {
     MiscFlags: UINT,
 };
 
+pub const BUFFER_SRV = extern struct {
+    FirstElement: UINT,
+    NumElements: UINT,
+};
+
+pub const TEX1D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+};
+
+pub const TEX1D_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX2D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+};
+
+pub const TEX2D_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const TEX3D_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+};
+
+pub const TEXCUBE_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+};
+
+pub const TEXCUBE_ARRAY_SRV = extern struct {
+    MostDetailedMip: UINT,
+    MipLevels: UINT,
+    First2DArrayFace: UINT,
+    NumCubes: UINT,
+};
+
+pub const TEX2DMS_SRV = extern struct {
+    UnusedField_NothingToDefine: UINT,
+};
+
+pub const TEX2DMS_ARRAY_SRV = extern struct {
+    FirstArraySlice: UINT,
+    ArraySize: UINT,
+};
+
+pub const BUFFEREX_SRV_FLAG = UINT;
+pub const BUFFEREX_SRV_FLAG_RAW = 0x1;
+
+pub const BUFFEREX_SRV = extern struct {
+    FirstElement: UINT,
+    NumElements: UINT,
+    Flags: BUFFEREX_SRV_FLAG,
+};
+
+pub const SRV_DIMENSION = enum(UINT) {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+    TEXTURECUBE = 9,
+    TEXTURECUBEARRAY = 10,
+    BUFFEREX = 11,
+};
+
+pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: SRV_DIMENSION,
+    u: extern union {
+        Buffer: BUFFER_SRV,
+        Texture1D: TEX1D_SRV,
+        Texture1DArray: TEX1D_ARRAY_SRV,
+        Texture2D: TEX2D_SRV,
+        Texture2DArray: TEX2D_ARRAY_SRV,
+        Texture2DMS: TEX2DMS_SRV,
+        Texture2DMSArray: TEX2DMS_ARRAY_SRV,
+        Texture3D: TEX3D_SRV,
+        TextureCube: TEXCUBE_SRV,
+        TextureCubeArray: TEXCUBE_ARRAY_SRV,
+        BufferEx: BUFFEREX_SRV,
+    },
+};
+
 pub const IID_IDeviceChild = GUID.parse("{1841e5c8-16b0-489b-bcc8-44cfb0d5deae}");
 pub const IDeviceChild = extern struct {
     const Self = @This();
@@ -421,6 +518,19 @@ pub const IDeviceContext = extern struct {
                     ppConstantBuffers,
                 );
             }
+            pub inline fn PSSetShaderResources(
+                self: *T,
+                StartSlot: UINT,
+                NumViews: UINT,
+                ppShaderResourceViews: ?[*]const *IShaderResourceView,
+            ) void {
+                self.v.devctx.PSSetShaderResources(
+                    self,
+                    StartSlot,
+                    NumViews,
+                    ppShaderResourceViews,
+                );
+            }
             pub inline fn PSSetShader(
                 self: *T,
                 pPixelShader: ?*IPixelShader,
@@ -510,6 +620,19 @@ pub const IDeviceContext = extern struct {
             pub inline fn IASetPrimitiveTopology(self: *T, Topology: PRIMITIVE_TOPOLOGY) void {
                 self.v.devctx.IASetPrimitiveTopology(self, Topology);
             }
+            pub inline fn VSSetShaderResources(
+                self: *T,
+                StartSlot: UINT,
+                NumViews: UINT,
+                ppShaderResourceViews: ?[*]const *IShaderResourceView,
+            ) void {
+                self.v.devctx.VSSetShaderResources(
+                    self,
+                    StartSlot,
+                    NumViews,
+                    ppShaderResourceViews,
+                );
+            }
             pub inline fn OMSetRenderTargets(
                 self: *T,
                 NumViews: UINT,
@@ -567,7 +690,12 @@ pub const IDeviceContext = extern struct {
                 UINT,
                 ?[*]const *IBuffer,
             ) callconv(WINAPI) void,
-            PSSetShaderResources: *anyopaque,
+            PSSetShaderResources: fn (
+                *T,
+                UINT,
+                UINT,
+                ?[*]const *IShaderResourceView,
+            ) callconv(WINAPI) void,
             PSSetShader: fn (
                 *T,
                 ?*IPixelShader,
@@ -613,7 +741,12 @@ pub const IDeviceContext = extern struct {
             GSSetConstantBuffers: *anyopaque,
             GSSetShader: *anyopaque,
             IASetPrimitiveTopology: fn (*T, PRIMITIVE_TOPOLOGY) callconv(WINAPI) void,
-            VSSetShaderResources: *anyopaque,
+            VSSetShaderResources: fn (
+                *T,
+                UINT,
+                UINT,
+                ?[*]const *IShaderResourceView,
+            ) callconv(WINAPI) void,
             VSSetSamplers: *anyopaque,
             Begin: *anyopaque,
             End: *anyopaque,
@@ -755,6 +888,19 @@ pub const IDevice = extern struct {
                     ppTexture2D,
                 );
             }
+            pub inline fn CreateShaderResourceView(
+                self: *T,
+                pResource: *IResource,
+                pDesc: ?*const SHADER_RESOURCE_VIEW_DESC,
+                ppSRView: ?*?*IShaderResourceView,
+            ) HRESULT {
+                return self.v.device.CreateShaderResourceView(
+                    self,
+                    pResource,
+                    pDesc,
+                    ppSRView,
+                );
+            }
             pub inline fn CreateRenderTargetView(
                 self: *T,
                 pResource: ?*IResource,
@@ -852,7 +998,12 @@ pub const IDevice = extern struct {
                 ?*?*ITexture2D,
             ) callconv(WINAPI) HRESULT,
             CreateTexture3D: *anyopaque,
-            CreateShaderResourceView: *anyopaque,
+            CreateShaderResourceView: fn (
+                *T,
+                *IResource,
+                ?*const SHADER_RESOURCE_VIEW_DESC,
+                ?*?*IShaderResourceView,
+            ) callconv(WINAPI) HRESULT,
             CreateUnorderedAccessView: *anyopaque,
             CreateRenderTargetView: fn (
                 *T,
@@ -986,6 +1137,34 @@ pub const IDepthStencilView = extern struct {
         devchild: IDeviceChild.VTable(Self),
         view: IView.VTable(Self),
         dsv: VTable(Self),
+    },
+
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace IView.Methods(Self);
+    usingnamespace Methods(Self);
+
+    pub fn Methods(comptime T: type) type {
+        _ = T;
+        return extern struct {};
+    }
+
+    pub fn VTable(comptime T: type) type {
+        _ = T;
+        return extern struct {
+            GetDesc: *anyopaque,
+        };
+    }
+};
+
+pub const IID_IShaderResourceView = GUID.parse("{b0e06fe0-8192-4e1a-b1ca-36d7414710b}");
+pub const IShaderResourceView = extern struct {
+    const Self = @This();
+    v: *const extern struct {
+        unknown: IUnknown.VTable(Self),
+        devchild: IDeviceChild.VTable(Self),
+        view: IView.VTable(Self),
+        shader_res_view: VTable(Self),
     },
 
     usingnamespace IUnknown.Methods(Self);

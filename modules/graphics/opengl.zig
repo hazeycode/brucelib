@@ -158,36 +158,32 @@ pub fn setBlendState(_: type.BlendStateHandle) void {
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 }
 
+pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
+    _ = slot;
+    _ = texture_handle;
+    std.debug.panic("Unimplemented", .{});
+}
+
 pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(@intCast(c.GLuint, program_handle));
 }
 
-pub fn createSolidColourShader() !types.ShaderProgramHandle {
-    const vert_shader_src =
-        \\#version 420 core
-        \\
-        \\layout (location = 0) in vec3 aPos;
-        \\
-        \\void main() {
-        \\    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-        \\}
-        \\
-    ;
+pub fn createUniformColourShader() !types.ShaderProgramHandle {
+    const vert_shader_src = @embedFile("data/uniform_colour_vs.glsl");
+    const frag_shader_src = @embedFile("data/uniform_colour_ps.glsl");
 
-    const frag_shader_src =
-        \\#version 420 core
-        \\
-        \\layout (std140, binding = 0) uniform UniformBlock {
-        \\    vec4 colour;
-        \\};
-        \\
-        \\out vec4 colour_out;
-        \\
-        \\void main() {
-        \\    colour_out = colour;
-        \\}
-        \\
-    ;
+    const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
+    defer c.glDeleteShader(vertex_shader);
+
+    const fragment_shader = try compileShaderSource(.fragment, frag_shader_src);
+    defer c.glDeleteShader(fragment_shader);
+
+    return try createShaderProgram(vertex_shader, fragment_shader);
+}
+
+pub fn createTexturedVertsShader() !types.ShaderProgramHandle {
+    const vert_shader_src = @embedFile("data/textured_verts_vs.glsl");
+    const frag_shader_src = @embedFile("data/textured_verts_ps.glsl");
 
     const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
     defer c.glDeleteShader(vertex_shader);

@@ -117,7 +117,7 @@ pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn createSolidColourShader() !types.ShaderProgramHandle {
+pub fn createUniformColourShader() !types.ShaderProgramHandle {
     _ = allocator;
     std.debug.panic("Unimplemented", .{});
     return 0;

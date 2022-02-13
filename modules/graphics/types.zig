@@ -26,12 +26,14 @@ pub const VertexLayoutDesc = struct {
 
         pub const Attribute = struct {
             format: enum {
+                f32x2,
                 f32x3,
                 f32x4,
             },
 
             pub inline fn getNumComponents(self: @This()) u32 {
                 return switch (self.format) {
+                    .f32x2 => 2,
                     .f32x3 => 3,
                     .f32x4 => 4,
                 };
@@ -39,7 +41,7 @@ pub const VertexLayoutDesc = struct {
 
             pub inline fn getSize(self: @This()) u32 {
                 return switch (self.format) {
-                    .f32x3, .f32x4 => @intCast(u32, @sizeOf(f32)) * self.getNumComponents(),
+                    .f32x2, .f32x3, .f32x4 => @intCast(u32, @sizeOf(f32)) * self.getNumComponents(),
                 };
             }
         };

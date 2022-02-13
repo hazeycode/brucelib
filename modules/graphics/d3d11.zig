@@ -44,14 +44,28 @@ const ConstantBufferList = std.ArrayList(struct {
 
 var constant_buffers: ConstantBufferList = undefined;
 
+const TextureList = std.ArrayList(struct {
+    texture2d: *d3d11.ITexture2D,
+    shader_res_view: *d3d11.IShaderResourceView,
+});
+
+var textures: TextureList = undefined;
+
 pub fn init(_allocator: std.mem.Allocator) void {
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
     vertex_layouts = VertexLayoutList.init(allocator);
     constant_buffers = ConstantBufferList.init(allocator);
+    textures = TextureList.init(allocator);
 }
 
 pub fn deinit() void {
+    for (textures.items) |texture| {
+        _ = texture.texture2d.Release();
+        _ = texture.shader_res_view.Release();
+    }
+    textures.deinit();
+
     for (constant_buffers.items) |constant_buffer| {
         _ = constant_buffer.buffer.Release();
     }
@@ -182,27 +196,50 @@ pub fn setVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
 
 pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: types.TextureFormat) !types.TextureHandle {
     var texture: ?*d3d11.ITexture2D = null;
-    const desc = d3d11.TEXTURE2D_DESC{
-        .Width = width,
-        .Height = height,
-        .MipLevels = 1,
-        .ArraySize = 1,
-        .Format = formatToDxgiFormat(format),
-        .SampleDesc = .{
-            .Count = 1,
-            .Quality = 0,
-        },
-        .Usage = d3d11.USAGE_DEFAULT,
-        .BindFlags = d3d11.BIND_SHADER_RESOURCE,
-        .CPUAccessFlags = 0,
-        .MiscFlags = 0,
-    };
-    const subresouce_data = d3d11.SUBRESOURCE_DATA{
-        .pSysMem = bytes.ptr,
-        .SysMemPitch = width * 4,
-    };
-    try win32.hrErrorOnFail(getD3D11Device().CreateTexture2D(&desc, &subresouce_data, &texture));
-    return @ptrToInt(texture.?);
+    {
+        const desc = d3d11.TEXTURE2D_DESC{
+            .Width = width,
+            .Height = height,
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .Format = formatToDxgiFormat(format),
+            .SampleDesc = .{
+                .Count = 1,
+                .Quality = 0,
+            },
+            .Usage = d3d11.USAGE_DEFAULT,
+            .BindFlags = d3d11.BIND_SHADER_RESOURCE,
+            .CPUAccessFlags = 0,
+            .MiscFlags = 0,
+        };
+        const subresouce_data = d3d11.SUBRESOURCE_DATA{
+            .pSysMem = bytes.ptr,
+            .SysMemPitch = switch (format) {
+                .uint8 => width,
+            },
+        };
+        try win32.hrErrorOnFail(getD3D11Device().CreateTexture2D(
+            &desc,
+            &subresouce_data,
+            &texture,
+        ));
+    }
+
+    var shader_res_view: ?*d3d11.IShaderResourceView = null;
+    {
+        try win32.hrErrorOnFail(getD3D11Device().CreateShaderResourceView(
+            @ptrCast(*d3d11.IResource, texture.?),
+            null,
+            &shader_res_view,
+        ));
+    }
+
+    try textures.append(.{
+        .texture2d = texture.?,
+        .shader_res_view = shader_res_view.?,
+    });
+
+    return (textures.items.len - 1);
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
@@ -326,6 +363,14 @@ pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
     );
 }
 
+pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
+    const shader_res_views = [_]*d3d11.IShaderResourceView{
+        textures.items[texture_handle].shader_res_view,
+    };
+    getD3D11DeviceContext().VSSetShaderResources(slot, 1, &shader_res_views);
+    getD3D11DeviceContext().PSSetShaderResources(slot, 1, &shader_res_views);
+}
+
 pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
     const device_ctx = getD3D11DeviceContext();
     const shader_program = shader_programs.items[program_handle];
@@ -334,31 +379,8 @@ pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
     device_ctx.PSSetShader(shader_program.ps, null, 0);
 }
 
-pub fn createSolidColourShader() !types.ShaderProgramHandle {
-    const shader_src =
-        \\struct VS_Input {
-        \\    float3 position_local : POS;
-        \\};
-        \\
-        \\struct VS_Output {
-        \\    float4 position_clip : SV_POSITION;
-        \\};
-        \\
-        \\cbuffer Constants {
-        \\    float4 colour;
-        \\}
-        \\
-        \\VS_Output vs_main(VS_Input input) {
-        \\    VS_Output output = (VS_Output)0;
-        \\    output.position_clip = float4(input.position_local, 1.0);
-        \\    return output;
-        \\}
-        \\
-        \\float4 ps_main(VS_Output input) : SV_TARGET {
-        \\    return colour;
-        \\}
-        \\
-    ;
+pub fn createUniformColourShader() !types.ShaderProgramHandle {
+    const shader_src = @embedFile("data/uniform_colour.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
     defer _ = vs_bytecode.Release();
@@ -374,11 +396,57 @@ pub fn createSolidColourShader() !types.ShaderProgramHandle {
 
     const input_element_desc = [_]d3d11.INPUT_ELEMENT_DESC{
         .{
-            .SemanticName = "POS",
+            .SemanticName = "POSITION",
             .SemanticIndex = 0,
             .Format = dxgi.FORMAT.R32G32B32_FLOAT,
             .InputSlot = 0,
             .AlignedByteOffset = 0,
+            .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0,
+        },
+    };
+    const input_layout = try createInputLayout(&input_element_desc, vs_bytecode);
+
+    try shader_programs.append(.{
+        .vs = vs,
+        .ps = ps,
+        .input_layout = input_layout,
+    });
+
+    return (shader_programs.items.len - 1);
+}
+
+pub fn createTexturedVertsShader() !types.ShaderProgramHandle {
+    const shader_src = @embedFile("data/textured_verts.hlsl");
+
+    const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
+    defer _ = vs_bytecode.Release();
+
+    const ps_bytecode = try compileHLSL(shader_src, "ps_main", "ps_5_0");
+    defer _ = ps_bytecode.Release();
+
+    const vs = try createVertexShader(vs_bytecode);
+    errdefer _ = vs.Release();
+
+    const ps = try createPixelShader(ps_bytecode);
+    errdefer _ = ps.Release();
+
+    const input_element_desc = [_]d3d11.INPUT_ELEMENT_DESC{
+        .{
+            .SemanticName = "POSITION",
+            .SemanticIndex = 0,
+            .Format = dxgi.FORMAT.R32G32B32_FLOAT,
+            .InputSlot = 0,
+            .AlignedByteOffset = 0,
+            .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0,
+        },
+        .{
+            .SemanticName = "TEXCOORD",
+            .SemanticIndex = 0,
+            .Format = dxgi.FORMAT.R32G32_FLOAT,
+            .InputSlot = 0,
+            .AlignedByteOffset = 12,
             .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
             .InstanceDataStepRate = 0,
         },

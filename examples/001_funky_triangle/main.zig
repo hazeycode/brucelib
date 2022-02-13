@@ -42,14 +42,12 @@ fn update(input: platform.Input) !bool {
     var draw_list = try graphics.beginDrawing(frame_allocator);
     try draw_list.setViewport(0, 0, input.canvas_size.width, input.canvas_size.height);
     try draw_list.clearViewport(graphics.Colour.black);
-    try draw_list.drawTriangles(
+    try draw_list.drawUniformColourVerts(
         graphics.Colour.fromHSV(state.triangle_hue, 0.5, 1.0),
-        &[_][3]graphics.VertexPosition{
-            .{
-                .{ -0.5, -0.5, 0.0 },
-                .{ 0.5, -0.5, 0.0 },
-                .{ 0.0, 0.5, 0.0 },
-            },
+        &[_]graphics.VertexPosition{
+            .{ -0.5, -0.5, 0.0 },
+            .{ 0.5, -0.5, 0.0 },
+            .{ 0.0, 0.5, 0.0 },
         },
     );
 
