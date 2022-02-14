@@ -72,7 +72,7 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayo
         for (entry.attributes) |attr, j| {
             const num_components = attr.getNumComponents();
             const component_type: c.GLenum = switch (attr.format) {
-                .f32x3, .f32x4 => c.GL_FLOAT,
+                .f32x2, .f32x3, .f32x4 => c.GL_FLOAT,
             };
             c.glVertexAttribPointer(
                 @intCast(c.GLuint, j),
@@ -91,15 +91,36 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayo
     return vao;
 }
 
-pub fn useVertexLayout(layout_handle: types.VertexLayoutHandle) void {
+pub fn setVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
-pub fn createTexture2DWithBytes(bytes: []const u8, format: types.TextureFormat) types.TextureHandle {
-    _ = bytes;
-    _ = format;
-    std.debug.panic("Unimplemented", .{});
-    return 0;
+pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, _: types.TextureFormat) !types.TextureHandle {
+    var texture: c.GLuint = undefined;
+    c.glGenTextures(1, &texture);
+    c.glBindTexture(c.GL_TEXTURE_2D, texture);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_REPEAT);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_REPEAT);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR_MIPMAP_LINEAR);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_LINEAR);
+    c.glTexImage2D(
+        c.GL_TEXTURE_2D,
+        0,
+        c.GL_RED,
+        @intCast(c.GLsizei, width),
+        @intCast(c.GLsizei, height),
+        0,
+        c.GL_RED,
+        c.GL_UNSIGNED_BYTE,
+        bytes.ptr,
+    );
+    return texture;
+}
+
+pub fn setTexture(_: u32, texture_handle: types.TextureHandle) void {
+    c.glActiveTexture(c.GL_TEXTURE0);
+    c.glBindTexture(c.GL_TEXTURE_2D, @intCast(c.GLuint, texture_handle));
+    c.glUniform1i(0, 0);
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
@@ -139,7 +160,7 @@ pub fn writeShaderConstant(
     );
 }
 
-pub fn useConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
 }
 
@@ -147,30 +168,24 @@ pub fn createRasteriserState() !types.RasteriserStateHandle {
     return 0;
 }
 
-pub fn useRasteriserState(_: types.RasteriserStateHandle) void {}
+pub fn setRasteriserState(_: types.RasteriserStateHandle) void {}
 
 pub fn createBlendState() !types.BlendStateHandle {
     return 0;
 }
 
-pub fn setBlendState(_: type.BlendStateHandle) void {
+pub fn setBlendState(_: types.BlendStateHandle) void {
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 }
 
-pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
-    _ = slot;
-    _ = texture_handle;
-    std.debug.panic("Unimplemented", .{});
-}
-
-pub fn useShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
     c.glUseProgram(@intCast(c.GLuint, program_handle));
 }
 
 pub fn createUniformColourShader() !types.ShaderProgramHandle {
     const vert_shader_src = @embedFile("data/uniform_colour_vs.glsl");
-    const frag_shader_src = @embedFile("data/uniform_colour_ps.glsl");
+    const frag_shader_src = @embedFile("data/uniform_colour_fs.glsl");
 
     const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
     defer c.glDeleteShader(vertex_shader);
@@ -183,7 +198,7 @@ pub fn createUniformColourShader() !types.ShaderProgramHandle {
 
 pub fn createTexturedVertsShader() !types.ShaderProgramHandle {
     const vert_shader_src = @embedFile("data/textured_verts_vs.glsl");
-    const frag_shader_src = @embedFile("data/textured_verts_ps.glsl");
+    const frag_shader_src = @embedFile("data/textured_verts_fs.glsl");
 
     const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
     defer c.glDeleteShader(vertex_shader);
