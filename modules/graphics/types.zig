@@ -5,6 +5,7 @@ pub const VertexLayoutHandle = u64;
 pub const RasteriserStateHandle = u64;
 pub const BlendStateHandle = u64;
 pub const TextureHandle = u64;
+pub const SamplerStateHandle = u64;
 
 pub const VertexLayoutDesc = struct {
     entries: []Entry,

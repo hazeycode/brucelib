@@ -17,6 +17,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const RasteriserStateHandle = types.RasteriserStateHandle;
         pub const BlendStateHandle = types.BlendStateHandle;
         pub const TextureHandle = types.TextureHandle;
+        pub const SamplerStateHandle = types.SamplerStateHandle;
         pub const VertexLayoutDesc = types.VertexLayoutDesc;
 
         pub const VertexPosition = [3]f32;
@@ -169,7 +170,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         //TODO(hazeycode): cache hashes of written ranges
                         _ = try backend.writeBytesToVertexBuffer(
                             resources.vertex_buffer,
-                            textured_vert_cur * @sizeOf(VertexPosition),
+                            textured_vert_cur * @sizeOf(TexturedVertex),
                             std.mem.sliceAsBytes(desc.vertices),
                         );
 
@@ -177,11 +178,11 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         backend.setVertexLayout(resources.vertex_layout);
 
+                        backend.setTexture(0, desc.texture.handle);
+
                         backend.setRasteriserState(resources.rasteriser_state);
 
                         backend.setBlendState(resources.blend_state);
-
-                        backend.setTexture(0, desc.texture.handle);
 
                         backend.draw(textured_vert_cur, @intCast(u32, desc.vertices.len));
 
@@ -345,6 +346,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .max_y = 1 - menu_size / self.canvas_height,
                 };
 
+                _ = bg_colour;
                 {
                     var verts = try self.allocator.alloc(VertexPosition, 6);
                     errdefer self.allocator.free(verts);
@@ -356,8 +358,8 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                 {
                     const uv_rect = Rect{
-                        .min_x = -1,
-                        .min_y = -1,
+                        .min_x = 0,
+                        .min_y = 0,
                         .max_x = 1,
                         .max_y = 1,
                     };
@@ -408,7 +410,10 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                             for (self.bytes[self.cur..]) |c| {
                                 if (isWhitespace(c)) continue;
-                                try texture_bytes.append(c);
+                                try texture_bytes.append(switch (c) {
+                                    '1' => 255,
+                                    else => 0,
+                                });
                             }
 
                             std.debug.assert(texture_bytes.items.len == width * height);

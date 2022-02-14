@@ -44,19 +44,20 @@ const ConstantBufferList = std.ArrayList(struct {
 
 var constant_buffers: ConstantBufferList = undefined;
 
-const TextureList = std.ArrayList(struct {
+const TextureResourcesList = std.ArrayList(struct {
     texture2d: *d3d11.ITexture2D,
     shader_res_view: *d3d11.IShaderResourceView,
+    sampler_state: *d3d11.ISamplerState,
 });
 
-var textures: TextureList = undefined;
+var textures: TextureResourcesList = undefined;
 
 pub fn init(_allocator: std.mem.Allocator) void {
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
     vertex_layouts = VertexLayoutList.init(allocator);
     constant_buffers = ConstantBufferList.init(allocator);
-    textures = TextureList.init(allocator);
+    textures = TextureResourcesList.init(allocator);
 }
 
 pub fn deinit() void {
@@ -234,12 +235,45 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
         ));
     }
 
+    var sampler_state: ?*d3d11.ISamplerState = null;
+    {
+        const desc = d3d11.SAMPLER_DESC{
+            .Filter = .MIN_MAG_MIP_POINT,
+            .AddressU = .WRAP,
+            .AddressV = .WRAP,
+            .AddressW = .WRAP,
+            .MipLODBias = 0,
+            .MaxAnisotropy = 1,
+            .ComparisonFunc = .NEVER,
+            .BorderColor = .{ 0, 0, 0, 0 },
+            .MinLOD = 0,
+            .MaxLOD = 0,
+        };
+        try win32.hrErrorOnFail(getD3D11Device().CreateSamplerState(
+            &desc,
+            &sampler_state,
+        ));
+    }
+
     try textures.append(.{
         .texture2d = texture.?,
         .shader_res_view = shader_res_view.?,
+        .sampler_state = sampler_state.?,
     });
 
     return (textures.items.len - 1);
+}
+
+pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
+    const samplers = [_]*d3d11.ISamplerState{
+        textures.items[texture_handle].sampler_state,
+    };
+    getD3D11DeviceContext().PSSetSamplers(0, 1, &samplers);
+
+    const shader_res_views = [_]*d3d11.IShaderResourceView{
+        textures.items[texture_handle].shader_res_view,
+    };
+    getD3D11DeviceContext().PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
@@ -351,7 +385,7 @@ pub fn createBlendState() !types.BlendStateHandle {
         &desc,
         &blend_state,
     ));
-    return @ptrToInt(blend_state);
+    return @ptrToInt(blend_state.?);
 }
 
 pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
@@ -361,14 +395,6 @@ pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
         null,
         0xffffffff,
     );
-}
-
-pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
-    const shader_res_views = [_]*d3d11.IShaderResourceView{
-        textures.items[texture_handle].shader_res_view,
-    };
-    getD3D11DeviceContext().VSSetShaderResources(slot, 1, &shader_res_views);
-    getD3D11DeviceContext().PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
 pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
@@ -531,6 +557,6 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
 
 fn formatToDxgiFormat(format: types.TextureFormat) dxgi.FORMAT {
     return switch (format) {
-        .uint8 => dxgi.FORMAT.R8_UINT,
+        .uint8 => dxgi.FORMAT.R8_UNORM,
     };
 }

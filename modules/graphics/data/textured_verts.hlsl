@@ -1,10 +1,5 @@
-Texture2D texture0;
-
-SamplerState TextureSampler{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
+Texture2D texture0 : register(t0);
+sampler sampler0 : register(s0);
 
 struct VS_Input {
     float3 pos : POSITION;
@@ -24,5 +19,6 @@ VS_Output vs_main(VS_Input input) {
 }
 
 float4 ps_main(VS_Output input) : SV_TARGET {
-    return texture0.Sample(TextureSampler, input.uv);
+    float s = texture0.Sample(sampler0, input.uv);
+    return float4(1, 1, 1, s);
 }

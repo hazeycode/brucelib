@@ -384,6 +384,77 @@ pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
     },
 };
 
+pub const FILTER = enum(UINT) {
+    MIN_MAG_MIP_POINT = 0,
+    MIN_MAG_POINT_MIP_LINEAR = 0x1,
+    MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
+    MIN_POINT_MAG_MIP_LINEAR = 0x5,
+    MIN_LINEAR_MAG_MIP_POINT = 0x10,
+    MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
+    MIN_MAG_LINEAR_MIP_POINT = 0x14,
+    MIN_MAG_MIP_LINEAR = 0x15,
+    ANISOTROPIC = 0x55,
+    COMPARISON_MIN_MAG_MIP_POINT = 0x80,
+    COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
+    COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
+    COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
+    COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
+    COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
+    COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
+    COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
+    COMPARISON_ANISOTROPIC = 0xd5,
+    MINIMUM_MIN_MAG_MIP_POINT = 0x100,
+    MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
+    MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
+    MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
+    MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
+    MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
+    MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
+    MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
+    MINIMUM_ANISOTROPIC = 0x155,
+    MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
+    MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
+    MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
+    MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
+    MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
+    MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
+    MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
+    MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
+    MAXIMUM_ANISOTROPIC = 0x1d5,
+};
+
+pub const TEXTURE_ADDRESS_MODE = enum(UINT) {
+    WRAP = 1,
+    MIRROR = 2,
+    CLAMP = 3,
+    BORDER = 4,
+    MIRROR_ONCE = 5,
+};
+
+pub const COMPARISON_FUNC = enum(UINT) {
+    NEVER = 1,
+    LESS = 2,
+    EQUAL = 3,
+    LESS_EQUAL = 4,
+    GREATER = 5,
+    NOT_EQUAL = 6,
+    GREATER_EQUAL = 7,
+    ALWAYS = 8,
+};
+
+pub const SAMPLER_DESC = extern struct {
+    Filter: FILTER,
+    AddressU: TEXTURE_ADDRESS_MODE,
+    AddressV: TEXTURE_ADDRESS_MODE,
+    AddressW: TEXTURE_ADDRESS_MODE,
+    MipLODBias: FLOAT,
+    MaxAnisotropy: UINT,
+    ComparisonFunc: COMPARISON_FUNC,
+    BorderColor: [4]FLOAT,
+    MinLOD: FLOAT,
+    MaxLOD: FLOAT,
+};
+
 pub const IID_IDeviceChild = GUID.parse("{1841e5c8-16b0-489b-bcc8-44cfb0d5deae}");
 pub const IDeviceChild = extern struct {
     const Self = @This();
@@ -544,6 +615,19 @@ pub const IDeviceContext = extern struct {
                     NumClassInstances,
                 );
             }
+            pub inline fn PSSetSamplers(
+                self: *T,
+                StartSlot: UINT,
+                NumSamplers: UINT,
+                ppSamplers: ?[*]const *ISamplerState,
+            ) void {
+                self.v.devctx.PSSetSamplers(
+                    self,
+                    StartSlot,
+                    NumSamplers,
+                    ppSamplers,
+                );
+            }
             pub inline fn VSSetShader(
                 self: *T,
                 pVertexShader: ?*IVertexShader,
@@ -702,7 +786,12 @@ pub const IDeviceContext = extern struct {
                 ?[*]const *IClassInstance,
                 UINT,
             ) callconv(WINAPI) void,
-            PSSetSamplers: *anyopaque,
+            PSSetSamplers: fn (
+                *T,
+                UINT,
+                UINT,
+                ?[*]const *ISamplerState,
+            ) callconv(WINAPI) void,
             VSSetShader: fn (
                 *T,
                 ?*IVertexShader,
@@ -979,6 +1068,17 @@ pub const IDevice = extern struct {
                     ppRasterizerState,
                 );
             }
+            pub inline fn CreateSamplerState(
+                self: *T,
+                pSamplerDesc: *const SAMPLER_DESC,
+                ppSamplerState: ?*?*ISamplerState,
+            ) HRESULT {
+                return self.v.device.CreateSamplerState(
+                    self,
+                    pSamplerDesc,
+                    ppSamplerState,
+                );
+            }
         };
     }
 
@@ -1051,7 +1151,11 @@ pub const IDevice = extern struct {
                 *const RASTERIZER_DESC,
                 ?*?*IRasterizerState,
             ) callconv(WINAPI) HRESULT,
-            CreateSamplerState: *anyopaque,
+            CreateSamplerState: fn (
+                *T,
+                *const SAMPLER_DESC,
+                ?*?*ISamplerState,
+            ) callconv(WINAPI) HRESULT,
             CreateQuery: *anyopaque,
             CreatePredicate: *anyopaque,
             CreateCounter: *anyopaque,
@@ -1281,6 +1385,31 @@ pub const IRasterizerState = extern struct {
 
 pub const IID_BlendState = GUID.parse("{75b68faa-347d-4159-8f45-a0640f01cd9a}");
 pub const IBlendState = extern struct {
+    const Self = @This();
+    v: *const extern struct {
+        unknown: IUnknown.VTable(Self),
+        devchild: IDeviceChild.VTable(Self),
+        state: VTable(Self),
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IDeviceChild.VTable(Self);
+    usingnamespace Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        _ = T;
+        return extern struct {};
+    }
+
+    fn VTable(comptime T: type) type {
+        _ = T;
+        return extern struct {
+            GetDesc: *anyopaque,
+        };
+    }
+};
+
+pub const IID_SamplerState = GUID.parse("{da6fea51-564c-4487-9810-f0d0f9b4e3a5}");
+pub const ISamplerState = extern struct {
     const Self = @This();
     v: *const extern struct {
         unknown: IUnknown.VTable(Self),
