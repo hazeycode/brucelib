@@ -27,11 +27,11 @@ The planned scope of this project is to target all the popular desktop, mobile a
 
 ## Getting Started
 - Copy/clone/submodule this respository
-- Grab external libraries with `git submodule update --init --recursive`
+- Grab non-vendored external libraries with `git submodule update --init --recursive`
+- Run all the tests with `zig build test`
 - Build and run an example: e.g. `zig build run-example-001`
-- Run the tests with `zig build test`
-- Print all build targets with `zig build --help`
-- Each module has a main.zig, i.e. `/{module_name}/main.zig`. Import in your source or add as a package in your build.zig
+- List all available build targets with `zig build --help`
+- Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or add as a package in your build.zig
 
 ### Examples
 
