@@ -138,19 +138,19 @@ const X11 = struct {
 
                 // query framebuffer configurations that match visual_attribs
                 const attrib_list = [_]c_int{
-                    c.GLX_X_RENDERABLE,  c.True,
-                    c.GLX_DRAWABLE_TYPE, c.GLX_WINDOW_BIT,
-                    c.GLX_RENDER_TYPE,   c.GLX_RGBA_BIT,
-                    c.GLX_X_VISUAL_TYPE, c.GLX_TRUE_COLOR,
-                    c.GLX_RED_SIZE,      8,
-                    c.GLX_GREEN_SIZE,    8,
-                    c.GLX_BLUE_SIZE,     8,
-                    c.GLX_ALPHA_SIZE,    8,
-                    c.GLX_DEPTH_SIZE,    24,
-                    c.GLX_STENCIL_SIZE,  8,
-                    c.GLX_DOUBLEBUFFER,  c.True,
-                    //c.GLX_SAMPLE_BUFFERS  , 1,
-                    //c.GLX_SAMPLES         , 4,
+                    c.GLX_X_RENDERABLE,   c.True,
+                    c.GLX_DRAWABLE_TYPE,  c.GLX_WINDOW_BIT,
+                    c.GLX_RENDER_TYPE,    c.GLX_RGBA_BIT,
+                    c.GLX_X_VISUAL_TYPE,  c.GLX_TRUE_COLOR,
+                    c.GLX_RED_SIZE,       8,
+                    c.GLX_GREEN_SIZE,     8,
+                    c.GLX_BLUE_SIZE,      8,
+                    c.GLX_ALPHA_SIZE,     8,
+                    c.GLX_DEPTH_SIZE,     24,
+                    c.GLX_STENCIL_SIZE,   8,
+                    c.GLX_DOUBLEBUFFER,   c.True,
+                    c.GLX_SAMPLE_BUFFERS, 1,
+                    c.GLX_SAMPLES,        4,
                     c.None,
                 };
                 var num_fb_configs: c_int = 0;
@@ -171,7 +171,11 @@ const X11 = struct {
             else => std.debug.panic("Unsupported graphics API", .{}),
         }
 
+        const visual_id = @intCast(u32, c.XVisualIDFromVisual(visual_info.visual));
+
         // create colormap
+        const colour_map = c.xcb_generate_id(connection);
+        _ = c.xcb_create_colormap(connection, c.XCB_COLORMAP_ALLOC_NONE, colour_map, screen_root, visual_id);
 
         // create xcb window
         window = c.xcb_generate_id(connection);
@@ -188,8 +192,8 @@ const X11 = struct {
                 window_height,
                 0,
                 c.XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                @intCast(u32, c.XVisualIDFromVisual(visual_info.visual)),
-                c.XCB_CW_EVENT_MASK,
+                visual_id,
+                c.XCB_CW_EVENT_MASK | c.XCB_CW_COLORMAP,
                 &[_]u32{
                     c.XCB_EVENT_MASK_EXPOSURE |
                         c.XCB_EVENT_MASK_STRUCTURE_NOTIFY |
@@ -197,6 +201,7 @@ const X11 = struct {
                         c.XCB_EVENT_MASK_KEY_RELEASE |
                         c.XCB_EVENT_MASK_BUTTON_PRESS |
                         c.XCB_EVENT_MASK_BUTTON_RELEASE,
+                    colour_map,
                     0,
                 },
             ),
@@ -233,7 +238,12 @@ const X11 = struct {
         switch (graphics_api) {
             .opengl => {
                 // create context and set it as current
-                const context = c.glXCreateContextAttribsARB(display, fb_config, null, c.True, null);
+                const attribs = [_]c_int{
+                    c.GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+                    c.GLX_CONTEXT_MINOR_VERSION_ARB, 6,
+                    c.GLX_CONTEXT_PROFILE_MASK_ARB,  c.GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+                };
+                const context = c.glXCreateContextAttribsARB(display, fb_config, null, c.True, &attribs);
                 if (context == null) return error.FailedToCreateGLXContext;
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
                 std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});

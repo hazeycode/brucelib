@@ -11,6 +11,7 @@ var allocator: std.mem.Allocator = undefined;
 
 pub fn init(_allocator: std.mem.Allocator) void {
     allocator = _allocator;
+    c.glEnable(c.GL_MULTISAMPLE);
 }
 
 pub fn deinit() void {}
