@@ -335,7 +335,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             pub fn end(_: *DebugGUI) void {}
 
             pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
-                const bg_colour = Colour.fromRGBA(1.0, 0.7, 0.7, 0.67);
+                const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 1.0);
                 const menu_size = 42;
                 // const menu_inset = 2;
 

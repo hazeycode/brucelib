@@ -74,6 +74,7 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayo
             const component_type: c.GLenum = switch (attr.format) {
                 .f32x2, .f32x3, .f32x4 => c.GL_FLOAT,
             };
+            c.glEnableVertexAttribArray(@intCast(c.GLuint, j));
             c.glVertexAttribPointer(
                 @intCast(c.GLuint, j),
                 @intCast(c.GLint, num_components),
@@ -95,32 +96,41 @@ pub fn setVertexLayout(layout_handle: types.VertexLayoutHandle) void {
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
-pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, _: types.TextureFormat) !types.TextureHandle {
+pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: types.TextureFormat) !types.TextureHandle {
     var texture: c.GLuint = undefined;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_REPEAT);
-    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR_MIPMAP_LINEAR);
-    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_LINEAR);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_NEAREST);
+    c.glPixelStorei(c.GL_UNPACK_ALIGNMENT, 1);
     c.glTexImage2D(
         c.GL_TEXTURE_2D,
         0,
-        c.GL_RED,
+        formatToGlInternalFormat(format),
         @intCast(c.GLsizei, width),
         @intCast(c.GLsizei, height),
         0,
-        c.GL_RED,
-        c.GL_UNSIGNED_BYTE,
+        formatToGlFormat(format),
+        formatToGlDataType(format),
         bytes.ptr,
     );
     return texture;
 }
 
-pub fn setTexture(_: u32, texture_handle: types.TextureHandle) void {
-    c.glActiveTexture(c.GL_TEXTURE0);
+pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
+    const texture_unit: c.GLenum = switch (slot) {
+        0 => c.GL_TEXTURE0,
+        1 => c.GL_TEXTURE1,
+        else => {
+            std.debug.assert(false);
+            return;
+        },
+    };
+    c.glActiveTexture(texture_unit);
     c.glBindTexture(c.GL_TEXTURE_2D, @intCast(c.GLuint, texture_handle));
-    c.glUniform1i(0, 0);
+    c.glUniform1i(@intCast(c.GLint, slot), @intCast(c.GLint, slot));
 }
 
 pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
@@ -265,4 +275,22 @@ fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !
     }
 
     return program;
+}
+
+fn formatToGlInternalFormat(format: types.TextureFormat) c.GLint {
+    return switch (format) {
+        .uint8 => c.GL_R8,
+    };
+}
+
+fn formatToGlFormat(format: types.TextureFormat) c.GLenum {
+    return switch (format) {
+        .uint8 => c.GL_RED,
+    };
+}
+
+fn formatToGlDataType(format: types.TextureFormat) c.GLenum {
+    return switch (format) {
+        .uint8 => c.GL_UNSIGNED_BYTE,
+    };
 }
