@@ -1,6 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const core = @import("core");
+const zmath = @import("zig-gamedev-zmath");
 
 pub fn usingAPI(comptime api: core.GraphicsAPI) type {
     return struct {
@@ -10,24 +11,82 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             .d3d11 => @import("d3d11.zig"),
         };
 
-        const types = @import("types.zig");
-        pub const ShaderProgramHandle = types.ShaderProgramHandle;
-        pub const ConstantBufferHandle = types.ConstantBufferHandle;
-        pub const VertexBufferHandle = types.VertexBufferHandle;
-        pub const VertexLayoutHandle = types.VertexLayoutHandle;
-        pub const RasteriserStateHandle = types.RasteriserStateHandle;
-        pub const BlendStateHandle = types.BlendStateHandle;
-        pub const TextureHandle = types.TextureHandle;
-        pub const SamplerStateHandle = types.SamplerStateHandle;
-        pub const VertexLayoutDesc = types.VertexLayoutDesc;
+        pub const Texture2d = @import("texture.zig").withBackend(backend).Texture2d;
 
-        pub const VertexPosition = [3]f32;
-        pub const VertexIndex = u16;
-        pub const VertexUV = [2]f32;
+        const common = @import("common.zig");
+        pub const ShaderProgramHandle = common.ShaderProgramHandle;
+        pub const ConstantBufferHandle = common.ConstantBufferHandle;
+        pub const VertexBufferHandle = common.VertexBufferHandle;
+        pub const VertexLayoutHandle = common.VertexLayoutHandle;
+        pub const RasteriserStateHandle = common.RasteriserStateHandle;
+        pub const BlendStateHandle = common.BlendStateHandle;
+        pub const TextureHandle = common.TextureHandle;
+        pub const SamplerStateHandle = common.SamplerStateHandle;
+        pub const VertexLayoutDesc = common.VertexLayoutDesc;
+        pub const TextureFormat = common.TextureFormat;
+        pub const VertexPosition = common.VertexPosition;
+        pub const VertexIndex = common.VertexIndex;
+        pub const VertexUV = common.VertexUV;
+        pub const TexturedVertex = common.TexturedVertex;
+        pub const Colour = common.Colour;
+        pub const Rect = common.Rect;
+        pub const F32x4 = common.F32x4;
+        pub const Matrix = common.Matrix;
+        pub const identityMatrix = common.identityMatrix;
+        pub const orthographic = common.orthographic;
 
-        pub const TexturedVertex = extern struct {
-            pos: VertexPosition,
-            uv: VertexUV,
+        pub const DrawList = struct {
+            pub const Entry = union(enum) {
+                set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
+                clear_viewport: Colour,
+                set_projection_transform: Matrix,
+                set_view_transform: Matrix,
+                set_model_transform: Matrix,
+                uniform_colour_verts: struct {
+                    colour: Colour,
+                    vertices: []const VertexPosition,
+                },
+                textured_verts: struct {
+                    texture: Texture2d,
+                    vertices: []const TexturedVertex,
+                },
+            };
+
+            entries: std.ArrayList(Entry),
+
+            pub fn setViewport(self: *@This(), x: u16, y: u16, width: u16, height: u16) !void {
+                try self.entries.append(.{ .set_viewport = .{ .x = x, .y = y, .width = width, .height = height } });
+            }
+
+            pub fn clearViewport(self: *@This(), colour: Colour) !void {
+                try self.entries.append(.{ .clear_viewport = colour });
+            }
+
+            pub fn setProjectionTransform(self: *@This(), transform: Matrix) !void {
+                try self.entries.append(.{ .set_projection_transform = transform });
+            }
+
+            pub fn setViewTransform(self: *@This(), transform: Matrix) !void {
+                try self.entries.append(.{ .set_view_transform = transform });
+            }
+
+            pub fn setModelTransform(self: *@This(), transform: Matrix) !void {
+                try self.entries.append(.{ .set_model_transform = transform });
+            }
+
+            pub fn drawUniformColourVerts(self: *@This(), colour: Colour, vertices: []const VertexPosition) !void {
+                try self.entries.append(.{ .uniform_colour_verts = .{
+                    .colour = colour,
+                    .vertices = vertices,
+                } });
+            }
+
+            pub fn drawTexturedVerts(self: *@This(), texture: Texture2d, vertices: []const TexturedVertex) !void {
+                try self.entries.append(.{ .textured_verts = .{
+                    .texture = texture,
+                    .vertices = vertices,
+                } });
+            }
         };
 
         const PipelineResources = struct {
@@ -36,7 +95,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             vertex_layout: VertexLayoutHandle,
             rasteriser_state: RasteriserStateHandle,
             blend_state: BlendStateHandle,
-            constant_buffer: ConstantBufferHandle = 0,
+            constant_buffer: ConstantBufferHandle,
         };
 
         var pipeline_resources: struct {
@@ -52,7 +111,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));
 
             {
-                const zeros = [_]u8{0} ** (@sizeOf(f32) * 1e3);
+                const zeros = [_]u8{0} ** 1e6;
                 const vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
                 const vertex_layout = try backend.createVertexLayout(.{
                     .entries = &[_]VertexLayoutDesc.Entry{
@@ -77,7 +136,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
 
             {
-                const zeros = [_]u8{0} ** (@sizeOf(f32) * 1e3);
+                const zeros = [_]u8{0} ** 1e6;
                 const vertex_buffer = try backend.createDynamicVertexBufferWithBytes(&zeros);
                 const vertex_layout = try backend.createVertexLayout(.{
                     .entries = &[_]VertexLayoutDesc.Entry{
@@ -98,6 +157,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .vertex_layout = vertex_layout,
                     .rasteriser_state = try backend.createRasteriserState(),
                     .blend_state = try backend.createBlendState(),
+                    .constant_buffer = try backend.createConstantBuffer(0x1000),
                 };
             }
         }
@@ -113,6 +173,10 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         }
 
         pub fn submitDrawList(draw_list: DrawList) !void {
+            var model = identityMatrix();
+            var view = identityMatrix();
+            var projection = identityMatrix();
+
             var uniform_colour_vert_cur: u32 = 0;
             var textured_vert_cur: u32 = 0;
 
@@ -124,16 +188,17 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     .clear_viewport => |colour| {
                         backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
                     },
+                    .set_projection_transform => |transform| {
+                        projection = transform;
+                    },
+                    .set_view_transform => |transform| {
+                        view = transform;
+                    },
+                    .set_model_transform => |transform| {
+                        model = transform;
+                    },
                     .uniform_colour_verts => |desc| {
                         const resources = pipeline_resources.uniform_colour_tris;
-
-                        //TODO(hazeycode): cache constant buffer binding state
-                        backend.bindConstantBuffer(
-                            0,
-                            resources.constant_buffer,
-                            0,
-                            @sizeOf(Colour),
-                        );
 
                         //TODO(hazeycode): cache hashes of written ranges
                         _ = try backend.writeBytesToVertexBuffer(
@@ -150,12 +215,22 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         backend.setBlendState(resources.blend_state);
 
+                        const mvp = zmath.mul(zmath.mul(model, view), projection);
+
+                        { // update mvp constant
+                            var buf: [@sizeOf(Matrix)]u8 = undefined;
+                            const src_ptr = @ptrCast([*]const f32, &mvp);
+                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Matrix) / @sizeOf(f32)]);
+                            std.mem.copy(u8, buf[0..], src[0..]);
+                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
+                        }
+
                         { // update colour constant
                             var buf: [@sizeOf(Colour)]u8 = undefined;
                             const src_ptr = @ptrCast([*]const f32, &desc.colour);
                             const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
                             std.mem.copy(u8, buf[0..], src[0..]);
-                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
+                            try backend.writeShaderConstant(resources.constant_buffer, @sizeOf(Matrix), &buf);
                         }
 
                         backend.setConstantBuffer(resources.constant_buffer);
@@ -165,7 +240,6 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         uniform_colour_vert_cur += @intCast(u32, desc.vertices.len);
                     },
                     .textured_verts => |desc| {
-                        _ = textured_vert_cur;
                         const resources = pipeline_resources.textured_tris;
 
                         //TODO(hazeycode): cache hashes of written ranges
@@ -185,6 +259,18 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         backend.setBlendState(resources.blend_state);
 
+                        const mvp = zmath.mul(zmath.mul(model, view), projection);
+
+                        { // update mvp constant
+                            var buf: [@sizeOf(Matrix)]u8 = undefined;
+                            const src_ptr = @ptrCast([*]const f32, &mvp);
+                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Matrix) / @sizeOf(f32)]);
+                            std.mem.copy(u8, buf[0..], src[0..]);
+                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
+                        }
+
+                        backend.setConstantBuffer(resources.constant_buffer);
+
                         backend.draw(textured_vert_cur, @intCast(u32, desc.vertices.len));
 
                         textured_vert_cur += @intCast(u32, desc.vertices.len);
@@ -197,162 +283,44 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
         }
 
-        pub const DrawList = struct {
-            pub const Entry = union(enum) {
-                set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
-                clear_viewport: Colour,
-                uniform_colour_verts: struct {
-                    colour: Colour,
-                    vertices: []const VertexPosition,
-                },
-                textured_verts: struct {
-                    texture: Texture2d,
-                    vertices: []const TexturedVertex,
-                },
-            };
-
-            entries: std.ArrayList(Entry),
-
-            pub fn setViewport(self: *@This(), x: u16, y: u16, width: u16, height: u16) !void {
-                try self.entries.append(.{ .set_viewport = .{ .x = x, .y = y, .width = width, .height = height } });
-            }
-
-            pub fn clearViewport(self: *@This(), colour: Colour) !void {
-                try self.entries.append(.{ .clear_viewport = colour });
-            }
-
-            pub fn drawUniformColourVerts(self: *@This(), colour: Colour, vertices: []const VertexPosition) !void {
-                try self.entries.append(.{ .uniform_colour_verts = .{
-                    .colour = colour,
-                    .vertices = vertices,
-                } });
-            }
-
-            pub fn drawTexturedVerts(self: *@This(), texture: Texture2d, vertices: []const TexturedVertex) !void {
-                try self.entries.append(.{ .textured_verts = .{
-                    .texture = texture,
-                    .vertices = vertices,
-                } });
-            }
-        };
-
-        pub const Colour = extern struct {
-            r: f32,
-            g: f32,
-            b: f32,
-            a: f32,
-
-            pub const black = fromRGB(0, 0, 0);
-            pub const white = fromRGB(1, 1, 1);
-            pub const red = fromRGB(1, 0, 0);
-            pub const orange = fromRGB(1, 0.5, 0);
-
-            pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
-                return .{ .r = r, .g = g, .b = b, .a = 1 };
-            }
-
-            pub fn fromRGBA(r: f32, g: f32, b: f32, a: f32) Colour {
-                return .{ .r = r, .g = g, .b = b, .a = a };
-            }
-
-            /// Returns a Colour for a given hue, saturation and value
-            /// h, s, v are assumed to be in the range 0...1
-            /// Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
-            pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
-                const hp = (h * 360) / 60;
-                const c = v * s;
-                const x = c * (1 - @fabs(@mod(hp, 2) - 1));
-                const m = v - c;
-                if (hp <= 1) {
-                    return Colour.fromRGB(c + m, x + m, m);
-                } else if (hp <= 2) {
-                    return Colour.fromRGB(x + m, c + m, m);
-                } else if (hp <= 3) {
-                    return Colour.fromRGB(m, c + m, x + m);
-                } else if (hp <= 4) {
-                    return Colour.fromRGB(m, x + m, c + m);
-                } else if (hp <= 5) {
-                    return Colour.fromRGB(x + m, m, c + m);
-                } else if (hp <= 6) {
-                    return Colour.fromRGB(c + m, m, x + m);
-                } else {
-                    std.debug.assert(false);
-                    return Colour.fromRGB(0, 0, 0);
-                }
-            }
-        };
-
-        pub const Rect = extern struct {
-            min_x: f32,
-            min_y: f32,
-            max_x: f32,
-            max_y: f32,
-
-            pub fn vertices(self: Rect) [6]VertexPosition {
-                return [_]VertexPosition{
-                    VertexPosition{ self.min_x, self.min_y, 0.0 },
-                    VertexPosition{ self.min_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.max_y, 0.0 },
-                    VertexPosition{ self.max_x, self.min_y, 0.0 },
-                    VertexPosition{ self.min_x, self.min_y, 0.0 },
-                };
-            }
-
-            pub fn texturedVertices(self: Rect, uv_rect: Rect) [6]TexturedVertex {
-                return [_]TexturedVertex{
-                    TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
-                    TexturedVertex{ .pos = .{ self.min_x, self.max_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.max_y } },
-                    TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
-                    TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
-                    TexturedVertex{ .pos = .{ self.max_x, self.min_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.min_y } },
-                    TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
-                };
-            }
-        };
-
-        pub const Texture2d = extern struct {
-            handle: types.TextureHandle,
-            format: types.TextureFormat,
-            width: u32,
-            height: u32,
-
-            pub fn fromPBM(allocator: std.mem.Allocator, pbm_bytes: []const u8) !Texture2d {
-                return try pbm.parse(allocator, pbm_bytes);
-            }
-        };
-
         pub const DebugGUI = struct {
             allocator: std.mem.Allocator,
             draw_list: *DrawList,
             canvas_width: f32,
             canvas_height: f32,
+            cur_line: u32,
+            vertices: std.ArrayList(TexturedVertex),
 
-            pub fn begin(allocator: std.mem.Allocator, canvas_width: f32, canvas_height: f32, draw_list: *DrawList) DebugGUI {
-                return .{
+            pub fn begin(
+                allocator: std.mem.Allocator,
+                draw_list: *DrawList,
+                canvas_width: f32,
+                canvas_height: f32,
+            ) DebugGUI {
+                return DebugGUI{
                     .allocator = allocator,
                     .draw_list = draw_list,
                     .canvas_width = canvas_width,
                     .canvas_height = canvas_height,
+                    .cur_line = 0,
+                    .vertices = std.ArrayList(TexturedVertex).init(allocator),
                 };
             }
 
-            pub fn end(_: *DebugGUI) void {}
+            pub fn end(self: *DebugGUI) !void {
+                const projection = orthographic(0, self.canvas_width, self.canvas_height, 0, 0, 1);
+                try self.draw_list.setProjectionTransform(projection);
 
-            pub fn beginMenu(self: *DebugGUI, _: enum { top, left, bottom, right }) !void {
-                const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 1.0);
-                const menu_size = 42;
-                // const menu_inset = 2;
+                const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 0.67);
 
-                const rect = Rect{
-                    .min_x = -1,
-                    .min_y = 1,
-                    .max_x = 1,
-                    .max_y = 1 - menu_size / self.canvas_height,
-                };
+                // calculate bounding rect
+                var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
+                for (self.vertices.items) |v| {
+                    if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
+                    if (v.pos[1] > rect.max_y) rect.max_y = v.pos[1];
+                }
 
-                _ = bg_colour;
-                {
+                { // draw background
                     var verts = try self.allocator.alloc(VertexPosition, 6);
                     errdefer self.allocator.free(verts);
 
@@ -361,119 +329,88 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                     try self.draw_list.drawUniformColourVerts(bg_colour, verts);
                 }
 
-                {
-                    const uv_rect = Rect{
-                        .min_x = 0,
-                        .min_y = 0,
-                        .max_x = 1,
-                        .max_y = 1,
+                try self.draw_list.drawTexturedVerts(debugfont_texture, self.vertices.items);
+            }
+
+            pub fn label(
+                self: *DebugGUI,
+                comptime fmt: []const u8,
+                args: anytype,
+            ) !void {
+                var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+                defer temp_arena.deinit();
+                const temp_allocator = temp_arena.allocator();
+                const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
+
+                // values for builtin debugfont
+                const glyph_width = 7;
+                const glyph_height = 12;
+
+                var column: u32 = 0;
+                for (string) |c| {
+                    const maybe_glyph_idx: ?u32 = switch (c) {
+                        '0'...'9' => 0 + c - 48,
+                        'a'...'z' => 10 + c - 97,
+                        'A'...'Z' => 36 + c - 65,
+                        ':' => 62,
+                        ';' => 63,
+                        '\'' => 64,
+                        '"' => 65,
+                        '\\' => 66,
+                        ',' => 67,
+                        '.' => 68,
+                        '?' => 69,
+                        '/' => 70,
+                        '>' => 71,
+                        '<' => 72,
+                        '-' => 73,
+                        '+' => 74,
+                        '%' => 75,
+                        '&' => 76,
+                        '*' => 77,
+                        '(' => 78,
+                        ')' => 79,
+                        else => null,
                     };
+                    if (maybe_glyph_idx) |glyph_idx| {
+                        const x = @intToFloat(f32, column * glyph_width);
+                        const y = @intToFloat(f32, self.cur_line * glyph_height);
+                        const rect = Rect{
+                            .min_x = x,
+                            .min_y = y,
+                            .max_x = x + glyph_width,
+                            .max_y = y + glyph_height,
+                        };
 
-                    var verts = try self.allocator.alloc(TexturedVertex, 6);
-                    errdefer self.allocator.free(verts);
+                        // debugfont only has a single row and is tightly packed
+                        const u = @intToFloat(f32, glyph_width * glyph_idx);
+                        const v = @intToFloat(f32, 0);
+                        const uv_rect = Rect{
+                            .min_x = u / @intToFloat(f32, debugfont_texture.width),
+                            .min_y = v / @intToFloat(f32, debugfont_texture.height),
+                            .max_x = (u + glyph_width) / @intToFloat(f32, debugfont_texture.width),
+                            .max_y = (v + glyph_height) / @intToFloat(f32, debugfont_texture.height),
+                        };
 
-                    std.mem.copy(TexturedVertex, verts, &rect.texturedVertices(uv_rect));
+                        try self.vertices.appendSlice(&rect.texturedVertices(uv_rect));
 
-                    try self.draw_list.drawTexturedVerts(debugfont_texture, verts);
-                }
-            }
-
-            pub fn endMenu(_: *DebugGUI) void {}
-
-            pub fn label(_: *DebugGUI, fmt: []const u8, args: anytype) void {
-                _ = fmt;
-                _ = args;
-            }
-        };
-
-        pub const pbm = struct {
-            pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) !Texture2d {
-                var parser = Parser{
-                    .bytes = bytes,
-                    .cur = 0,
-                };
-                return parser.parse(allocator);
-            }
-
-            pub const Parser = struct {
-                bytes: []const u8,
-                cur: usize,
-
-                fn parse(self: *@This(), allocator: std.mem.Allocator) !Texture2d {
-                    var texture_bytes = std.ArrayList(u8).init(allocator);
-                    defer texture_bytes.deinit();
-
-                    const magic_number = try self.magicNumber();
-                    self.whitespace();
-                    const width = self.integer();
-                    self.whitespace();
-                    const height = self.integer();
-                    self.whitespace();
-                    switch (magic_number) {
-                        .p1 => {
-                            const format = types.TextureFormat.uint8;
-
-                            for (self.bytes[self.cur..]) |c| {
-                                if (isWhitespace(c)) continue;
-                                try texture_bytes.append(switch (c) {
-                                    '1' => 255,
-                                    else => 0,
-                                });
-                            }
-
-                            std.debug.assert(texture_bytes.items.len == width * height);
-
-                            const handle = try backend.createTexture2dWithBytes(
-                                texture_bytes.items,
-                                width,
-                                height,
-                                format,
-                            );
-
-                            return Texture2d{
-                                .handle = handle,
-                                .format = format,
-                                .width = width,
-                                .height = height,
-                            };
+                        column += 1;
+                    } else switch (c) {
+                        '\n', '\r' => {
+                            self.cur_line += 1;
+                            column = 0;
                         },
-                        .p4 => return error.Unimplemented,
+                        ' ' => {
+                            column += 1;
+                        },
+                        else => {
+                            std.debug.panic("graphics.DebugGUI unmapped character {}", .{c});
+                        },
                     }
                 }
 
-                fn magicNumber(self: *@This()) !enum { p1, p4 } {
-                    if (self.bytes[self.cur] != 'P') return error.BadFormat;
-                    self.cur += 1;
-                    defer self.cur += 1;
-                    switch (self.bytes[self.cur]) {
-                        '1' => return .p1,
-                        '4' => return .p4,
-                        else => return error.BadFormat,
-                    }
-                }
-
-                fn whitespace(self: *@This()) void {
-                    while (isWhitespace(self.bytes[self.cur])) {
-                        self.cur += 1;
-                    }
-                }
-
-                inline fn isWhitespace(char: u8) bool {
-                    const whitespace_chars = "    \n\r";
-                    inline for (whitespace_chars) |wsc| if (wsc == char) return true;
-                    return false;
-                }
-
-                fn integer(self: *@This()) u32 {
-                    var res: u32 = 0;
-                    for (self.bytes[self.cur..]) |c| {
-                        self.cur += 1;
-                        if (isWhitespace(c)) break;
-                        res = (res << 3) +% (res << 1) +% (c -% '0');
-                    }
-                    return res;
-                }
-            };
+                self.cur_line += 1;
+            }
         };
     };
 }

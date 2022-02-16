@@ -1,6 +1,7 @@
 #version 420 core
 
-layout (std140, binding = 0) uniform UniformBlock {
+layout (binding = 0, std140) uniform UniformBlock {
+    mat4 mvp;
     vec4 colour;
 };
 

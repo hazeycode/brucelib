@@ -1,6 +1,15 @@
 const std = @import("std");
 
-const types = @import("types.zig");
+const common = @import("common.zig");
+const VertexBufferHandle = common.VertexBufferHandle;
+const VertexLayoutDesc = common.VertexLayoutDesc;
+const VertexLayoutHandle = common.VertexLayoutHandle;
+const TextureFormat = common.TextureFormat;
+const TextureHandle = common.TextureHandle;
+const ConstantBufferHandle = common.ConstantBufferHandle;
+const RasteriserStateHandle = common.RasteriserStateHandle;
+const BlendStateHandle = common.BlendStateHandle;
+const ShaderProgramHandle = common.ShaderProgramHandle;
 
 // TODO(chris): Remove epoxy system dependency
 const c = @cImport({
@@ -35,7 +44,7 @@ pub fn draw(offset: u32, count: u32) void {
     );
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
+pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, vbo));
@@ -49,7 +58,7 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
 }
 
 pub fn writeBytesToVertexBuffer(
-    buffer_id: types.VertexBufferHandle,
+    buffer_id: VertexBufferHandle,
     offset: usize,
     bytes: []const u8,
 ) !usize {
@@ -63,7 +72,7 @@ pub fn writeBytesToVertexBuffer(
     return bytes.len;
 }
 
-pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {
+pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     var vao: c.GLuint = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(@intCast(c.GLuint, vao));
@@ -95,11 +104,11 @@ pub fn createVertexLayout(layout_desc: types.VertexLayoutDesc) !types.VertexLayo
     return vao;
 }
 
-pub fn setVertexLayout(layout_handle: types.VertexLayoutHandle) void {
+pub fn setVertexLayout(layout_handle: VertexLayoutHandle) void {
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 
-pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: types.TextureFormat) !types.TextureHandle {
+pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
     var texture: c.GLuint = undefined;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);
@@ -122,8 +131,9 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return texture;
 }
 
-pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
-    const texture_unit: c.GLenum = switch (slot) {
+pub fn setTexture(slot: u32, texture_handle: TextureHandle) void {
+    // skip binding 0, which is used for the uniform block
+    const binding = 1 + switch (slot) {
         0 => c.GL_TEXTURE0,
         1 => c.GL_TEXTURE1,
         else => {
@@ -131,12 +141,11 @@ pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
             return;
         },
     };
-    c.glActiveTexture(texture_unit);
+    c.glActiveTexture(@intCast(c.GLenum, binding));
     c.glBindTexture(c.GL_TEXTURE_2D, @intCast(c.GLuint, texture_handle));
-    c.glUniform1i(@intCast(c.GLint, slot), @intCast(c.GLint, slot));
 }
 
-pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
+pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
     var ubo: c.GLuint = undefined;
     c.glGenBuffers(1, &ubo);
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, ubo);
@@ -144,59 +153,46 @@ pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
     return ubo;
 }
 
-pub fn bindConstantBuffer(
-    slot: u32,
-    buffer_handle: types.ConstantBufferHandle,
-    offset: usize,
-    width: usize,
-) void {
-    c.glBindBufferRange(
-        c.GL_UNIFORM_BUFFER,
-        slot,
-        @intCast(c.GLuint, buffer_handle),
-        @intCast(c.GLintptr, offset),
-        @intCast(c.GLsizeiptr, width),
-    );
-}
-
 pub fn writeShaderConstant(
-    buffer_handle: types.ConstantBufferHandle,
+    buffer_handle: ConstantBufferHandle,
     offset: usize,
     bytes: []const u8,
 ) !void {
-    c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
+    const ubo = @intCast(c.GLuint, buffer_handle);
+    c.glBindBuffer(c.GL_UNIFORM_BUFFER, ubo);
     c.glBufferSubData(
         c.GL_UNIFORM_BUFFER,
         @intCast(c.GLintptr, offset),
         @intCast(c.GLsizeiptr, bytes.len),
         bytes.ptr,
     );
+    c.glBindBufferBase(c.GL_UNIFORM_BUFFER, 0, ubo);
 }
 
-pub fn setConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, @intCast(c.GLuint, buffer_handle));
 }
 
-pub fn createRasteriserState() !types.RasteriserStateHandle {
+pub fn createRasteriserState() !RasteriserStateHandle {
     return 0;
 }
 
-pub fn setRasteriserState(_: types.RasteriserStateHandle) void {}
+pub fn setRasteriserState(_: RasteriserStateHandle) void {}
 
-pub fn createBlendState() !types.BlendStateHandle {
+pub fn createBlendState() !BlendStateHandle {
     return 0;
 }
 
-pub fn setBlendState(_: types.BlendStateHandle) void {
+pub fn setBlendState(_: BlendStateHandle) void {
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 }
 
-pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
     c.glUseProgram(@intCast(c.GLuint, program_handle));
 }
 
-pub fn createUniformColourShader() !types.ShaderProgramHandle {
+pub fn createUniformColourShader() !ShaderProgramHandle {
     const vert_shader_src = @embedFile("data/uniform_colour_vs.glsl");
     const frag_shader_src = @embedFile("data/uniform_colour_fs.glsl");
 
@@ -209,7 +205,7 @@ pub fn createUniformColourShader() !types.ShaderProgramHandle {
     return try createShaderProgram(vertex_shader, fragment_shader);
 }
 
-pub fn createTexturedVertsShader() !types.ShaderProgramHandle {
+pub fn createTexturedVertsShader() !ShaderProgramHandle {
     const vert_shader_src = @embedFile("data/textured_verts_vs.glsl");
     const frag_shader_src = @embedFile("data/textured_verts_fs.glsl");
 
@@ -280,19 +276,19 @@ fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !
     return program;
 }
 
-fn formatToGlInternalFormat(format: types.TextureFormat) c.GLint {
+fn formatToGlInternalFormat(format: TextureFormat) c.GLint {
     return switch (format) {
         .uint8 => c.GL_R8,
     };
 }
 
-fn formatToGlFormat(format: types.TextureFormat) c.GLenum {
+fn formatToGlFormat(format: TextureFormat) c.GLenum {
     return switch (format) {
         .uint8 => c.GL_RED,
     };
 }
 
-fn formatToGlDataType(format: types.TextureFormat) c.GLenum {
+fn formatToGlDataType(format: TextureFormat) c.GLenum {
     return switch (format) {
         .uint8 => c.GL_UNSIGNED_BYTE,
     };

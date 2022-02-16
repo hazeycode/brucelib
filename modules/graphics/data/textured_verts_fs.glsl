@@ -1,11 +1,11 @@
-#version 330 core
+#version 420 core
 
-in vec2 texCoord;
+layout (binding = 1) uniform sampler2D texture_sampler;
 
-uniform sampler2D texture;
+in vec2 tex_coord;
 
-out vec4 colour_out;
+out vec4 out_colour;
 
 void main() {
-    colour_out = vec4(1, 1, 1, texture2D(texture, texCoord));
+    out_colour = vec4(1, 1, 1, texture(texture_sampler, tex_coord));
 }

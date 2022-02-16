@@ -1,7 +1,16 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const types = @import("types.zig");
+const common = @import("common.zig");
+const VertexBufferHandle = common.VertexBufferHandle;
+const VertexLayoutDesc = common.VertexLayoutDesc;
+const VertexLayoutHandle = common.VertexLayoutHandle;
+const TextureFormat = common.TextureFormat;
+const TextureHandle = common.TextureHandle;
+const ConstantBufferHandle = common.ConstantBufferHandle;
+const RasteriserStateHandle = common.RasteriserStateHandle;
+const BlendStateHandle = common.BlendStateHandle;
+const ShaderProgramHandle = common.ShaderProgramHandle;
 
 const win32 = @import("zig-gamedev-win32");
 const SIZE_T = win32.base.SIZE_T;
@@ -185,7 +194,7 @@ pub fn draw(offset: u32, count: u32) void {
     device_ctx.Draw(count, offset);
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBufferHandle {
+pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !VertexBufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, bytes.len),
@@ -204,7 +213,7 @@ pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !types.VertexBuffer
     return @ptrToInt(buffer.?);
 }
 
-pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, offset: usize, bytes: []const u8) !usize {
+pub fn writeBytesToVertexBuffer(buffer_handle: VertexBufferHandle, offset: usize, bytes: []const u8) !usize {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
     const device_ctx = getD3D11DeviceContext();
     var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
@@ -220,7 +229,7 @@ pub fn writeBytesToVertexBuffer(buffer_handle: types.VertexBufferHandle, offset:
     return bytes.len;
 }
 
-pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.VertexLayoutHandle {
+pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     const num_entries = vertex_layout_desc.entries.len;
 
     var buffers = try allocator.alloc(*d3d11.IBuffer, num_entries);
@@ -247,7 +256,7 @@ pub fn createVertexLayout(vertex_layout_desc: types.VertexLayoutDesc) !types.Ver
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn setVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
+pub fn setVertexLayout(vertex_layout_handle: VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
     getD3D11DeviceContext().IASetVertexBuffers(
         0,
@@ -258,7 +267,7 @@ pub fn setVertexLayout(vertex_layout_handle: types.VertexLayoutHandle) void {
     );
 }
 
-pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: types.TextureFormat) !types.TextureHandle {
+pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
     var texture: ?*d3d11.ITexture2D = null;
     {
         const desc = d3d11.TEXTURE2D_DESC{
@@ -327,7 +336,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return (textures.items.len - 1);
 }
 
-pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
+pub fn setTexture(slot: u32, texture_handle: TextureHandle) void {
     const samplers = [_]*d3d11.ISamplerState{
         textures.items[texture_handle].sampler_state,
     };
@@ -339,7 +348,7 @@ pub fn setTexture(slot: u32, texture_handle: types.TextureHandle) void {
     getD3D11DeviceContext().PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
-pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
+pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, size),
@@ -355,24 +364,15 @@ pub fn createConstantBuffer(size: usize) !types.ConstantBufferHandle {
     errdefer _ = buffer.?.Release();
 
     try constant_buffers.append(.{
-        .slot = undefined,
+        .slot = 0, // TODO(chris): set undefined here and provide a way to utilise more binding slots
         .buffer = buffer.?,
     });
 
     return (constant_buffers.items.len - 1);
 }
 
-pub fn bindConstantBuffer(
-    slot: u32,
-    buffer_handle: types.ConstantBufferHandle,
-    _: usize,
-    _: usize,
-) void {
-    constant_buffers.items[buffer_handle].slot = slot;
-}
-
 pub fn writeShaderConstant(
-    buffer_handle: types.ConstantBufferHandle,
+    buffer_handle: ConstantBufferHandle,
     offset: usize,
     bytes: []const u8,
 ) !void {
@@ -397,7 +397,7 @@ pub fn writeShaderConstant(
     device_ctx.Unmap(constant_buffer, 0);
 }
 
-pub fn setConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
     const buffer = constant_buffers.items[buffer_handle];
     const buffers = [_]*d3d11.IBuffer{buffer.buffer};
     getD3D11DeviceContext().VSSetConstantBuffers(
@@ -412,7 +412,7 @@ pub fn setConstantBuffer(buffer_handle: types.ConstantBufferHandle) void {
     );
 }
 
-pub fn createRasteriserState() !types.RasteriserStateHandle {
+pub fn createRasteriserState() !RasteriserStateHandle {
     var res: ?*d3d11.IRasterizerState = null;
     const desc = d3d11.RASTERIZER_DESC{
         .FrontCounterClockwise = TRUE,
@@ -421,12 +421,12 @@ pub fn createRasteriserState() !types.RasteriserStateHandle {
     return @ptrToInt(res);
 }
 
-pub fn setRasteriserState(state_handle: types.RasteriserStateHandle) void {
+pub fn setRasteriserState(state_handle: RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
     getD3D11DeviceContext().RSSetState(state);
 }
 
-pub fn createBlendState() !types.BlendStateHandle {
+pub fn createBlendState() !BlendStateHandle {
     var blend_state: ?*d3d11.IBlendState = null;
     var rt_blend_descs: [8]d3d11.RENDER_TARGET_BLEND_DESC = undefined;
     rt_blend_descs[0] = .{
@@ -451,7 +451,7 @@ pub fn createBlendState() !types.BlendStateHandle {
     return @ptrToInt(blend_state.?);
 }
 
-pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
+pub fn setBlendState(blend_state_handle: BlendStateHandle) void {
     const blend_state = @intToPtr(*d3d11.IBlendState, blend_state_handle);
     getD3D11DeviceContext().OMSetBlendState(
         blend_state,
@@ -460,7 +460,7 @@ pub fn setBlendState(blend_state_handle: types.BlendStateHandle) void {
     );
 }
 
-pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
+pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
     const device_ctx = getD3D11DeviceContext();
     const shader_program = shader_programs.items[program_handle];
     device_ctx.IASetInputLayout(shader_program.input_layout);
@@ -468,7 +468,7 @@ pub fn setShaderProgram(program_handle: types.ShaderProgramHandle) void {
     device_ctx.PSSetShader(shader_program.ps, null, 0);
 }
 
-pub fn createUniformColourShader() !types.ShaderProgramHandle {
+pub fn createUniformColourShader() !ShaderProgramHandle {
     const shader_src = @embedFile("data/uniform_colour.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
@@ -505,7 +505,7 @@ pub fn createUniformColourShader() !types.ShaderProgramHandle {
     return (shader_programs.items.len - 1);
 }
 
-pub fn createTexturedVertsShader() !types.ShaderProgramHandle {
+pub fn createTexturedVertsShader() !ShaderProgramHandle {
     const shader_src = @embedFile("data/textured_verts.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
@@ -618,7 +618,7 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
     return blob;
 }
 
-fn formatToDxgiFormat(format: types.TextureFormat) dxgi.FORMAT {
+fn formatToDxgiFormat(format: TextureFormat) dxgi.FORMAT {
     return switch (format) {
         .uint8 => dxgi.FORMAT.R8_UNORM,
     };
