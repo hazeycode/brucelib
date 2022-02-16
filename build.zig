@@ -8,13 +8,21 @@ const core = std.build.Pkg{
 const platform = std.build.Pkg{
     .name = "platform",
     .path = .{ .path = "modules/platform/main.zig" },
-    .dependencies = &.{ core, vendored.zig_objcrt, vendored.zig_gamedev_win32 },
+    .dependencies = &.{
+        core,
+        vendored.zig_objcrt,
+        vendored.zig_gamedev_win32,
+    },
 };
 
 const graphics = std.build.Pkg{
     .name = "graphics",
     .path = .{ .path = "modules/graphics/main.zig" },
-    .dependencies = &.{ core, vendored.zig_gamedev_win32 },
+    .dependencies = &.{
+        core,
+        vendored.zig_gamedev_win32,
+        vendored.zig_gamedev_zmath,
+    },
 };
 
 const vendored = struct {
@@ -25,6 +33,10 @@ const vendored = struct {
     const zig_gamedev_win32 = std.build.Pkg{
         .name = "zig-gamedev-win32",
         .path = .{ .path = "vendored/zig-gamedev-win32/win32.zig" },
+    };
+    const zig_gamedev_zmath = std.build.Pkg{
+        .name = "zig-gamedev-zmath",
+        .path = .{ .path = "vendored/zig-gamedev-zmath/zmath.zig" },
     };
 };
 
@@ -91,6 +103,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
 }
 
+// TODO(hazeycode): load sytem libs at runtime, remove dependencies
 fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
@@ -110,7 +123,7 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkSystemLibrary("User32");
         step.linkSystemLibrary("d3d11");
         step.linkSystemLibrary("dxgi");
-        step.linkSystemLibrary("D3DCompiler_47"); // TODO(hazeycode): get rid of this naughtyness and precompile your shaders like a good boy
+        step.linkSystemLibrary("D3DCompiler_47");
         step.addPackage(vendored.zig_gamedev_win32);
     } else {
         return error.UnsupportedTarget;
