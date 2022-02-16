@@ -55,7 +55,7 @@ pub fn build(b: *std.build.Builder) !void {
         platform_tests.setBuildMode(mode);
 
         const graphics_tests = b.addTest(graphics.path.path);
-        for (platform.dependencies.?) |dep| graphics_tests.addPackage(dep);
+        for (graphics.dependencies.?) |dep| graphics_tests.addPackage(dep);
         graphics_tests.setBuildMode(mode);
 
         const test_step = b.step("test", "Run all tests");
