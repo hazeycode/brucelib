@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const core = @import("core");
 
@@ -46,7 +47,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         var debugfont_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator) !void {
-            backend.init(allocator);
+            try backend.init(allocator);
 
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));
 
@@ -189,6 +190,10 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                         textured_vert_cur += @intCast(u32, desc.vertices.len);
                     },
                 }
+            }
+
+            if (builtin.mode == .Debug) {
+                try backend.logDebugMessages();
             }
         }
 

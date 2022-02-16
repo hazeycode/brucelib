@@ -4,11 +4,15 @@ const types = @import("types.zig");
 
 var allocator: std.mem.Allocator = undefined;
 
-pub fn init(_allocator: std.mem.Allocator) void {
+pub fn init(_allocator: std.mem.Allocator) !void {
     allocator = _allocator;
 }
 
 pub fn deinit() void {}
+
+pub fn logDebugMessages() !void {
+    std.debug.panic("Unimplemented", .{});
+}
 
 pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
     _ = x;

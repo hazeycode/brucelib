@@ -4,6 +4,8 @@ const builtin = @import("builtin");
 const types = @import("types.zig");
 
 const win32 = @import("zig-gamedev-win32");
+const SIZE_T = win32.base.SIZE_T;
+const UINT64 = win32.base.UINT64;
 const BOOL = win32.base.BOOL;
 const TRUE = win32.base.TRUE;
 const FALSE = win32.base.FALSE;
@@ -13,6 +15,7 @@ const S_OK = win32.base.S_OK;
 const dxgi = win32.dxgi;
 const d3d = win32.d3d;
 const d3d11 = win32.d3d11;
+const d3d11d = win32.d3d11d;
 const d3dcompiler = win32.d3dcompiler;
 
 extern fn getD3D11Device() *d3d11.IDevice;
@@ -52,12 +55,22 @@ const TextureResourcesList = std.ArrayList(struct {
 
 var textures: TextureResourcesList = undefined;
 
-pub fn init(_allocator: std.mem.Allocator) void {
+var debug_info_queue: *d3d11d.IInfoQueue = undefined;
+
+pub fn init(_allocator: std.mem.Allocator) !void {
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
     vertex_layouts = VertexLayoutList.init(allocator);
     constant_buffers = ConstantBufferList.init(allocator);
     textures = TextureResourcesList.init(allocator);
+
+    if (builtin.mode == .Debug) {
+        try win32.hrErrorOnFail(getD3D11Device().QueryInterface(
+            &d3d11d.IID_IInfoQueue,
+            @ptrCast(*?*anyopaque, &debug_info_queue),
+        ));
+        try win32.hrErrorOnFail(debug_info_queue.PushEmptyStorageFilter());
+    }
 }
 
 pub fn deinit() void {
@@ -85,6 +98,46 @@ pub fn deinit() void {
         _ = program.input_layout.Release();
     }
     shader_programs.deinit();
+}
+
+pub fn logDebugMessages() !void {
+    if (builtin.mode == .Debug) {
+        var temp_arena = std.heap.ArenaAllocator.init(allocator);
+        defer temp_arena.deinit();
+
+        const temp_allocator = temp_arena.allocator();
+
+        const num_messages = debug_info_queue.GetNumStoredMessages();
+        var i: UINT64 = 0;
+        while (i < num_messages) : (i += 1) {
+            var msg_size: SIZE_T = 0;
+
+            // NOTE(hazeycode): calling GetMessage the first time, with null, to get the
+            // message size apparently returns S_FALSE, which we consider an error code,
+            // so we are just ignore the HRESULT here
+            _ = debug_info_queue.GetMessage(
+                i,
+                null,
+                &msg_size,
+            );
+
+            const buf_len = 0x1000;
+            std.debug.assert(buf_len >= msg_size);
+
+            var message_buf = @alignCast(
+                @alignOf(d3d11d.MESSAGE),
+                try temp_allocator.alloc(u8, buf_len),
+            );
+            var message = @ptrCast(*d3d11d.MESSAGE, message_buf);
+            try win32.hrErrorOnFail(debug_info_queue.GetMessage(
+                i,
+                message,
+                &msg_size,
+            ));
+
+            std.log.debug("d3d11: {s}", .{message.pDescription[0..message.DescriptionByteLength]});
+        }
+    }
 }
 
 pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {

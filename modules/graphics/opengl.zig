@@ -9,12 +9,14 @@ const c = @cImport({
 
 var allocator: std.mem.Allocator = undefined;
 
-pub fn init(_allocator: std.mem.Allocator) void {
+pub fn init(_allocator: std.mem.Allocator) !void {
     allocator = _allocator;
     c.glEnable(c.GL_MULTISAMPLE);
 }
 
 pub fn deinit() void {}
+
+pub fn logDebugMessages() !void {}
 
 pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
     c.glViewport(x, y, width, height);
