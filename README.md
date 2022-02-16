@@ -34,4 +34,6 @@ The planned scope of this project is to target all the popular desktop, mobile a
 
 ### Examples
 
-[001-funky-triangle](examples/001_funky_triangle/)
+[001-funky triangle](examples/001_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics) modules to open a window and draw stuff in it.
+
+<img src="examples/001_funky_triangle/screencap.gif" height=240/>
