@@ -8,23 +8,23 @@ const core = std.build.Pkg{
 const platform = std.build.Pkg{
     .name = "platform",
     .path = .{ .path = "modules/platform/main.zig" },
-    .dependencies = &.{ core, external.zig_objcrt, external.zig_gamedev_win32 },
+    .dependencies = &.{ core, vendored.zig_objcrt, vendored.zig_gamedev_win32 },
 };
 
 const graphics = std.build.Pkg{
     .name = "graphics",
     .path = .{ .path = "modules/graphics/main.zig" },
-    .dependencies = &.{ core, external.zig_gamedev_win32 },
+    .dependencies = &.{ core, vendored.zig_gamedev_win32 },
 };
 
-const external = struct {
+const vendored = struct {
     const zig_objcrt = std.build.Pkg{
         .name = "zig-objcrt",
-        .path = .{ .path = "external/zig-objcrt/src/main.zig" },
+        .path = .{ .path = "vendored/zig-objcrt/src/main.zig" },
     };
     const zig_gamedev_win32 = std.build.Pkg{
         .name = "zig-gamedev-win32",
-        .path = .{ .path = "external/zig-gamedev-win32/win32.zig" },
+        .path = .{ .path = "vendored/zig-gamedev-win32/win32.zig" },
     };
 };
 
@@ -104,14 +104,14 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkFramework("OpenGL");
         step.linkSystemLibrary("epoxy");
         step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
-        step.addPackage(external.zig_objcrt);
+        step.addPackage(vendored.zig_objcrt);
     } else if (step.target.isWindows()) {
         step.linkSystemLibrary("Kernel32");
         step.linkSystemLibrary("User32");
         step.linkSystemLibrary("d3d11");
         step.linkSystemLibrary("dxgi");
         step.linkSystemLibrary("D3DCompiler_47"); // TODO(hazeycode): get rid of this naughtyness and precompile your shaders like a good boy
-        step.addPackage(external.zig_gamedev_win32);
+        step.addPackage(vendored.zig_gamedev_win32);
     } else {
         return error.UnsupportedTarget;
     }

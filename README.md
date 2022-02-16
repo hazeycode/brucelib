@@ -27,7 +27,6 @@ The planned scope of this project is to target all the popular desktop, mobile a
 
 ## Getting Started
 - Copy/clone/submodule this respository
-- Grab non-vendored external libraries with `git submodule update --init --recursive`
 - Run all the tests with `zig build test`
 - Build and run an example: e.g. `zig build run-example-001`
 - List all available build targets with `zig build --help`
