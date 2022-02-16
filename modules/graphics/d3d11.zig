@@ -69,7 +69,17 @@ pub fn init(_allocator: std.mem.Allocator) !void {
             &d3d11d.IID_IInfoQueue,
             @ptrCast(*?*anyopaque, &debug_info_queue),
         ));
-        try win32.hrErrorOnFail(debug_info_queue.PushEmptyStorageFilter());
+
+        { // set message filter
+            const deny_severities = [_]d3d11d.MESSAGE_SEVERITY{
+                .INFO,
+                .MESSAGE,
+            };
+            var filter: d3d11d.INFO_QUEUE_FILTER = std.mem.zeroes(d3d11d.INFO_QUEUE_FILTER);
+            filter.DenyList.NumSeverities = deny_severities.len;
+            filter.DenyList.pSeverityList = &deny_severities;
+            try win32.hrErrorOnFail(debug_info_queue.PushStorageFilter(&filter));
+        }
     }
 }
 
