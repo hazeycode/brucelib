@@ -13,7 +13,7 @@ struct VS_Output {
 
 VS_Output vs_main(VS_Input input) {
     VS_Output output = (VS_Output)0;
-    output.pos = mul(float4(input.pos, 1), mvp);
+    output.pos = mul(mvp, float4(input.pos, 1));
     return output;
 }
 
