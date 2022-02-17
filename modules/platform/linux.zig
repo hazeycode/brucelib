@@ -1,12 +1,18 @@
 const std = @import("std");
 const Input = @import("Input.zig");
 
+var target_framerate: u16 = undefined;
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 
 const num_keys = std.meta.fields(Input.Key).len;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
 var maybe_last_key_event: ?*Input.KeyEvent = null;
+
+var timer: std.time.Timer = undefined;
+pub fn timestamp() u64 {
+    return timer.read();
+}
 
 const GraphicsAPI = enum {
     opengl,
@@ -16,6 +22,7 @@ var graphics_api: GraphicsAPI = undefined;
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .opengl,
+    target_framerate: u16 = 0,
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -23,6 +30,8 @@ pub fn run(args: struct {
     deinit_fn: fn () void,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
+    timer = try std.time.Timer.start();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
@@ -31,6 +40,9 @@ pub fn run(args: struct {
     const windowing = X11;
 
     graphics_api = args.graphics_api;
+
+    // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
+    target_framerate = if (args.target_framerate == 0) 60 else args.target_framerate;
 
     window_width = args.pxwidth;
     window_height = args.pxheight;
@@ -41,7 +53,11 @@ pub fn run(args: struct {
     try args.init_fn(allocator);
     defer args.deinit_fn();
 
+    var frame_timer = try std.time.Timer.start();
+
     while (true) {
+        const prev_frame_time = frame_timer.lap();
+
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
 
@@ -59,6 +75,8 @@ pub fn run(args: struct {
 
         const quit = !(try args.update_fn(.{
             .frame_arena_allocator = arena_allocator,
+            .target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9)),
+            .prev_frame_time = prev_frame_time,
             .key_events = key_events.items,
             .mouse_button_events = mouse_button_events.items,
             .canvas_size = .{ .width = window_width, .height = window_height },

@@ -3,6 +3,8 @@ const std = @import("std");
 pub const Input = @This();
 
 frame_arena_allocator: std.mem.Allocator,
+target_frame_time: u64,
+prev_frame_time: u64,
 key_events: []KeyEvent,
 mouse_button_events: []MouseButtonEvent,
 canvas_size: struct { width: u16, height: u16 },

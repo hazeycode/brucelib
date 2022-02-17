@@ -14,8 +14,15 @@ const CGSize = struct {
     height: CGFloat,
 };
 
+var timer: std.time.Timer = undefined;
+pub fn timestamp() u64 {
+    return timer.read();
+}
+
+var target_framerate: u16 = undefined;
 var update_fn: fn (Input) anyerror!bool = undefined;
 var allocator: std.mem.Allocator = undefined;
+var frame_timer: std.time.Timer = undefined;
 
 const GraphicsAPI = enum {
     metal,
@@ -23,6 +30,7 @@ const GraphicsAPI = enum {
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .metal,
+    target_framerate: u16 = 0,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -30,10 +38,15 @@ pub fn run(args: struct {
     deinit_fn: fn () void,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
+    timer = try std.time.Timer.start();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
     allocator = gpa.allocator();
+
+    // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
+    target_framerate = if (args.target_framerate == 0) 60 else args.target_framerate;
 
     try args.init_fn(allocator);
     defer args.deinit_fn();
@@ -56,10 +69,15 @@ pub fn run(args: struct {
     );
 
     try objc.msgSendByName(void, application, "setDelegate:", .{app_delegate});
+
+    frame_timer = try std.time.Timer.start();
+
     try objc.msgSendByName(void, application, "run", .{});
 }
 
 export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
+    const prev_frame_time = frame_timer.lap();
+
     var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
     defer frame_mem_arena.deinit();
 
@@ -71,6 +89,8 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
 
     _ = !(update_fn(.{
         .frame_arena_allocator = arena_allocator,
+        .target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9)),
+        .prev_frame_time = prev_frame_time,
         .key_events = key_events.items,
         .mouse_button_events = mouse_button_events.items,
         .canvas_size = .{

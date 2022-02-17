@@ -18,15 +18,8 @@ var state: struct {
     triangle_hue: f32 = 0,
 } = .{};
 
-var debug_state: struct {
-    frame_timer: std.time.Timer,
-    last_frame_time_ms: f32,
-    update_time_elapsed_ms: f32,
-} = undefined;
-
 fn init(allocator: std.mem.Allocator) !void {
     try graphics.init(allocator);
-    debug_state.frame_timer = try std.time.Timer.start();
 }
 
 fn deinit() void {
@@ -34,9 +27,7 @@ fn deinit() void {
 }
 
 fn update(input: platform.Input) !bool {
-    debug_state.last_frame_time_ms = @intToFloat(f32, debug_state.frame_timer.lap()) / 1e6;
-
-    var update_timer = try std.time.Timer.start();
+    const update_start_time = platform.timestamp();
 
     if (input.quit_requested) {
         std.log.debug("quit requested", .{});
@@ -50,17 +41,20 @@ fn update(input: platform.Input) !bool {
 
     try funkyTriangle(input, &draw_list);
 
-    debug_state.update_time_elapsed_ms = @intToFloat(f32, update_timer.read()) / 1e6;
+    const update_time_elapsed = platform.timestamp() - update_start_time;
 
-    try debugOverlay(input, &draw_list);
+    try debugOverlay(input, &draw_list, update_time_elapsed);
 
     try graphics.submitDrawList(draw_list);
 
     return true;
 }
 
-fn funkyTriangle(_: platform.Input, draw_list: anytype) !void {
-    state.triangle_hue = @mod(state.triangle_hue + 1e-2, 1.0);
+fn funkyTriangle(input: platform.Input, draw_list: anytype) !void {
+    state.triangle_hue = @mod(
+        state.triangle_hue + @intToFloat(f32, input.target_frame_time) / 1e9,
+        1.0,
+    );
 
     try draw_list.setProjectionTransform(graphics.identityMatrix());
 
@@ -74,7 +68,7 @@ fn funkyTriangle(_: platform.Input, draw_list: anytype) !void {
     );
 }
 
-fn debugOverlay(input: platform.Input, draw_list: anytype) !void {
+fn debugOverlay(input: platform.Input, draw_list: anytype, update_time_elapsed: u64) !void {
     var debug_gui = graphics.DebugGUI.begin(
         input.frame_arena_allocator,
         draw_list,
@@ -84,12 +78,13 @@ fn debugOverlay(input: platform.Input, draw_list: anytype) !void {
 
     try debug_gui.label(
         "{d:.2} ms update",
-        .{debug_state.update_time_elapsed_ms},
+        .{@intToFloat(f64, update_time_elapsed) / 1e6},
     );
 
+    const prev_frame_time_ms = @intToFloat(f64, input.prev_frame_time) / 1e6;
     try debug_gui.label(
         "{d:.2} ms frame, {d:.0} FPS",
-        .{ debug_state.last_frame_time_ms, 1e3 / debug_state.last_frame_time_ms },
+        .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
     );
 
     try debug_gui.end();
