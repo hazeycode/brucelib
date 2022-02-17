@@ -11,15 +11,13 @@ This module **does not** handle graphics context creation. You must use some oth
 - Metal (not yet implemented)
 - & more planned
 
-Backend graphics APIs are defined by the [core module](https://github.com/hazeycode/brucelib/tree/main/modules/core)
-
 The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
 
 
 ### Example usage
 ```zig
 // import the graphics module and select the backend to use
-const graphics = @import("graphics").usingAPI(.d3d11);
+const graphics = @import("graphics").usingAPI(.default);
 
 // initilise
 try graphics.init(allocator);

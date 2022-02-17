@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const core = @import("core");
 const Input = @import("Input.zig");
 
 const win32 = @import("zig-gamedev-win32");
@@ -26,8 +25,6 @@ const d3dcompiler = win32.d3dcompiler;
 
 const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
-pub const default_graphics_api = core.GraphicsAPI.d3d11;
-
 pub const Error = error{
     FailedToGetModuleHandle,
 };
@@ -36,8 +33,12 @@ var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var window_closed = false;
 
+const GraphicsAPI = enum {
+    d3d11,
+};
+
 pub fn run(args: struct {
-    graphics_api: core.GraphicsAPI = default_graphics_api,
+    graphics_api: GraphicsAPI = .d3d11,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,

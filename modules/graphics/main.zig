@@ -1,10 +1,22 @@
 const builtin = @import("builtin");
 const std = @import("std");
-const core = @import("core");
 
-pub fn usingAPI(comptime api: core.GraphicsAPI) type {
+pub const API = enum {
+    default,
+    opengl,
+    metal,
+    d3d11,
+};
+
+pub fn usingAPI(comptime api: API) type {
     return struct {
         pub const backend = switch (api) {
+            .default => switch (builtin.os.tag) {
+                .linux => @import("opengl.zig"),
+                .macos => @import("metal.zig"),
+                .windows => @import("d3d11.zig"),
+                else => @compileError("Unsupported target"),
+            },
             .opengl => @import("opengl.zig"),
             .metal => @import("metal.zig"),
             .d3d11 => @import("d3d11.zig"),
@@ -305,7 +317,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
                 try self.draw_list.setProjectionTransform(projection);
 
                 const view = zmath.mul(
-                    zmath.translation(-self.canvas_width/2, -self.canvas_height/2, 0),
+                    zmath.translation(-self.canvas_width / 2, -self.canvas_height / 2, 0),
                     zmath.scaling(1, -1, 1),
                 );
                 try self.draw_list.setViewTransform(view);

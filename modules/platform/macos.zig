@@ -1,10 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const core = @import("core");
 const objc = @import("zig-objcrt");
 const Input = @import("Input.zig");
-
-pub const default_graphics_api = core.GraphicsAPI.opengl;
 
 const CGFloat = switch (builtin.target.cpu.arch.ptrBitWidth()) {
     32 => f32,
@@ -20,8 +17,12 @@ const CGSize = struct {
 var update_fn: fn (Input) anyerror!bool = undefined;
 var allocator: std.mem.Allocator = undefined;
 
+const GraphicsAPI = enum {
+    metal,
+};
+
 pub fn run(args: struct {
-    graphics_api: core.GraphicsAPI = default_graphics_api,
+    graphics_api: GraphicsAPI = .metal,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,

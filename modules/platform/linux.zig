@@ -1,5 +1,4 @@
 const std = @import("std");
-const core = @import("core");
 const Input = @import("Input.zig");
 
 var window_width: u16 = undefined;
@@ -9,12 +8,14 @@ const num_keys = std.meta.fields(Input.Key).len;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
 var maybe_last_key_event: ?*Input.KeyEvent = null;
 
-pub const default_graphics_api = core.GraphicsAPI.opengl;
+const GraphicsAPI = enum {
+    opengl,
+};
 
-var graphics_api: core.GraphicsAPI = undefined;
+var graphics_api: GraphicsAPI = undefined;
 
 pub fn run(args: struct {
-    graphics_api: core.GraphicsAPI = default_graphics_api,
+    graphics_api: GraphicsAPI = .opengl,
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -28,6 +29,8 @@ pub fn run(args: struct {
     const allocator = gpa.allocator();
 
     const windowing = X11;
+
+    graphics_api = args.graphics_api;
 
     window_width = args.pxwidth;
     window_height = args.pxheight;
@@ -168,7 +171,6 @@ const X11 = struct {
                 fb_config = fb_configs[0];
                 visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
             },
-            else => std.debug.panic("Unsupported graphics API", .{}),
         }
 
         const visual_id = @intCast(u32, c.XVisualIDFromVisual(visual_info.visual));
@@ -248,7 +250,6 @@ const X11 = struct {
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
                 std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
-            else => std.debug.panic("Unsupported graphics API", .{}),
         }
     }
 
@@ -264,7 +265,6 @@ const X11 = struct {
                 _ = c.glXMakeCurrent(display, 0, null);
                 c.glXDestroyContext(display, context);
             },
-            else => std.debug.panic("Unsupported graphics API", .{}),
         }
         _ = c.XFree(atom_delete_window);
         _ = c.XFree(atom_protocols);

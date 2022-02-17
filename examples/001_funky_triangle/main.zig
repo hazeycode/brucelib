@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const platform = @import("platform");
-const graphics = @import("graphics").usingAPI(platform.default_graphics_api);
+const graphics = @import("graphics").usingAPI(.default);
 
 pub fn main() anyerror!void {
     try platform.run(.{
