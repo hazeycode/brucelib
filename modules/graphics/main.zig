@@ -35,13 +35,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const Matrix = zmath.Mat;
 
         pub const identityMatrix = zmath.identity;
-
-        pub fn orthographic(w: f32, h: f32, n: f32, f: f32) Matrix {
-            return switch (api) {
-                .opengl => zmath.orthographicLh(w, h, n, f),
-                else => zmath.orthographicRh(w, h, n, f),
-            };
-        }
+        pub const orthographic = zmath.orthographicLh;
 
         pub const DrawList = struct {
             pub const Entry = union(enum) {
@@ -309,6 +303,12 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             pub fn end(self: *DebugGUI) !void {
                 const projection = orthographic(self.canvas_width, self.canvas_height, 0, 1);
                 try self.draw_list.setProjectionTransform(projection);
+
+                const view = zmath.mul(
+                    zmath.translation(-self.canvas_width/2, -self.canvas_height/2, 0),
+                    zmath.scaling(1, -1, 1),
+                );
+                try self.draw_list.setViewTransform(view);
 
                 const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 0.67);
 
