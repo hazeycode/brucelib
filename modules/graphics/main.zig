@@ -1,7 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const core = @import("core");
-const zmath = @import("zig-gamedev-zmath");
 
 pub fn usingAPI(comptime api: core.GraphicsAPI) type {
     return struct {
@@ -30,10 +29,19 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         pub const TexturedVertex = common.TexturedVertex;
         pub const Colour = common.Colour;
         pub const Rect = common.Rect;
-        pub const F32x4 = common.F32x4;
-        pub const Matrix = common.Matrix;
-        pub const identityMatrix = common.identityMatrix;
-        pub const orthographic = common.orthographic;
+
+        const zmath = @import("zig-gamedev-zmath");
+        pub const F32x4 = zmath.F32x4;
+        pub const Matrix = zmath.Mat;
+
+        pub const identityMatrix = zmath.identity;
+
+        pub fn orthographic(w: f32, h: f32, n: f32, f: f32) Matrix {
+            return switch (api) {
+                .opengl => zmath.orthographicLh(w, h, n, f),
+                else => zmath.orthographicRh(w, h, n, f),
+            };
+        }
 
         pub const DrawList = struct {
             pub const Entry = union(enum) {
@@ -102,6 +110,11 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             uniform_colour_tris: PipelineResources,
             textured_tris: PipelineResources,
         } = undefined;
+
+        const ShaderConstants = extern struct {
+            mvp: Matrix,
+            colour: Colour,
+        };
 
         var debugfont_texture: Texture2d = undefined;
 
@@ -173,9 +186,9 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
         }
 
         pub fn submitDrawList(draw_list: DrawList) !void {
-            var model = identityMatrix();
-            var view = identityMatrix();
-            var projection = identityMatrix();
+            var model = zmath.identity();
+            var view = zmath.identity();
+            var projection = zmath.identity();
 
             var uniform_colour_vert_cur: u32 = 0;
             var textured_vert_cur: u32 = 0;
@@ -215,23 +228,12 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         backend.setBlendState(resources.blend_state);
 
-                        const mvp = zmath.mul(zmath.mul(model, view), projection);
-
-                        { // update mvp constant
-                            var buf: [@sizeOf(Matrix)]u8 = undefined;
-                            const src_ptr = @ptrCast([*]const f32, &mvp);
-                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Matrix) / @sizeOf(f32)]);
-                            std.mem.copy(u8, buf[0..], src[0..]);
-                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
-                        }
-
-                        { // update colour constant
-                            var buf: [@sizeOf(Colour)]u8 = undefined;
-                            const src_ptr = @ptrCast([*]const f32, &desc.colour);
-                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Colour) / @sizeOf(f32)]);
-                            std.mem.copy(u8, buf[0..], src[0..]);
-                            try backend.writeShaderConstant(resources.constant_buffer, @sizeOf(Matrix), &buf);
-                        }
+                        // update shaders constants
+                        const constants = ShaderConstants{
+                            .mvp = zmath.mul(zmath.mul(model, view), projection),
+                            .colour = desc.colour,
+                        };
+                        try backend.updateShaderConstantBuffer(resources.constant_buffer, std.mem.asBytes(&constants));
 
                         backend.setConstantBuffer(resources.constant_buffer);
 
@@ -259,15 +261,12 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
 
                         backend.setBlendState(resources.blend_state);
 
-                        const mvp = zmath.mul(zmath.mul(model, view), projection);
-
-                        { // update mvp constant
-                            var buf: [@sizeOf(Matrix)]u8 = undefined;
-                            const src_ptr = @ptrCast([*]const f32, &mvp);
-                            const src = std.mem.sliceAsBytes(src_ptr[0 .. @sizeOf(Matrix) / @sizeOf(f32)]);
-                            std.mem.copy(u8, buf[0..], src[0..]);
-                            try backend.writeShaderConstant(resources.constant_buffer, 0, &buf);
-                        }
+                        // update shaders constants
+                        const constants = ShaderConstants{
+                            .mvp = zmath.mul(zmath.mul(model, view), projection),
+                            .colour = Colour.white,
+                        };
+                        try backend.updateShaderConstantBuffer(resources.constant_buffer, std.mem.asBytes(&constants));
 
                         backend.setConstantBuffer(resources.constant_buffer);
 
@@ -308,7 +307,7 @@ pub fn usingAPI(comptime api: core.GraphicsAPI) type {
             }
 
             pub fn end(self: *DebugGUI) !void {
-                const projection = orthographic(0, self.canvas_width, self.canvas_height, 0, 0, 1);
+                const projection = orthographic(self.canvas_width, self.canvas_height, 0, 1);
                 try self.draw_list.setProjectionTransform(projection);
 
                 const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 0.67);

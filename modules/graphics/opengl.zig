@@ -153,16 +153,15 @@ pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
     return ubo;
 }
 
-pub fn writeShaderConstant(
+pub fn updateShaderConstantBuffer(
     buffer_handle: ConstantBufferHandle,
-    offset: usize,
     bytes: []const u8,
 ) !void {
     const ubo = @intCast(c.GLuint, buffer_handle);
     c.glBindBuffer(c.GL_UNIFORM_BUFFER, ubo);
     c.glBufferSubData(
         c.GL_UNIFORM_BUFFER,
-        @intCast(c.GLintptr, offset),
+        @intCast(c.GLintptr, 0),
         @intCast(c.GLsizeiptr, bytes.len),
         bytes.ptr,
     );

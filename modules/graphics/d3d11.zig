@@ -371,9 +371,8 @@ pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
     return (constant_buffers.items.len - 1);
 }
 
-pub fn writeShaderConstant(
+pub fn updateShaderConstantBuffer(
     buffer_handle: ConstantBufferHandle,
-    offset: usize,
     bytes: []const u8,
 ) !void {
     const constant_buffer = @ptrCast(
@@ -391,7 +390,7 @@ pub fn writeShaderConstant(
     ));
     std.mem.copy(
         u8,
-        @ptrCast([*]u8, subresource.pData)[offset..(offset + bytes.len)],
+        @ptrCast([*]u8, subresource.pData)[0..bytes.len],
         bytes,
     );
     device_ctx.Unmap(constant_buffer, 0);

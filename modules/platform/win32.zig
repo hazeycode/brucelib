@@ -211,7 +211,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
         flags |= d3d11.CREATE_DEVICE_DEBUG;
     }
 
-    var feature_level: d3d.FEATURE_LEVEL = .FL_11_0;
+    var feature_level: d3d.FEATURE_LEVEL = .FL_11_1;
 
     try win32.hrErrorOnFail(d3d11.D3D11CreateDeviceAndSwapChain(
         null,

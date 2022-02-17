@@ -1,6 +1,11 @@
 Texture2D texture0 : register(t0);
 sampler sampler0 : register(s0);
 
+cbuffer Constants {
+    float4x4 mvp;
+    float4 colour;
+}
+
 struct VS_Input {
     float3 pos : POSITION;
     float2 uv : TEXCOORD;
@@ -13,7 +18,7 @@ struct VS_Output {
 
 VS_Output vs_main(VS_Input input) {
     VS_Output output = (VS_Output)0;
-    output.pos = float4(input.pos, 1.0);
+    output.pos = mul(float4(input.pos, 1.0), mvp);
     output.uv = input.uv;
     return output;
 }

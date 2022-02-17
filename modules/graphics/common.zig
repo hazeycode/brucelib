@@ -138,31 +138,3 @@ pub const Rect = extern struct {
         };
     }
 };
-
-const zmath = @import("zig-gamedev-zmath");
-
-pub const F32x4 = zmath.F32x4;
-pub const Matrix = zmath.Mat;
-
-pub fn identityMatrix() Matrix {
-    const elems = [16]f32{
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    };
-    return zmath.loadMat(&elems);
-}
-
-pub fn orthographic(l: f32, r: f32, b: f32, t: f32, n: f32, f: f32) Matrix {
-    const dx = r - l;
-    const dy = t - b;
-    const dz = f - n;
-    const elems = [16]f32{
-        2 / dx,        0,             0,             0,
-        0,             2 / dy,        0,             0,
-        0,             0,             -2 / dz,       0,
-        -(r + l) / dx, -(t + b) / dy, -(f + n) / dz, 1,
-    };
-    return zmath.loadMat(&elems);
-}

@@ -92,13 +92,11 @@ pub fn bindConstantBuffer(
     std.debug.panic("Unimplemented", .{});
 }
 
-pub fn writeShaderConstant(
+pub fn updateShaderConstantBuffer(
     buffer_handle: ConstantBufferHandle,
-    offset: usize,
     bytes: []const u8,
 ) !void {
     _ = buffer_handle;
-    _ = offset;
     _ = bytes;
     std.debug.panic("Unimplemented", .{});
 }
