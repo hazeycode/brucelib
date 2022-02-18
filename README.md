@@ -38,7 +38,7 @@ Each vendored library is listed along with the modules that use it and the licen
 - Run all the tests with `zig build test`
 - Build and run an example: e.g. `zig build run-example-001`
 - List all available build targets with `zig build --help`
-- Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or add as a package in your build.zig along with any vendored libs it uses. Refer to the build.zig in this repo for an example.
+- Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or add as a package in your build.zig along with any vendored libs it uses. Refer to [build.zig](build.zig) for an example.
 
 ### Examples
 
