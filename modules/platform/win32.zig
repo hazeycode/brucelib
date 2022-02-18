@@ -53,7 +53,7 @@ pub fn run(args: struct {
     deinit_fn: fn () void,
     update_fn: fn (Input) anyerror!bool,
 }) !void {
-    timer = std.time.Timer.start();
+    timer = try std.time.Timer.start();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -89,7 +89,7 @@ pub fn run(args: struct {
     try args.init_fn(allocator);
     defer args.deinit_fn();
 
-    var frame_timer = std.time.Timer.start();
+    var frame_timer = try std.time.Timer.start();
     var prev_update_time: u64 = 0;
 
     var quit = false;
