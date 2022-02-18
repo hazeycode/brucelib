@@ -23,6 +23,7 @@ var target_framerate: u16 = undefined;
 var update_fn: fn (Input) anyerror!bool = undefined;
 var allocator: std.mem.Allocator = undefined;
 var frame_timer: std.time.Timer = undefined;
+var prev_update_time: u64 = 0;
 
 const GraphicsAPI = enum {
     metal,
@@ -78,6 +79,8 @@ pub fn run(args: struct {
 export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
     const prev_frame_time = frame_timer.lap();
 
+    const start_update_time = timestamp();
+
     var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
     defer frame_mem_arena.deinit();
 
@@ -93,6 +96,7 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
         .frame_arena_allocator = arena_allocator,
         .target_frame_time = target_frame_time,
         .prev_frame_time = prev_frame_time,
+        .prev_update_time = prev_update_time,
         .key_events = key_events.items,
         .mouse_button_events = mouse_button_events.items,
         .canvas_size = .{
@@ -101,6 +105,8 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
         },
         .quit_requested = window_closed,
     }) catch unreachable);
+
+    prev_update_time = timestamp() - start_update_time;
 
     const remaining_frame_time = @intCast(i128, target_frame_time - 100000) - frame_timer.read();
     if (remaining_frame_time > 0) {

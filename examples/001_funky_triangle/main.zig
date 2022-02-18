@@ -27,8 +27,6 @@ fn deinit() void {
 }
 
 fn update(input: platform.Input) !bool {
-    const update_start_time = platform.timestamp();
-
     if (input.quit_requested) {
         std.log.debug("quit requested", .{});
         return false;
@@ -41,9 +39,7 @@ fn update(input: platform.Input) !bool {
 
     try funkyTriangle(input, &draw_list);
 
-    const update_time_elapsed = platform.timestamp() - update_start_time;
-
-    try debugOverlay(input, &draw_list, update_time_elapsed);
+    try debugOverlay(input, &draw_list);
 
     try graphics.submitDrawList(draw_list);
 
@@ -68,7 +64,7 @@ fn funkyTriangle(input: platform.Input, draw_list: anytype) !void {
     );
 }
 
-fn debugOverlay(input: platform.Input, draw_list: anytype, update_time_elapsed: u64) !void {
+fn debugOverlay(input: platform.Input, draw_list: anytype) !void {
     var debug_gui = graphics.DebugGUI.begin(
         input.frame_arena_allocator,
         draw_list,
@@ -78,7 +74,7 @@ fn debugOverlay(input: platform.Input, draw_list: anytype, update_time_elapsed: 
 
     try debug_gui.label(
         "{d:.2} ms update",
-        .{@intToFloat(f64, update_time_elapsed) / 1e6},
+        .{@intToFloat(f64, input.prev_update_time) / 1e6},
     );
 
     const prev_frame_time_ms = @intToFloat(f64, input.prev_frame_time) / 1e6;

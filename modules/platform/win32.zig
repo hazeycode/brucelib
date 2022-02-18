@@ -90,10 +90,13 @@ pub fn run(args: struct {
     defer args.deinit_fn();
 
     var frame_timer = std.time.Timer.start();
+    var prev_update_time: u64 = 0;
 
     var quit = false;
     while (quit == false) main_loop: {
         const prev_frame_time = frame_timer.lap();
+
+        const start_update_time = timestamp();
 
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
@@ -119,6 +122,7 @@ pub fn run(args: struct {
             .frame_arena_allocator = arena_allocator,
             .target_frame_time = target_frame_time,
             .prev_frame_time = prev_frame_time,
+            .prev_update_time = prev_update_time,
             .key_events = key_events.items,
             .mouse_button_events = mouse_button_events.items,
             .canvas_size = .{
@@ -127,6 +131,8 @@ pub fn run(args: struct {
             },
             .quit_requested = window_closed,
         }));
+
+        prev_update_time = timestamp() - start_update_time;
 
         const remaining_frame_time = @intCast(i128, target_frame_time - 100000) - frame_timer.read();
         if (remaining_frame_time > 0) {
