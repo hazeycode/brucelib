@@ -31,7 +31,7 @@ const GraphicsAPI = enum {
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .metal,
-    target_framerate: u16 = 0,
+    requested_framerate: u16 = 0,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -47,7 +47,7 @@ pub fn run(args: struct {
     allocator = gpa.allocator();
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-    target_framerate = if (args.target_framerate == 0) 60 else args.target_framerate;
+    target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
     try args.init_fn(allocator);
     defer args.deinit_fn();

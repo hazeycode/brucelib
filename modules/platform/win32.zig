@@ -45,7 +45,7 @@ const GraphicsAPI = enum {
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .d3d11,
-    target_framerate: u16 = 0,
+    requested_framerate: u16 = 0,
     title: [:0]const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -61,7 +61,7 @@ pub fn run(args: struct {
     const allocator = gpa.allocator();
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-    target_framerate = if (args.target_framerate == 0) 60 else args.target_framerate;
+    target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
     window_width = args.pxwidth;
     window_height = args.pxheight;
@@ -133,11 +133,6 @@ pub fn run(args: struct {
         }));
 
         prev_update_time = timestamp() - start_update_time;
-
-        const remaining_frame_time = @intCast(i128, target_frame_time - 100000) - frame_timer.read();
-        if (remaining_frame_time > 0) {
-            std.time.sleep(@intCast(u64, remaining_frame_time));
-        }
 
         try win32.hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
     }

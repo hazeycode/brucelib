@@ -22,7 +22,7 @@ var graphics_api: GraphicsAPI = undefined;
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .opengl,
-    target_framerate: u16 = 0,
+    requested_framerate: u16 = 0,
     title: []const u8 = "",
     pxwidth: u16 = 854,
     pxheight: u16 = 480,
@@ -42,7 +42,7 @@ pub fn run(args: struct {
     graphics_api = args.graphics_api;
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-    target_framerate = if (args.target_framerate == 0) 60 else args.target_framerate;
+    target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
     window_width = args.pxwidth;
     window_height = args.pxheight;

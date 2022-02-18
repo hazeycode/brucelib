@@ -1,15 +1,15 @@
-001_funky_triangle:
-- use graphics module to debug print frame stats to screen
-
 platform:
+- linux: query monitor refresh and adjust target framerate accordingly
+- win32: query monitor refresh, adjust target framerate accordingly & set appropriate sync interval
+- macOS: hook up CADisplayLink for proper display sync 
 - linux: map all the keys
 - macOS: OpenGL -> Metal context
 - macOS: key and mouse events
 - win32: key and mouse events
 - win32: update while moving window or resizing
-- gamepad input
-- migrate all objective-c code to zig
-- audio output
+- all: gamepad input
+- macos: migrate all objective-c code to zig
+- all: audio output
 
 graphics:
 - premultiplied alpha
