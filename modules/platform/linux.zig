@@ -73,15 +73,22 @@ pub fn run(args: struct {
             &window_closed,
         );
 
+        const target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+
         const quit = !(try args.update_fn(.{
             .frame_arena_allocator = arena_allocator,
-            .target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9)),
+            .target_frame_time = target_frame_time,
             .prev_frame_time = prev_frame_time,
             .key_events = key_events.items,
             .mouse_button_events = mouse_button_events.items,
             .canvas_size = .{ .width = window_width, .height = window_height },
             .quit_requested = window_closed,
         }));
+
+        const remaining_frame_time = @intCast(i128, target_frame_time - 100000) - frame_timer.read();
+        if (remaining_frame_time > 0) {
+            std.time.sleep(@intCast(u64, remaining_frame_time));
+        }
 
         windowing.swapBuffers();
 

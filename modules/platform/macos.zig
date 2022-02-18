@@ -87,9 +87,11 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
     var mouse_button_events = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
     var window_closed = false;
 
+    const target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+
     _ = !(update_fn(.{
         .frame_arena_allocator = arena_allocator,
-        .target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9)),
+        .target_frame_time = target_frame_time,
         .prev_frame_time = prev_frame_time,
         .key_events = key_events.items,
         .mouse_button_events = mouse_button_events.items,
@@ -99,4 +101,9 @@ export fn frame(view_width: c_int, view_height: c_int) callconv(.C) void {
         },
         .quit_requested = window_closed,
     }) catch unreachable);
+
+    const remaining_frame_time = @intCast(i128, target_frame_time - 100000) - frame_timer.read();
+    if (remaining_frame_time > 0) {
+        std.time.sleep(@intCast(u64, remaining_frame_time));
+    }
 }
