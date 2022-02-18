@@ -1,3 +1,0 @@
-[submodule "external/zig-objcrt"]
-	path = external/zig-objcrt
-	url = git@github.com:hazeycode/zig-objcrt.git
