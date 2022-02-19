@@ -5,7 +5,7 @@ const platform = std.build.Pkg{
     .path = .{ .path = "modules/platform/main.zig" },
     .dependencies = &.{
         vendored.zig_objcrt,
-        vendored.zig_gamedev_win32,
+        vendored.zwin32,
     },
 };
 
@@ -13,8 +13,8 @@ const graphics = std.build.Pkg{
     .name = "graphics",
     .path = .{ .path = "modules/graphics/main.zig" },
     .dependencies = &.{
-        vendored.zig_gamedev_win32,
-        vendored.zig_gamedev_zmath,
+        vendored.zwin32,
+        vendored.zmath,
     },
 };
 
@@ -23,13 +23,13 @@ const vendored = struct {
         .name = "zig-objcrt",
         .path = .{ .path = "vendored/zig-objcrt/src/main.zig" },
     };
-    const zig_gamedev_win32 = std.build.Pkg{
-        .name = "zig-gamedev-win32",
-        .path = .{ .path = "vendored/zig-gamedev-win32/win32.zig" },
+    const zwin32 = std.build.Pkg{
+        .name = "zwin32",
+        .path = .{ .path = "vendored/zwin32/win32.zig" },
     };
-    const zig_gamedev_zmath = std.build.Pkg{
-        .name = "zig-gamedev-zmath",
-        .path = .{ .path = "vendored/zig-gamedev-zmath/zmath.zig" },
+    const zmath = std.build.Pkg{
+        .name = "zmath",
+        .path = .{ .path = "vendored/zmath/zmath.zig" },
     };
 };
 
@@ -112,7 +112,7 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkSystemLibrary("d3d11");
         step.linkSystemLibrary("dxgi");
         step.linkSystemLibrary("D3DCompiler_47");
-        step.addPackage(vendored.zig_gamedev_win32);
+        step.addPackage(vendored.zwin32);
     } else {
         return error.UnsupportedTarget;
     }

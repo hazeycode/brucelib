@@ -42,7 +42,7 @@ pub fn usingAPI(comptime api: API) type {
         pub const Colour = common.Colour;
         pub const Rect = common.Rect;
 
-        const zmath = @import("zig-gamedev-zmath");
+        const zmath = @import("zmath");
         pub const F32x4 = zmath.F32x4;
         pub const Matrix = zmath.Mat;
 

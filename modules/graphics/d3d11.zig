@@ -12,7 +12,7 @@ const RasteriserStateHandle = common.RasteriserStateHandle;
 const BlendStateHandle = common.BlendStateHandle;
 const ShaderProgramHandle = common.ShaderProgramHandle;
 
-const win32 = @import("zig-gamedev-win32");
+const win32 = @import("zwin32");
 const SIZE_T = win32.base.SIZE_T;
 const UINT64 = win32.base.UINT64;
 const BOOL = win32.base.BOOL;

@@ -29,8 +29,8 @@ Each vendored library is listed along with the modules that use it and the licen
 | Name | Description | Used by | License |
 | :--- | :---------- | :------ | :------ |
 | [zig-objcrt](vendored/zig-objcrt) | Objective-C runtime bindings lib from [here](https://github.com/hazeycode/zig-objcrt) | [platform](modules/platform/) | 0BSD |
-| [zig-gamedev-win32](vendored/zig-gamedev-win32) | The win32 bindings lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [platform](modules/platform/), [graphics](modules/graphics/) | MIT |
-| [zig-gamedev-zmath](vendored/zig-gamedev-zmath) | The zmath linear maths lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [graphics](modules/graphics/) | MIT |
+| [zwin32](vendored/zwin32) | The zwin32 lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [platform](modules/platform/), [graphics](modules/graphics/) | MIT |
+| [zmath](vendored/zig-gamedev-zmath) | The zmath linear maths lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [graphics](modules/graphics/) | MIT |
 
 
 ## Getting Started

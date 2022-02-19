@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Input = @import("Input.zig");
 
-const win32 = @import("zig-gamedev-win32");
+const win32 = @import("zwin32");
 const UINT = win32.base.UINT;
 const DWORD = win32.base.DWORD;
 const BOOL = win32.base.BOOL;

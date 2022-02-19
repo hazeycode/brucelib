@@ -22,10 +22,10 @@ file, is licensed under the Apache 2.0 license.
 
 
 ===============================================================================
-zig-gamedev zmath MIT License
+zmath MIT License
 ===============================================================================
 
-Code under the vendored/zig-gamedev-zmath/ directory is taken from zig-gamedev
+Code under the vendored/zmath/ directory is taken from zig-gamedev
 (https://github.com/michal-z/zig-gamedev) and is licensed under the MIT license.
 
  MIT License
@@ -53,10 +53,10 @@ Code under the vendored/zig-gamedev-zmath/ directory is taken from zig-gamedev
 
 
 ===============================================================================
-zig-gamedev win32 MIT License
+zwin32 MIT License
 ===============================================================================
 
-Code under the vendored/zig-gamedev-win32/ directory is taken from zig-gamedev
+Code under the vendored/zwin32/ directory is taken from zig-gamedev
 (https://github.com/michal-z/zig-gamedev) and is licensed under the MIT license.
 
  MIT License
