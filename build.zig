@@ -6,6 +6,7 @@ const platform = std.build.Pkg{
     .dependencies = &.{
         vendored.zig_objcrt,
         vendored.zwin32,
+        vendored.zig_alsa,
     },
 };
 
@@ -31,12 +32,18 @@ const vendored = struct {
         .name = "zmath",
         .path = .{ .path = "vendored/zmath/zmath.zig" },
     };
+    const zig_alsa = std.build.Pkg{
+        .name = "zig-alsa",
+        .path = .{ .path = "vendored/zig-alsa/src/main.zig" },
+    };
 };
 
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
+
+    const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
 
     { // tests
         const platform_tests = b.addTest(platform.path.path);
@@ -54,8 +61,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     { // examples
-        // TODO(hazeycode): Use build root dir instead of cwd
-        const dir = try std.fs.cwd().openDir("examples", .{ .iterate = true });
+        const dir = try build_root_dir.openDir("examples", .{ .iterate = true });
 
         var example_id: usize = 0;
         var dir_it = dir.iterate();
@@ -70,9 +76,12 @@ pub fn build(b: *std.build.Builder) !void {
                     );
                     example.setTarget(b.standardTargetOptions(.{}));
                     example.setBuildMode(mode);
+
                     example.addPackage(platform);
                     example.addPackage(graphics);
+
                     try addPlatformSystemDependencies(example);
+
                     example.install();
 
                     const example_runstep = example.run();
@@ -105,14 +114,12 @@ fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
         step.linkFramework("OpenGL");
         step.linkSystemLibrary("epoxy");
         step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
-        step.addPackage(vendored.zig_objcrt);
     } else if (step.target.isWindows()) {
         step.linkSystemLibrary("Kernel32");
         step.linkSystemLibrary("User32");
         step.linkSystemLibrary("d3d11");
         step.linkSystemLibrary("dxgi");
         step.linkSystemLibrary("D3DCompiler_47");
-        step.addPackage(vendored.zwin32);
     } else {
         return error.UnsupportedTarget;
     }
