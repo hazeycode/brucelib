@@ -24,13 +24,7 @@ The planned scope of this project is to target all the popular desktop, mobile a
 | noise | Various noise generators | planned |
 
 
-### Vendored libraries
-Each vendored library is listed along with the modules that use it and the license it is under; see the [NOTICE](NOTICE) file for more information.
-| Name | Description | Used by | License |
-| :--- | :---------- | :------ | :------ |
-| [zig-objcrt](vendored/zig-objcrt) | Objective-C runtime bindings lib from [here](https://github.com/hazeycode/zig-objcrt) | [platform](modules/platform/) | 0BSD |
-| [zwin32](vendored/zwin32) | The zwin32 lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [platform](modules/platform/), [graphics](modules/graphics/) | MIT |
-| [zmath](vendored/zig-gamedev-zmath) | The zmath linear maths lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [graphics](modules/graphics/) | MIT |
+Brucelib also [vendors several libraries](vendored/) that are used by the above modules. Also see the [NOTICE](../NOTICE) file.
 
 
 ## Getting Started
