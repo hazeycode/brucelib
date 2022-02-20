@@ -43,6 +43,8 @@ pub fn build(b: *std.build.Builder) !void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
+    const standard_target_opts = b.standardTargetOptions(.{});
+
     const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
 
     { // tests
@@ -74,7 +76,7 @@ pub fn build(b: *std.build.Builder) !void {
                         entry.name,
                         try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
                     );
-                    example.setTarget(b.standardTargetOptions(.{}));
+                    example.setTarget(standard_target_opts);
                     example.setBuildMode(mode);
 
                     example.addPackage(platform);
