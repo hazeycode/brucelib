@@ -8,7 +8,7 @@ pub usingnamespace switch (builtin.os.tag) {
     else => @compileError("Unsupported target"),
 };
 
-pub const Input = @import("Input.zig");
+pub const FrameInput = @import("FrameInput.zig");
 
 test {
     std.testing.refAllDecls(@This());

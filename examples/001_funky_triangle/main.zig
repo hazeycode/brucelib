@@ -6,11 +6,13 @@ const graphics = @import("graphics").usingAPI(.default);
 pub fn main() anyerror!void {
     try platform.run(.{
         .title = "001_funky_triangle",
-        .pxwidth = 854,
-        .pxheight = 480,
+        .window_size = .{
+            .width = 854,
+            .height = 480,
+        },
         .init_fn = init,
         .deinit_fn = deinit,
-        .update_fn = update,
+        .frame_fn = frame,
     });
 }
 
@@ -26,7 +28,7 @@ fn deinit() void {
     graphics.deinit();
 }
 
-fn update(input: platform.Input) !bool {
+fn frame(input: platform.FrameInput) !bool {
     if (input.quit_requested) {
         std.log.debug("quit requested", .{});
         return false;
@@ -34,7 +36,7 @@ fn update(input: platform.Input) !bool {
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
 
-    try draw_list.setViewport(0, 0, input.canvas_size.width, input.canvas_size.height);
+    try draw_list.setViewport(0, 0, input.window_size.width, input.window_size.height);
     try draw_list.clearViewport(graphics.Colour.black);
 
     try funkyTriangle(input, &draw_list);
@@ -46,9 +48,9 @@ fn update(input: platform.Input) !bool {
     return true;
 }
 
-fn funkyTriangle(input: platform.Input, draw_list: anytype) !void {
+fn funkyTriangle(input: platform.FrameInput, draw_list: anytype) !void {
     state.triangle_hue = @mod(
-        state.triangle_hue + @intToFloat(f32, input.target_frame_time) / 1e9,
+        state.triangle_hue + @intToFloat(f32, input.frame_dt) / 1e9,
         1.0,
     );
 
@@ -64,20 +66,20 @@ fn funkyTriangle(input: platform.Input, draw_list: anytype) !void {
     );
 }
 
-fn debugOverlay(input: platform.Input, draw_list: anytype) !void {
+fn debugOverlay(input: platform.FrameInput, draw_list: anytype) !void {
     var debug_gui = graphics.DebugGUI.begin(
         input.frame_arena_allocator,
         draw_list,
-        @intToFloat(f32, input.canvas_size.width),
-        @intToFloat(f32, input.canvas_size.height),
+        @intToFloat(f32, input.window_size.width),
+        @intToFloat(f32, input.window_size.height),
     );
 
     try debug_gui.label(
         "{d:.2} ms update",
-        .{@intToFloat(f64, input.prev_update_time) / 1e6},
+        .{@intToFloat(f64, input.debug_stats.prev_cpu_frame_elapsed) / 1e6},
     );
 
-    const prev_frame_time_ms = @intToFloat(f64, input.prev_frame_time) / 1e6;
+    const prev_frame_time_ms = @intToFloat(f64, input.prev_frame_elapsed) / 1e6;
     try debug_gui.label(
         "{d:.2} ms frame, {d:.0} FPS",
         .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },

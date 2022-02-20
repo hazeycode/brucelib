@@ -1,15 +1,48 @@
+//! This file specifies the structure that is passed to the frame fn by the platform layer
+
 const std = @import("std");
 
-pub const Input = @This();
-
+/// Temporary allocator whose memory is valid for the duration of the current frame
 frame_arena_allocator: std.mem.Allocator,
-target_frame_time: u64,
-prev_frame_time: u64,
-prev_update_time: u64,
-key_events: []KeyEvent,
-mouse_button_events: []MouseButtonEvent,
-canvas_size: struct { width: u16, height: u16 },
+
+/// True if the user tried to close the window, gives us a chance to save state,
+/// present a quit dialog, etc.
 quit_requested: bool,
+
+/// This is interval (nanoseconds) that you should use to drive your updates. It is
+/// equal to `prev_frame_elapsed - target_frame_dt + target_frame_dt`
+frame_dt: u64,
+
+/// This is the estimated interval (nanoseconds) until the next frame is displayed.
+/// NOTE: This will not necessarily reflect the requested refresh rate and may be
+/// adjusted up or down depending on the user's display and whether we are missing
+/// or beating the current target refresh rate.
+target_frame_dt: u64,
+
+/// This was the interval (nanoseconds) between the previous frame and the one
+/// previous to that.
+/// NOTE: Although many games use this to drive their updates, the more correct way
+/// to do it, as we will do,  is to try and sync to when the next frame will be
+/// displayed. See `frame_dt` above for more information
+prev_frame_elapsed: u64,
+
+/// All input events that occured since the last frame
+input_events: struct {
+    key_events: []KeyEvent,
+    mouse_button_events: []MouseButtonEvent,
+},
+
+/// The current window size / framebuffer dimensions
+window_size: struct {
+    width: u16,
+    height: u16,
+},
+
+/// Various debug stats, used for displaying debug information
+debug_stats: struct {
+    /// This is how long was taken doing actual work on the CPU for the previous frame
+    prev_cpu_frame_elapsed: u64,
+},
 
 pub const MouseButtonEvent = struct {
     button: struct {

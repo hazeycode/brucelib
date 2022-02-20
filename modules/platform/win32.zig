@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Input = @import("Input.zig");
+const FrameInput = @import("FrameInput.zig");
 
 const win32 = @import("zwin32");
 const UINT = win32.base.UINT;
@@ -46,12 +46,17 @@ const GraphicsAPI = enum {
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .d3d11,
     requested_framerate: u16 = 0,
-    title: [:0]const u8 = "",
-    pxwidth: u16 = 854,
-    pxheight: u16 = 480,
+    title: []const u8 = "",
+    window_size: struct {
+        width: u16,
+        height: u16,
+    } = .{
+        .width = 854,
+        .height = 480,
+    },
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
-    update_fn: fn (Input) anyerror!bool,
+    frame_fn: fn (FrameInput) anyerror!bool,
 }) !void {
     timer = try std.time.Timer.start();
 
@@ -63,8 +68,8 @@ pub fn run(args: struct {
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
     target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
-    window_width = args.pxwidth;
-    window_height = args.pxheight;
+    window_width = args.window_size.width;
+    window_height = args.window_size.height;
 
     const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
         std.log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
@@ -90,21 +95,21 @@ pub fn run(args: struct {
     defer args.deinit_fn();
 
     var frame_timer = try std.time.Timer.start();
-    var prev_update_time: u64 = 0;
+    var prev_cpu_frame_elapsed: u64 = 0;
 
     var quit = false;
     while (quit == false) main_loop: {
-        const prev_frame_time = frame_timer.lap();
+        const prev_frame_elapsed = frame_timer.lap();
 
-        const start_update_time = timestamp();
+        const start_cpu_time = timestamp();
 
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
 
         const arena_allocator = frame_mem_arena.allocator();
 
-        var key_events = std.ArrayList(Input.KeyEvent).init(arena_allocator);
-        var mouse_button_events = std.ArrayList(Input.MouseButtonEvent).init(arena_allocator);
+        var key_events = std.ArrayList(FrameInput.KeyEvent).init(arena_allocator);
+        var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(arena_allocator);
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
@@ -116,23 +121,28 @@ pub fn run(args: struct {
             }
         }
 
-        const target_frame_time = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+        const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
-        quit = !(try args.update_fn(.{
+        quit = !(try args.frame_fn(.{
             .frame_arena_allocator = arena_allocator,
-            .target_frame_time = target_frame_time,
-            .prev_frame_time = prev_frame_time,
-            .prev_update_time = prev_update_time,
-            .key_events = key_events.items,
-            .mouse_button_events = mouse_button_events.items,
-            .canvas_size = .{
+            .quit_requested = window_closed,
+            .frame_dt = @intCast(u64, @intCast(i128, prev_frame_elapsed) - target_frame_dt + target_frame_dt),
+            .target_frame_dt = target_frame_dt,
+            .prev_frame_elapsed = prev_frame_elapsed,
+            .input_events = .{
+                .key_events = key_events.items,
+                .mouse_button_events = mouse_button_events.items,
+            },
+            .window_size = .{
                 .width = window_width,
                 .height = window_height,
             },
-            .quit_requested = window_closed,
+            .debug_stats = .{
+                .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
+            },
         }));
 
-        prev_update_time = timestamp() - start_update_time;
+        prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
 
         try win32.hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
     }
