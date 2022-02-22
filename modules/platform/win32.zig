@@ -2,26 +2,30 @@ const std = @import("std");
 const builtin = @import("builtin");
 const FrameInput = @import("FrameInput.zig");
 
-const win32 = @import("zwin32");
-const UINT = win32.base.UINT;
-const DWORD = win32.base.DWORD;
-const BOOL = win32.base.BOOL;
-const TRUE = win32.base.TRUE;
-const FALSE = win32.base.FALSE;
-const LPCWSTR = win32.base.LPCWSTR;
-const WPARAM = win32.base.WPARAM;
-const LPARAM = win32.base.LPARAM;
-const LRESULT = win32.base.LRESULT;
-const HRESULT = win32.base.HRESULT;
-const HINSTANCE = win32.base.HINSTANCE;
-const HWND = win32.base.HWND;
-const RECT = win32.base.RECT;
-const kernel32 = win32.base.kernel32;
-const user32 = win32.base.user32;
-const dxgi = win32.dxgi;
-const d3d = win32.d3d;
-const d3d11 = win32.d3d11;
-const d3dcompiler = win32.d3dcompiler;
+const WasapiInterface = @import("win32/WasapiInterface.zig");
+const AudioInterface = WasapiInterface;
+
+const zwin32 = @import("zwin32");
+const UINT = zwin32.base.UINT;
+const DWORD = zwin32.base.DWORD;
+const BOOL = zwin32.base.BOOL;
+const TRUE = zwin32.base.TRUE;
+const FALSE = zwin32.base.FALSE;
+const LPCWSTR = zwin32.base.LPCWSTR;
+const WPARAM = zwin32.base.WPARAM;
+const LPARAM = zwin32.base.LPARAM;
+const LRESULT = zwin32.base.LRESULT;
+const HRESULT = zwin32.base.HRESULT;
+const HINSTANCE = zwin32.base.HINSTANCE;
+const HWND = zwin32.base.HWND;
+const RECT = zwin32.base.RECT;
+const kernel32 = zwin32.base.kernel32;
+const user32 = zwin32.base.user32;
+const dxgi = zwin32.dxgi;
+const d3d = zwin32.d3d;
+const d3d11 = zwin32.d3d11;
+const d3dcompiler = zwin32.d3dcompiler;
+const hrErrorOnFail = zwin32.hrErrorOnFail;
 
 const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
@@ -38,6 +42,9 @@ var target_framerate: u16 = undefined;
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var window_closed = false;
+
+var audio_enabled: bool = undefined;
+var audio_interface: AudioInterface = undefined;
 
 const GraphicsAPI = enum {
     d3d11,
@@ -90,6 +97,28 @@ pub fn run(args: struct {
 
     try createDeviceAndSwapchain(hwnd);
     try createRenderTargetView();
+
+    // TODO(hazeycode): replace with user fed conditional
+    audio_enabled = true;
+
+    if (audio_enabled) {
+        audio_interface = try AudioInterface.init();
+        std.log.info(
+            \\Initilised WASAPI interface:
+            \\  {} channels
+            \\  {} Hz
+            \\  {} bits per sample
+        ,
+            .{
+                audio_interface.format.nChannels,
+                audio_interface.format.nSamplesPerSec,
+                audio_interface.format.wBitsPerSample,
+            },
+        );
+    }
+    defer {
+        if (audio_enabled) audio_interface.deinit();
+    }
 
     try args.init_fn(allocator);
     defer args.deinit_fn();
@@ -144,7 +173,7 @@ pub fn run(args: struct {
 
         prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
 
-        try win32.hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
+        try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
     }
 }
 
@@ -218,7 +247,7 @@ var d3d11_device: ?*d3d11.IDevice = null;
 var d3d11_device_context: ?*d3d11.IDeviceContext = null;
 var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
 
-fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
+fn createDeviceAndSwapchain(hwnd: HWND) zwin32.HResultError!void {
     // TODO(chris): check that hardware supports the multisampling values we want
     // and downgrade if nessesary
     var swapchain_desc: dxgi.SWAP_CHAIN_DESC = .{
@@ -252,7 +281,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
 
     var feature_level: d3d.FEATURE_LEVEL = .FL_11_1;
 
-    try win32.hrErrorOnFail(d3d11.D3D11CreateDeviceAndSwapChain(
+    try hrErrorOnFail(d3d11.D3D11CreateDeviceAndSwapChain(
         null,
         d3d.DRIVER_TYPE.HARDWARE,
         null,
@@ -268,14 +297,14 @@ fn createDeviceAndSwapchain(hwnd: HWND) win32.HResultError!void {
     ));
 }
 
-fn createRenderTargetView() win32.HResultError!void {
+fn createRenderTargetView() zwin32.HResultError!void {
     var framebuffer: *d3d11.IResource = undefined;
-    try win32.hrErrorOnFail(dxgi_swap_chain.?.GetBuffer(
+    try hrErrorOnFail(dxgi_swap_chain.?.GetBuffer(
         0,
         &d3d11.IID_IResource,
         @ptrCast(*?*anyopaque, &framebuffer),
     ));
-    try win32.hrErrorOnFail(d3d11_device.?.CreateRenderTargetView(
+    try hrErrorOnFail(d3d11_device.?.CreateRenderTargetView(
         framebuffer,
         null,
         &d3d11_render_target_view,
