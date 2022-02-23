@@ -27,8 +27,10 @@ const platform = @import("platform");
 pub fn main() anyerror!void {
     try platform.run(.{
         .title = "hello, world",
-        .pxwidth = 854,
-        .pxheight = 480,
+        .window_size = .{
+            .width = 854,
+            .height = 480,
+        },
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
