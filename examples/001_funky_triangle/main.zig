@@ -46,10 +46,7 @@ fn frame(input: platform.FrameInput) !bool {
         const audio = try platform.frameBeginAudio(input.frame_arena_allocator);
         const sample_rate = @intToFloat(f32, audio.sample_rate);
 
-        const audio_frames_to_write = std.math.max(
-            audio.min_frames,
-            @floatToInt(u64, @intToFloat(f32, input.frame_dt) / 1e9 * @intToFloat(f32, audio.sample_rate)) / audio.channels,
-        );
+        const audio_frames_to_write = audio.min_frames;
 
         var n: u32 = 0;
         while (n < audio_frames_to_write) : (n += 1) {
