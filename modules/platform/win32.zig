@@ -469,6 +469,11 @@ var d3d11_device_context: ?*d3d11.IDeviceContext = null;
 var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
 
 fn createDeviceAndSwapchain(hwnd: HWND) zwin32.HResultError!void {
+    const STANDARD_MULTISAMPLE_QUALITY_LEVELS = enum(UINT) {
+        STANDARD_MULTISAMPLE_PATTERN = 0xffffffff,
+        CENTER_MULTISAMPLE_PATTERN = 0xfffffffe,
+    };
+
     // TODO(chris): check that hardware supports the multisampling values we want
     // and downgrade if nessesary
     var swapchain_desc: dxgi.SWAP_CHAIN_DESC = .{
@@ -485,7 +490,7 @@ fn createDeviceAndSwapchain(hwnd: HWND) zwin32.HResultError!void {
         },
         .SampleDesc = .{
             .Count = 4,
-            .Quality = @enumToInt(d3d11.STANDARD_MULTISAMPLE_QUALITY_LEVELS.STANDARD_MULTISAMPLE_PATTERN),
+            .Quality = @enumToInt(STANDARD_MULTISAMPLE_QUALITY_LEVELS.STANDARD_MULTISAMPLE_PATTERN),
         },
         .BufferUsage = dxgi.USAGE_RENDER_TARGET_OUTPUT,
         .BufferCount = 1,

@@ -1599,7 +1599,7 @@ pub const STATUS_OCCLUDED = @bitCast(HRESULT, @as(c_ulong, 0x087A0001));
 pub const STATUS_MODE_CHANGED = @bitCast(HRESULT, @as(c_ulong, 0x087A0007));
 pub const STATUS_MODE_CHANGE_IN_PROGRESS = @bitCast(HRESULT, @as(c_ulong, 0x087A0008));
 
-// Error return codes as defined here: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-error
+// Return codes as defined here: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-error
 pub const ERROR_ACCESS_DENIED = @bitCast(HRESULT, @as(c_ulong, 0x887A002B));
 pub const ERROR_ACCESS_LOST = @bitCast(HRESULT, @as(c_ulong, 0x887A0026));
 pub const ERROR_ALREADY_EXISTS = @bitCast(HRESULT, @as(c_ulong, 0x887A0036));
