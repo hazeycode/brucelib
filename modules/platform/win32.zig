@@ -1,11 +1,14 @@
 const std = @import("std");
 const builtin = @import("builtin");
+
 const FrameInput = @import("FrameInput.zig");
+const AudioOutputBuffer = @import("AudioOutputBuffer.zig");
 
 const WasapiInterface = @import("win32/WasapiInterface.zig");
 const AudioInterface = WasapiInterface;
 
 const zwin32 = @import("zwin32");
+const BYTE = zwin32.base.BYTE;
 const UINT = zwin32.base.UINT;
 const DWORD = zwin32.base.DWORD;
 const BOOL = zwin32.base.BOOL;
@@ -33,22 +36,87 @@ pub const Error = error{
     FailedToGetModuleHandle,
 };
 
+const GraphicsAPI = enum {
+    d3d11,
+};
+
+var target_framerate: u16 = undefined;
+var target_frame_dt: u64 = undefined;
+var window_width: u16 = undefined;
+var window_height: u16 = undefined;
+var audio_enabled: bool = undefined;
+var audio_interface: AudioInterface = undefined;
+var audio_ring_buf: []f32 = undefined;
+var audio_ring_read_cur: usize = 0;
+var audio_ring_write_cur: usize = 0;
+var audio_samples_queued: usize = 0;
+var audio_thread: std.Thread = undefined;
+var audio_latency_avg_ms: f32 = 0;
+var audio_playing = false;
 var timer: std.time.Timer = undefined;
+
+var window_closed = false;
+var quit = false;
+
 pub fn timestamp() u64 {
     return timer.read();
 }
 
-var target_framerate: u16 = undefined;
-var window_width: u16 = undefined;
-var window_height: u16 = undefined;
-var window_closed = false;
+/// the caller is responsible for free'ing the allocated sample buffer
+pub fn frameBeginAudio(allocator: std.mem.Allocator) !AudioOutputBuffer {
+    const format = audio_interface.format;
 
-var audio_enabled: bool = undefined;
-var audio_interface: AudioInterface = undefined;
+    const frames_per_frame = format.nSamplesPerSec / target_framerate / format.nChannels;
+    const min_frames = frames_per_frame + frames_per_frame;
 
-const GraphicsAPI = enum {
-    d3d11,
-};
+    const max_samples = audio_ring_buf.len - @atomicLoad(usize, &audio_samples_queued, .Monotonic);
+    const max_frames = max_samples / format.nChannels;
+
+    if (max_frames < min_frames) {
+        std.debug.panic("{} max frames < {} min frames", .{ max_frames, min_frames });
+    }
+
+    return AudioOutputBuffer{
+        .channels = format.nChannels,
+        .sample_rate = format.nSamplesPerSec,
+        .min_frames = min_frames,
+        .max_frames = max_frames,
+        .sample_buf = try allocator.alloc(f32, max_samples),
+    };
+}
+
+/// queues the given audio buffer for the audio thread to write to the playback stream
+/// and starts the stream, if not already started
+pub fn frameQueueAudio(buffer: AudioOutputBuffer, num_frames: usize) void {
+    std.debug.assert(num_frames <= buffer.max_frames);
+    std.debug.assert(num_frames >= buffer.min_frames);
+
+    const num_samples = num_frames * buffer.channels;
+
+    var i: usize = 0;
+    while (i < num_samples) : (i += 1) {
+        audio_ring_buf[audio_ring_write_cur] = buffer.sample_buf[i];
+        audio_ring_write_cur = (audio_ring_write_cur + 1) % audio_ring_buf.len;
+    }
+
+    var samples_queued = @atomicLoad(usize, &audio_samples_queued, .Acquire);
+    while (@cmpxchgWeak(
+        usize,
+        &audio_samples_queued,
+        samples_queued,
+        samples_queued + num_samples,
+        .Release,
+        .Monotonic,
+    )) |val| {
+        samples_queued = val;
+    }
+
+    // std.log.debug("write cur = {}", .{audio_ring_write_cur});
+
+    if (audio_playing == false) {
+        audio_playing = true;
+    }
+}
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .d3d11,
@@ -61,22 +129,25 @@ pub fn run(args: struct {
         .width = 854,
         .height = 480,
     },
+    enable_audio: bool = false,
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
 }) !void {
-    timer = try std.time.Timer.start();
-
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    const allocator = gpa.allocator();
+    var allocator = gpa.allocator();
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
     target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
     window_width = args.window_size.width;
     window_height = args.window_size.height;
+
+    audio_enabled = args.enable_audio;
+
+    timer = try std.time.Timer.start();
 
     const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
         std.log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
@@ -98,11 +169,8 @@ pub fn run(args: struct {
     try createDeviceAndSwapchain(hwnd);
     try createRenderTargetView();
 
-    // TODO(hazeycode): replace with user fed conditional
-    audio_enabled = true;
-
     if (audio_enabled) {
-        audio_interface = try AudioInterface.init();
+        audio_interface = try AudioInterface.init((1 * std.time.ns_per_s) / @intCast(u64, target_framerate));
         std.log.info(
             \\Initilised WASAPI interface:
             \\  {} channels
@@ -115,9 +183,18 @@ pub fn run(args: struct {
                 audio_interface.format.wBitsPerSample,
             },
         );
+
+        const audio_ring_len = audio_interface.format.nSamplesPerSec * 2;
+        audio_ring_buf = try allocator.alloc(f32, audio_ring_len);
+
+        audio_thread = try std.Thread.spawn(.{}, audioThread, .{});
+        audio_thread.detach();
     }
     defer {
-        if (audio_enabled) audio_interface.deinit();
+        if (audio_enabled) {
+            audio_interface.deinit();
+            allocator.free(audio_ring_buf);
+        }
     }
 
     try args.init_fn(allocator);
@@ -126,7 +203,6 @@ pub fn run(args: struct {
     var frame_timer = try std.time.Timer.start();
     var prev_cpu_frame_elapsed: u64 = 0;
 
-    var quit = false;
     while (quit == false) main_loop: {
         const prev_frame_elapsed = frame_timer.lap();
 
@@ -135,10 +211,10 @@ pub fn run(args: struct {
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
 
-        const arena_allocator = frame_mem_arena.allocator();
+        var frame_arena_allocator = frame_mem_arena.allocator();
 
-        var key_events = std.ArrayList(FrameInput.KeyEvent).init(arena_allocator);
-        var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(arena_allocator);
+        var key_events = std.ArrayList(FrameInput.KeyEvent).init(frame_arena_allocator);
+        var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(frame_arena_allocator);
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
@@ -150,10 +226,10 @@ pub fn run(args: struct {
             }
         }
 
-        const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+        target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
         quit = !(try args.frame_fn(.{
-            .frame_arena_allocator = arena_allocator,
+            .frame_arena_allocator = frame_arena_allocator,
             .quit_requested = window_closed,
             .target_frame_dt = target_frame_dt,
             .prev_frame_elapsed = prev_frame_elapsed,
@@ -167,12 +243,117 @@ pub fn run(args: struct {
             },
             .debug_stats = .{
                 .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
+                .audio_latency_avg_ms = audio_latency_avg_ms,
             },
         }));
 
         prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
 
         try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
+    }
+}
+
+fn audioThread() void {
+    const num_latency_samples = 32;
+    var latency = [_]u64{0} ** num_latency_samples;
+    var latency_cur: usize = 0;
+
+    { // write some silence before starting the stream
+        var buffer_frames: UINT = 0;
+        hrErrorOnFail(audio_interface.client.GetBufferSize(&buffer_frames)) catch {
+            std.debug.panic("audioThread: failed to prefill silence", .{});
+        };
+        std.log.debug("audio stream buffer size = {} frames", .{buffer_frames});
+
+        var ptr: [*]f32 = undefined;
+        hrErrorOnFail(audio_interface.render_client.GetBuffer(
+            buffer_frames,
+            @ptrCast(*?[*]BYTE, &ptr),
+        )) catch {
+            std.debug.panic("audioThread: failed to prefill silence", .{});
+        };
+
+        hrErrorOnFail(audio_interface.render_client.ReleaseBuffer(
+            @intCast(UINT, buffer_frames),
+            zwin32.wasapi.AUDCLNT_BUFFERFLAGS_SILENT,
+        )) catch {
+            std.debug.panic("audioThread: failed to prefill silence", .{});
+        };
+    }
+
+    while (audio_playing == false) {
+        std.time.sleep(1000);
+    }
+
+    hrErrorOnFail(audio_interface.client.Start()) catch {};
+    defer _ = audio_interface.client.Stop();
+
+    while (quit == false) {
+        var buffer_frames: UINT = 0;
+        _ = audio_interface.client.GetBufferSize(&buffer_frames);
+
+        var padding: UINT = 0;
+        _ = audio_interface.client.GetCurrentPadding(&padding);
+
+        const num_frames = buffer_frames - padding;
+        const num_channels = audio_interface.format.nChannels;
+        const num_samples = num_frames * num_channels;
+
+        while (@atomicLoad(usize, &audio_samples_queued, .Monotonic) < num_samples) {
+            continue;
+        }
+
+        zwin32.base.WaitForSingleObject(audio_interface.buffer_ready_event, zwin32.base.INFINITE) catch {};
+
+        var byte_buf: [*]BYTE = undefined;
+        hrErrorOnFail(audio_interface.render_client.GetBuffer(num_frames, @ptrCast(*?[*]u8, &byte_buf))) catch |err| {
+            std.log.warn("Audio GetBuffer failed with error: {}", .{err});
+            continue;
+        };
+
+        {
+            const bytes_per_sample = audio_interface.format.nBlockAlign / num_channels;
+            var n: usize = 0;
+            while (n < num_samples) : (n += 1) {
+                const off = (n * bytes_per_sample);
+                std.mem.copy(
+                    BYTE,
+                    byte_buf[off..(off + bytes_per_sample)],
+                    std.mem.sliceAsBytes(audio_ring_buf[audio_ring_read_cur..(audio_ring_read_cur + 1)]),
+                );
+                audio_ring_read_cur = (audio_ring_read_cur + 1) % audio_ring_buf.len;
+            }
+        }
+
+        _ = audio_interface.render_client.ReleaseBuffer(
+            @intCast(UINT, num_frames),
+            0,
+        );
+
+        var samples_queued = @atomicLoad(usize, &audio_samples_queued, .Acquire);
+        while (@cmpxchgWeak(
+            usize,
+            &audio_samples_queued,
+            samples_queued,
+            samples_queued - num_samples,
+            .Release,
+            .Monotonic,
+        )) |val| {
+            samples_queued = val;
+        }
+
+        latency[latency_cur] = samples_queued;
+        latency_cur = (latency_cur + 1) % num_latency_samples;
+
+        var avg_latency: u64 = 0;
+        var i: usize = 0;
+        while (i < num_latency_samples) : (i += 1) {
+            avg_latency += latency[i];
+        }
+        avg_latency /= num_latency_samples;
+        audio_latency_avg_ms = @intToFloat(f32, avg_latency) / @intToFloat(f32, audio_interface.format.nSamplesPerSec) * 1e3;
+
+        std.time.sleep(1000);
     }
 }
 

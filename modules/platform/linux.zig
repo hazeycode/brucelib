@@ -1,24 +1,40 @@
 const std = @import("std");
+
 const FrameInput = @import("FrameInput.zig");
-
-var target_framerate: u16 = undefined;
-var window_width: u16 = undefined;
-var window_height: u16 = undefined;
-
-const num_keys = std.meta.fields(FrameInput.Key).len;
-var key_repeats: [num_keys]u32 = .{0} ** num_keys;
-var maybe_last_key_event: ?*FrameInput.KeyEvent = null;
-
-var timer: std.time.Timer = undefined;
-pub fn timestamp() u64 {
-    return timer.read();
-}
+const AudioOutputBuffer = @import("AudioOutputBuffer.zig");
 
 const GraphicsAPI = enum {
     opengl,
 };
 
 var graphics_api: GraphicsAPI = undefined;
+
+var target_framerate: u16 = undefined;
+var window_width: u16 = undefined;
+var window_height: u16 = undefined;
+var audio_enabled: bool = undefined;
+
+var timer: std.time.Timer = undefined;
+
+var window_closed = false;
+const num_keys = std.meta.fields(FrameInput.Key).len;
+var key_repeats: [num_keys]u32 = .{0} ** num_keys;
+var maybe_last_key_event: ?*FrameInput.KeyEvent = null;
+
+pub fn timestamp() u64 {
+    return timer.read();
+}
+
+/// the caller is responsible for free'ing the allocated sample buffer
+pub fn frameBeginAudio(_: std.mem.Allocator) !AudioOutputBuffer {
+    unreachable;
+}
+
+/// queues the given audio buffer for the audio thread to write to the playback stream
+/// and starts the stream, if not already started
+pub fn frameQueueAudio(_: AudioOutputBuffer, _: usize) void {
+    unreachable;
+}
 
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .opengl,
@@ -31,6 +47,7 @@ pub fn run(args: struct {
         .width = 854,
         .height = 480,
     },
+    enable_audio: bool = false,
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
@@ -74,12 +91,10 @@ pub fn run(args: struct {
 
         var key_events = std.ArrayList(FrameInput.KeyEvent).init(arena_allocator);
         var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(arena_allocator);
-        var window_closed = false;
 
         try windowing.processEvents(
             &key_events,
             &mouse_button_events,
-            &window_closed,
         );
 
         const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
@@ -99,6 +114,7 @@ pub fn run(args: struct {
             },
             .debug_stats = .{
                 .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
+                .audio_latency_avg_ms = 0, // TODO
             },
         }));
 
@@ -322,7 +338,6 @@ const X11 = struct {
     fn processEvents(
         key_events: anytype,
         mouse_button_events: anytype,
-        window_closed: *bool,
     ) !void {
         var xcb_event = c.xcb_poll_for_event(connection);
         while (@ptrToInt(xcb_event) > 0) : (xcb_event = c.xcb_poll_for_event(connection)) {
@@ -334,7 +349,7 @@ const X11 = struct {
                 c.XCB_CLIENT_MESSAGE => {
                     const xcb_client_message_event = @ptrCast(*c.xcb_client_message_event_t, xcb_event);
                     if (xcb_client_message_event.data.data32[0] == atom_delete_window.*.atom) {
-                        window_closed.* = true;
+                        window_closed = true;
                     }
                 },
                 c.XCB_CONFIGURE_NOTIFY => {

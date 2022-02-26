@@ -26,7 +26,7 @@ const vendored = struct {
     };
     const zwin32 = std.build.Pkg{
         .name = "zwin32",
-        .path = .{ .path = "vendored/zwin32/win32.zig" },
+        .path = .{ .path = "vendored/zwin32/zwin32.zig" },
     };
     const zmath = std.build.Pkg{
         .name = "zmath",

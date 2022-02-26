@@ -1,0 +1,6 @@
+cursor: usize = 0,
+channels: u32 = 0,
+sample_rate: u32 = 0,
+min_frames: usize = 0,
+max_frames: usize = 0,
+sample_buf: []f32 = &[_]f32{},

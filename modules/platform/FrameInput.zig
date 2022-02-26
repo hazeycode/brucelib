@@ -1,4 +1,4 @@
-//! This file specifies the structure that is passed to the frame fn by the platform layer
+//! This file defines the structure that is passed to the frame fn by the platform layer
 
 const std = @import("std");
 
@@ -35,6 +35,9 @@ window_size: struct {
 debug_stats: struct {
     /// This is how long was taken doing actual work on the CPU for the previous frame
     prev_cpu_frame_elapsed: u64,
+
+    /// Rolling average interval (milliseconds) between the audio read and write cursors
+    audio_latency_avg_ms: f32,
 },
 
 pub const MouseButtonEvent = struct {

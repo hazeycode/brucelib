@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const zwin32 = @import("zwin32");
 const w = zwin32.base;
 const wasapi = zwin32.wasapi;
@@ -7,11 +9,10 @@ pub const WasapiInterface = @This();
 
 client: *wasapi.IAudioClient3,
 render_client: *wasapi.IAudioRenderClient,
-buffer_ready_event: w.HANDLE,
-buffer_frames: u32,
 format: wasapi.WAVEFORMATEX,
+buffer_ready_event: w.HANDLE,
 
-pub fn init() !WasapiInterface {
+pub fn init(buffer_duration_nano: u64) !WasapiInterface {
     var audio_device_enumerator: *wasapi.IMMDeviceEnumerator = undefined;
     try hrErrorOnFail(w.CoCreateInstance(
         &wasapi.CLSID_MMDeviceEnumerator,
@@ -40,10 +41,10 @@ pub fn init() !WasapiInterface {
 
     const channels = 2;
     const sample_rate = 48000;
-    const bits_per_sample = 16;
+    const bits_per_sample = 32;
     const block_align = channels * bits_per_sample / 8;
     const wanted_format = wasapi.WAVEFORMATEX{
-        .wFormatTag = wasapi.WAVE_FORMAT_PCM,
+        .wFormatTag = wasapi.WAVE_FORMAT_IEEE_FLOAT,
         .nChannels = channels,
         .nSamplesPerSec = sample_rate,
         .nAvgBytesPerSec = sample_rate * block_align,
@@ -60,7 +61,7 @@ pub fn init() !WasapiInterface {
     try hrErrorOnFail(client.Initialize(
         .SHARED,
         wasapi.AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-        0,
+        @intCast(c_longlong, buffer_duration_nano / 100),
         0,
         &format,
         null,
@@ -81,15 +82,11 @@ pub fn init() !WasapiInterface {
 
     try hrErrorOnFail(client.SetEventHandle(buffer_ready_event));
 
-    var buffer_frames: w.UINT = 0;
-    try hrErrorOnFail(client.GetBufferSize(&buffer_frames));
-
     return WasapiInterface{
         .client = client,
         .render_client = render_client,
-        .buffer_ready_event = buffer_ready_event,
-        .buffer_frames = buffer_frames,
         .format = format,
+        .buffer_ready_event = buffer_ready_event,
     };
 }
 
