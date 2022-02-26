@@ -23,7 +23,6 @@ pub fn main() anyerror!void {
 
 var state: struct {
     triangle_hue: f32 = 0,
-    audio_frame: u64 = 0,
     tone_hz: f32 = 440,
     volume: f32 = 0.67,
 } = .{};
@@ -47,19 +46,20 @@ fn frame(input: platform.FrameInput) !bool {
         const audio = try platform.frameBeginAudio(input.frame_arena_allocator);
         const sample_rate = @intToFloat(f32, audio.sample_rate);
 
-        const audio_frames_to_write = audio.min_frames;
+        const audio_frames_to_write = std.math.max(
+            audio.min_frames,
+            @floatToInt(u64, @intToFloat(f32, input.frame_dt) / 1e9 * @intToFloat(f32, audio.sample_rate)) / audio.channels,
+        );
 
         var n: u32 = 0;
         while (n < audio_frames_to_write) : (n += 1) {
-            var sample = 0.5 * sin(@intToFloat(f32, state.audio_frame) * (tao * state.tone_hz) / sample_rate);
+            var sample = 0.5 * sin(@intToFloat(f32, audio.cursor + n) * (tao * state.tone_hz) / sample_rate);
             sample *= state.volume;
 
             var channel: u32 = 0;
             while (channel < audio.channels) : (channel += 1) {
                 audio.sample_buf[n * audio.channels + channel] = @floatCast(f32, sample);
             }
-
-            state.audio_frame += 1;
         }
 
         platform.frameQueueAudio(audio, audio_frames_to_write);
