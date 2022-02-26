@@ -27,13 +27,14 @@ pub fn timestamp() u64 {
 
 /// the caller is responsible for free'ing the allocated sample buffer
 pub fn frameBeginAudio(_: std.mem.Allocator) !AudioOutputBuffer {
-    unreachable;
+    std.debug.panic("Unimplemented", .{});
+    return error.Unimplemented;
 }
 
 /// queues the given audio buffer for the audio thread to write to the playback stream
 /// and starts the stream, if not already started
 pub fn frameQueueAudio(_: AudioOutputBuffer, _: usize) void {
-    unreachable;
+    std.debug.panic("Unimplemented", .{});
 }
 
 pub fn run(args: struct {
@@ -114,7 +115,7 @@ pub fn run(args: struct {
             },
             .debug_stats = .{
                 .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
-                .audio_latency_avg_ms = 0, // TODO
+                .audio_latency_avg_ms = 0, // TODO(hazeycode): set avg audio latency
             },
         }));
 
