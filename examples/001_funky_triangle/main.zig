@@ -7,6 +7,8 @@ const sin = std.math.sin;
 const pi = std.math.pi;
 const tao = 2 * pi;
 
+const audio_on = false;
+
 pub fn main() anyerror!void {
     try platform.run(.{
         .title = "001_funky_triangle",
@@ -14,7 +16,7 @@ pub fn main() anyerror!void {
             .width = 854,
             .height = 480,
         },
-        .enable_audio = true,
+        .enable_audio = audio_on,
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
@@ -40,7 +42,7 @@ fn frame(input: platform.FrameInput) !bool {
         return false;
     }
 
-    { // queue up a frame of sine wave samples
+    if (audio_on) { // queue up a frame of sine wave samples
         // it's best to try and write audio out as early in the frame as possible after updates
 
         const audio = try platform.frameBeginAudio(input.frame_arena_allocator);
@@ -104,10 +106,12 @@ fn frame(input: platform.FrameInput) !bool {
             .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
         );
 
-        try debug_gui.label(
-            "{d:.2} ms audio latency",
-            .{input.debug_stats.audio_latency_avg_ms},
-        );
+        if (audio_on) {
+            try debug_gui.label(
+                "{d:.2} ms audio latency",
+                .{input.debug_stats.audio_latency_avg_ms},
+            );
+        }
 
         try debug_gui.end();
     }
