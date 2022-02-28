@@ -17,7 +17,7 @@ The appropriate system libraries for the selected backend are required at runtim
 
 TODO: detail dependencies
 
-\* Console platform backends will not be provided by this repository. Registered developers will be granted access on request.
+\* Console platform backends are not public. Registered developers will be granted access on request.
 
 
 ### Minimal usage example
@@ -31,7 +31,7 @@ pub fn main() anyerror!void {
         .pxheight = 480,
         .init_fn = init,
         .deinit_fn = deinit,
-        .update_fn = update,
+        .frame_fn = frame,
     });
 }
 
@@ -39,7 +39,7 @@ fn init(_: std.mem.Allocator) !void {}
 
 fn deinit() void {}
 
-fn update(input: platform.Input) !bool {
+fn frame(input: platform.Input) !bool {
     return (input.quit_requested == false);
 }
 ```

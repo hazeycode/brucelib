@@ -87,7 +87,6 @@ pub fn run(args: struct {
         const quit = !(try args.frame_fn(.{
             .frame_arena_allocator = arena_allocator,
             .quit_requested = window_closed,
-            .frame_dt = @intCast(u64, @intCast(i128, prev_frame_elapsed) - target_frame_dt + target_frame_dt),
             .target_frame_dt = target_frame_dt,
             .prev_frame_elapsed = prev_frame_elapsed,
             .input_events = .{

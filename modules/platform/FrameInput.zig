@@ -9,10 +9,6 @@ frame_arena_allocator: std.mem.Allocator,
 /// present a quit dialog, etc.
 quit_requested: bool,
 
-/// This is interval (nanoseconds) that you should use to drive your updates. It is
-/// equal to `prev_frame_elapsed - target_frame_dt + target_frame_dt`
-frame_dt: u64,
-
 /// This is the estimated interval (nanoseconds) until the next frame is displayed.
 /// NOTE: This will not necessarily reflect the requested refresh rate and may be
 /// adjusted up or down depending on the user's display and whether we are missing
@@ -21,9 +17,6 @@ target_frame_dt: u64,
 
 /// This was the interval (nanoseconds) between the previous frame and the one
 /// previous to that.
-/// NOTE: Although many games use this to drive their updates, the more correct way
-/// to do it, as we will do,  is to try and sync to when the next frame will be
-/// displayed. See `frame_dt` above for more information
 prev_frame_elapsed: u64,
 
 /// All input events that occured since the last frame

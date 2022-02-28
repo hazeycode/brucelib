@@ -50,7 +50,7 @@ fn frame(input: platform.FrameInput) !bool {
 
 fn funkyTriangle(input: platform.FrameInput, draw_list: anytype) !void {
     state.triangle_hue = @mod(
-        state.triangle_hue + @intToFloat(f32, input.frame_dt) / 1e9,
+        state.triangle_hue + @intToFloat(f32, input.target_frame_dt) / 1e9,
         1.0,
     );
 

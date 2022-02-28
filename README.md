@@ -24,7 +24,7 @@ The planned scope of this project is to target all the popular desktop, mobile a
 | noise | Various noise generators | planned |
 
 
-Brucelib also [vendors several libraries](vendored/) that are used by the above modules. Also see the [NOTICE](../NOTICE) file.
+Brucelib also [vendors several libraries](vendored/) that are used by the above modules. Also see the [NOTICE](NOTICE) file.
 
 
 ## Getting Started
