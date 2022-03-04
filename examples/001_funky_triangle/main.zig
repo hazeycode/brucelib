@@ -7,7 +7,7 @@ const sin = std.math.sin;
 const pi = std.math.pi;
 const tao = 2 * pi;
 
-const audio_on = false;
+const audio_on = true;
 
 pub fn main() anyerror!void {
     try platform.run(.{
@@ -45,7 +45,7 @@ fn frame(input: platform.FrameInput) !bool {
     if (audio_on) { // queue up a frame of sine wave samples
         // it's best to try and write audio out as early in the frame as possible after updates
 
-        const audio = try platform.frameBeginAudio(input.frame_arena_allocator);
+        const audio = try platform.audioBeginFrames(input.frame_arena_allocator);
         const sample_rate = @intToFloat(f32, audio.sample_rate);
 
         const audio_frames_to_write = audio.min_frames;
@@ -61,7 +61,7 @@ fn frame(input: platform.FrameInput) !bool {
             }
         }
 
-        platform.frameQueueAudio(audio, audio_frames_to_write);
+        platform.audioCommitFrames(audio, audio_frames_to_write);
     }
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);

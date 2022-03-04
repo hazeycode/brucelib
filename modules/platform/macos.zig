@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 const objc = @import("zig-objcrt");
 
 const FrameInput = @import("FrameInput.zig");
-const AudioOutputBuffer = @import("AudioOutputBuffer.zig");
 
 const GraphicsAPI = enum {
     metal,
@@ -26,18 +25,6 @@ var prev_cpu_frame_elapsed: u64 = 0;
 
 pub fn timestamp() u64 {
     return timer.read();
-}
-
-/// the caller is responsible for free'ing the allocated sample buffer
-pub fn frameBeginAudio(_: std.mem.Allocator) !AudioOutputBuffer {
-    std.debug.panic("Unimplemented", .{});
-    return error.Unimplemented;
-}
-
-/// queues the given audio buffer for the audio thread to write to the playback stream
-/// and starts the stream, if not already started
-pub fn frameQueueAudio(_: AudioOutputBuffer, _: usize) void {
-    std.debug.panic("Unimplemented", .{});
 }
 
 pub fn run(args: struct {
