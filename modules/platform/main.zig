@@ -37,16 +37,16 @@ pub const AudioPlaybackBuffer = struct {
 };
 
 pub fn audioEnabled() bool {
-    return (backend.audio.enabled and switch (builtin.os.tag) {
+    return (backend.audio_playback.enabled and switch (builtin.os.tag) {
         .windows => true,
         else => false,
     });
 }
 
-/// Get a buffer to write audio to. `audioCommitFrames` should be called as soon
+/// Get a buffer to write audio to. `audioPlaybackCommit` should be called as soon
 /// as possible following this.
 /// the caller is responsible for free'ing the allocated sample buffer
-pub fn audioBeginFrames(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
+pub fn audioPlaybackBegin(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
     if (audioEnabled() == false) {
         return AudioPlaybackBuffer{
             .cursor = 0,
@@ -59,17 +59,17 @@ pub fn audioBeginFrames(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
         };
     }
 
-    const num_channels = backend.audio.interface.num_channels;
-    const sample_rate = backend.audio.interface.sample_rate;
+    const num_channels = backend.audio_playback.interface.num_channels;
+    const sample_rate = backend.audio_playback.interface.sample_rate;
 
     const samples_per_frame = sample_rate / backend.target_framerate;
     const frames_per_frame = samples_per_frame / num_channels;
 
     const min_frames = frames_per_frame * 2;
 
-    var samples_queued = @atomicLoad(usize, &backend.audio.samples_queued, .Monotonic);
+    var samples_queued = @atomicLoad(usize, &backend.audio_playback.samples_queued, .Monotonic);
 
-    const max_samples = backend.audio.ring_buf.len / 2;
+    const max_samples = backend.audio_playback.ring_buf.len / 2;
 
     var max_frames = max_samples / num_channels;
     if (max_frames < min_frames) max_frames = min_frames;
@@ -81,10 +81,10 @@ pub fn audioBeginFrames(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
 
     // if (rewrite > 0) std.log.debug("rewrite {} samples", .{rewrite});
 
-    samples_queued = @atomicLoad(usize, &backend.audio.samples_queued, .Acquire);
+    samples_queued = @atomicLoad(usize, &backend.audio_playback.samples_queued, .Acquire);
     while (@cmpxchgWeak(
         usize,
-        &backend.audio.samples_queued,
+        &backend.audio_playback.samples_queued,
         samples_queued,
         samples_queued - @intCast(usize, rewrite),
         .Release,
@@ -93,10 +93,10 @@ pub fn audioBeginFrames(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
         samples_queued = val;
     }
 
-    backend.audio.write_cursor -= rewrite / num_channels;
+    backend.audio_playback.write_cursor -= rewrite / num_channels;
 
     return AudioPlaybackBuffer{
-        .cursor = backend.audio.write_cursor,
+        .cursor = backend.audio_playback.write_cursor,
         .rewrite = rewrite / num_channels,
         .channels = num_channels,
         .sample_rate = sample_rate,
@@ -107,7 +107,7 @@ pub fn audioBeginFrames(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
 }
 
 /// queues the given audio buffer for the audio thread to write to the playback stream
-pub fn audioCommitFrames(buffer: AudioPlaybackBuffer, num_frames: usize) void {
+pub fn audioPlaybackCommit(buffer: AudioPlaybackBuffer, num_frames: usize) void {
     if (audioEnabled() == false) {
         return;
     }
@@ -120,38 +120,38 @@ pub fn audioCommitFrames(buffer: AudioPlaybackBuffer, num_frames: usize) void {
     { // move write_cur back to rewrite
         var i: usize = 0;
         while (i < buffer.rewrite * buffer.channels) : (i += 1) {
-            backend.audio.ring_write_cur = if (backend.audio.ring_write_cur == 0) backend.audio.ring_buf.len - 1 else backend.audio.ring_write_cur - 1;
+            backend.audio_playback.ring_write_cur = if (backend.audio_playback.ring_write_cur == 0) backend.audio_playback.ring_buf.len - 1 else backend.audio_playback.ring_write_cur - 1;
         }
     }
 
     { // copy samples from user buffer into ring buffer
         var i: usize = 0;
         while (i < num_samples) : (i += 1) {
-            backend.audio.ring_buf[backend.audio.ring_write_cur] = buffer.sample_buf[i];
-            backend.audio.ring_write_cur = (backend.audio.ring_write_cur + 1) % backend.audio.ring_buf.len;
+            backend.audio_playback.ring_buf[backend.audio_playback.ring_write_cur] = buffer.sample_buf[i];
+            backend.audio_playback.ring_write_cur = (backend.audio_playback.ring_write_cur + 1) % backend.audio_playback.ring_buf.len;
         }
     }
 
-    std.debug.assert(backend.audio.read_cursor <= backend.audio.write_cursor);
+    std.debug.assert(backend.audio_playback.read_cursor <= backend.audio_playback.write_cursor);
 
-    backend.audio.latency[backend.audio.latency_cur] = backend.audio.write_cursor - backend.audio.read_cursor;
+    backend.audio_playback.latency[backend.audio_playback.latency_cur] = backend.audio_playback.write_cursor - backend.audio_playback.read_cursor;
 
-    if (backend.audio.latency_cur + 1 == backend.max_audio_latency_samples) {
-        backend.audio.latency_avg = 0;
+    if (backend.audio_playback.latency_cur + 1 == backend.max_audio_latency_samples) {
+        backend.audio_playback.latency_avg = 0;
         var i: usize = 0;
         while (i < backend.max_audio_latency_samples) : (i += 1) {
-            backend.audio.latency_avg += backend.audio.latency[i];
+            backend.audio_playback.latency_avg += backend.audio_playback.latency[i];
         }
-        backend.audio.latency_avg /= backend.max_audio_latency_samples;
-        backend.audio.latency_cur = 0;
-    } else backend.audio.latency_cur += 1;
+        backend.audio_playback.latency_avg /= backend.max_audio_latency_samples;
+        backend.audio_playback.latency_cur = 0;
+    } else backend.audio_playback.latency_cur += 1;
 
-    backend.audio.write_cursor += num_frames;
+    backend.audio_playback.write_cursor += num_frames;
 
-    var samples_queued = @atomicLoad(usize, &backend.audio.samples_queued, .Acquire);
+    var samples_queued = @atomicLoad(usize, &backend.audio_playback.samples_queued, .Acquire);
     while (@cmpxchgWeak(
         usize,
-        &backend.audio.samples_queued,
+        &backend.audio_playback.samples_queued,
         samples_queued,
         samples_queued + num_samples,
         .Release,
@@ -160,7 +160,7 @@ pub fn audioCommitFrames(buffer: AudioPlaybackBuffer, num_frames: usize) void {
         samples_queued = val;
     }
 
-    // std.log.debug("write cur = {}", .{backend.audio.ring_write_cur});
+    // std.log.debug("write cur = {}", .{backend.audio_playback.ring_write_cur});
 }
 
 test {

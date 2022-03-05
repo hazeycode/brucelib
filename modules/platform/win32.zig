@@ -46,7 +46,7 @@ var window_height: u16 = undefined;
 
 pub const max_audio_latency_samples = 16;
 
-pub var audio = struct {
+pub var audio_playback = struct {
     enabled: bool = undefined,
     interface: AudioPlaybackStream = undefined,
     ring_buf: []f32 = undefined,
@@ -97,7 +97,7 @@ pub fn run(args: struct {
     window_width = args.window_size.width;
     window_height = args.window_size.height;
 
-    audio.enabled = args.enable_audio;
+    audio_playback.enabled = args.enable_audio;
 
     timer = try std.time.Timer.start();
 
@@ -121,8 +121,8 @@ pub fn run(args: struct {
     try createDeviceAndSwapchain(hwnd);
     try createRenderTargetView();
 
-    if (audio.enabled) {
-        audio.interface = try AudioPlaybackStream.init((1 * std.time.ns_per_s) / @intCast(u64, target_framerate));
+    if (audio_playback.enabled) {
+        audio_playback.interface = try AudioPlaybackStream.init((1 * std.time.ns_per_s) / @intCast(u64, target_framerate));
         std.log.info(
             \\Initilised audio playback (WASAPI):
             \\  {} channels
@@ -130,22 +130,22 @@ pub fn run(args: struct {
             \\  {} bits per sample
         ,
             .{
-                audio.interface.num_channels,
-                audio.interface.sample_rate,
-                audio.interface.bits_per_sample,
+                audio_playback.interface.num_channels,
+                audio_playback.interface.sample_rate,
+                audio_playback.interface.bits_per_sample,
             },
         );
 
-        const audio_ring_len = audio.interface.sample_rate * 2;
-        audio.ring_buf = try allocator.alloc(f32, audio_ring_len);
+        const audio_ring_len = audio_playback.interface.sample_rate * 2;
+        audio_playback.ring_buf = try allocator.alloc(f32, audio_ring_len);
 
-        audio.thread = try std.Thread.spawn(.{}, audioThread, .{});
-        audio.thread.detach();
+        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
+        audio_playback.thread.detach();
     }
     defer {
-        if (audio.enabled) {
-            audio.interface.deinit();
-            allocator.free(audio.ring_buf);
+        if (audio_playback.enabled) {
+            audio_playback.interface.deinit();
+            allocator.free(audio_playback.ring_buf);
         }
     }
 
@@ -195,7 +195,7 @@ pub fn run(args: struct {
             },
             .debug_stats = .{
                 .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
-                .audio_latency_avg_ms = @intToFloat(f32, audio.latency_avg) / @intToFloat(f32, audio.interface.sample_rate) * 1e3,
+                .audio_latency_avg_ms = @intToFloat(f32, audio_playback.latency_avg) / @intToFloat(f32, audio_playback.interface.sample_rate) * 1e3,
             },
         }));
 
@@ -208,20 +208,20 @@ pub fn run(args: struct {
 fn audioThread() void {
     { // write some silence before starting the stream
         var buffer_frames: UINT = 0;
-        hrErrorOnFail(audio.interface.client.GetBufferSize(&buffer_frames)) catch {
+        hrErrorOnFail(audio_playback.interface.client.GetBufferSize(&buffer_frames)) catch {
             std.debug.panic("audioThread: failed to prefill silence", .{});
         };
         std.log.debug("audio stream buffer size = {} frames", .{buffer_frames});
 
         var ptr: [*]f32 = undefined;
-        hrErrorOnFail(audio.interface.render_client.GetBuffer(
+        hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(
             buffer_frames,
             @ptrCast(*?[*]BYTE, &ptr),
         )) catch {
             std.debug.panic("audioThread: failed to prefill silence", .{});
         };
 
-        hrErrorOnFail(audio.interface.render_client.ReleaseBuffer(
+        hrErrorOnFail(audio_playback.interface.render_client.ReleaseBuffer(
             @intCast(UINT, buffer_frames),
             zwin32.wasapi.AUDCLNT_BUFFERFLAGS_SILENT,
         )) catch {
@@ -229,56 +229,56 @@ fn audioThread() void {
         };
     }
 
-    hrErrorOnFail(audio.interface.client.Start()) catch {};
-    defer _ = audio.interface.client.Stop();
+    hrErrorOnFail(audio_playback.interface.client.Start()) catch {};
+    defer _ = audio_playback.interface.client.Stop();
 
     while (quit == false) {
-        zwin32.base.WaitForSingleObject(audio.interface.buffer_ready_event, zwin32.base.INFINITE) catch {};
+        zwin32.base.WaitForSingleObject(audio_playback.interface.buffer_ready_event, zwin32.base.INFINITE) catch {};
 
         var buffer_frames: UINT = 0;
-        _ = audio.interface.client.GetBufferSize(&buffer_frames);
+        _ = audio_playback.interface.client.GetBufferSize(&buffer_frames);
 
         var padding: UINT = 0;
-        _ = audio.interface.client.GetCurrentPadding(&padding);
+        _ = audio_playback.interface.client.GetCurrentPadding(&padding);
 
         const num_frames = buffer_frames - padding;
-        const num_channels = audio.interface.num_channels;
+        const num_channels = audio_playback.interface.num_channels;
         const num_samples = num_frames * num_channels;
 
-        while (@atomicLoad(usize, &audio.samples_queued, .Monotonic) < num_samples) {
+        while (@atomicLoad(usize, &audio_playback.samples_queued, .Monotonic) < num_samples) {
             continue;
         }
 
         var byte_buf: [*]BYTE = undefined;
-        hrErrorOnFail(audio.interface.render_client.GetBuffer(num_frames, @ptrCast(*?[*]u8, &byte_buf))) catch |err| {
+        hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(num_frames, @ptrCast(*?[*]u8, &byte_buf))) catch |err| {
             std.log.warn("Audio GetBuffer failed with error: {}", .{err});
             continue;
         };
 
         {
-            const bytes_per_sample = audio.interface.frame_size / num_channels;
+            const bytes_per_sample = audio_playback.interface.frame_size / num_channels;
             var n: usize = 0;
             while (n < num_samples) : (n += 1) {
                 const off = (n * bytes_per_sample);
                 std.mem.copy(
                     BYTE,
                     byte_buf[off..(off + bytes_per_sample)],
-                    std.mem.sliceAsBytes(audio.ring_buf[audio.ring_read_cur..(audio.ring_read_cur + 1)]),
+                    std.mem.sliceAsBytes(audio_playback.ring_buf[audio_playback.ring_read_cur..(audio_playback.ring_read_cur + 1)]),
                 );
-                audio.ring_read_cur = (audio.ring_read_cur + 1) % audio.ring_buf.len;
+                audio_playback.ring_read_cur = (audio_playback.ring_read_cur + 1) % audio_playback.ring_buf.len;
             }
-            audio.read_cursor += num_samples / num_channels;
+            audio_playback.read_cursor += num_samples / num_channels;
         }
 
-        _ = audio.interface.render_client.ReleaseBuffer(
+        _ = audio_playback.interface.render_client.ReleaseBuffer(
             @intCast(UINT, num_frames),
             0,
         );
 
-        var samples_queued = @atomicLoad(usize, &audio.samples_queued, .Acquire);
+        var samples_queued = @atomicLoad(usize, &audio_playback.samples_queued, .Acquire);
         while (@cmpxchgWeak(
             usize,
-            &audio.samples_queued,
+            &audio_playback.samples_queued,
             samples_queued,
             samples_queued - num_samples,
             .Release,

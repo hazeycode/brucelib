@@ -7,8 +7,6 @@ const sin = std.math.sin;
 const pi = std.math.pi;
 const tao = 2 * pi;
 
-const audio_on = true;
-
 pub fn main() anyerror!void {
     try platform.run(.{
         .title = "001_funky_triangle",
@@ -16,7 +14,7 @@ pub fn main() anyerror!void {
             .width = 854,
             .height = 480,
         },
-        .enable_audio = audio_on,
+        .enable_audio = true,
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
@@ -42,10 +40,10 @@ fn frame(input: platform.FrameInput) !bool {
         return false;
     }
 
-    if (audio_on) { // queue up a frame of sine wave samples
+    { // queue up a frame of sine wave samples
         // it's best to try and write audio out as early in the frame as possible after updates
 
-        const audio = try platform.audioBeginFrames(input.frame_arena_allocator);
+        const audio = try platform.audioPlaybackBegin(input.frame_arena_allocator);
         const sample_rate = @intToFloat(f32, audio.sample_rate);
 
         const audio_frames_to_write = audio.min_frames;
@@ -61,7 +59,7 @@ fn frame(input: platform.FrameInput) !bool {
             }
         }
 
-        platform.audioCommitFrames(audio, audio_frames_to_write);
+        platform.audioPlaybackCommit(audio, audio_frames_to_write);
     }
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
@@ -106,12 +104,10 @@ fn frame(input: platform.FrameInput) !bool {
             .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
         );
 
-        if (audio_on) {
-            try debug_gui.label(
-                "{d:.2} ms audio latency",
-                .{input.debug_stats.audio_latency_avg_ms},
-            );
-        }
+        try debug_gui.label(
+            "{d:.2} ms audio latency",
+            .{input.debug_stats.audio_latency_avg_ms},
+        );
 
         try debug_gui.end();
     }
