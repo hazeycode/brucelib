@@ -1,5 +1,8 @@
 const std = @import("std");
 
+const AlsaPlaybackStream = @import("linux/AlsaPlaybackStream.zig");
+const AudioPlaybackStream = AlsaPlaybackStream;
+
 const FrameInput = @import("FrameInput.zig");
 
 const GraphicsAPI = enum {
@@ -8,10 +11,27 @@ const GraphicsAPI = enum {
 
 var graphics_api: GraphicsAPI = undefined;
 
-var target_framerate: u16 = undefined;
+pub var target_framerate: u16 = undefined;
+
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
-var audio_enabled: bool = undefined;
+
+pub const max_audio_latency_samples = 16;
+
+pub var audio_playback = struct {
+    enabled: bool = false,
+    stream: AudioPlaybackStream = undefined,
+    ring_buf: []f32 = undefined,
+    ring_read_cur: usize = 0,
+    ring_write_cur: usize = 0,
+    samples_queued: usize = 0,
+    thread: std.Thread = undefined,
+    write_cursor: usize = 0,
+    read_cursor: usize = 0,
+    latency: [max_audio_latency_samples]u64 = .{0} ** max_audio_latency_samples,
+    latency_cur: usize = 0,
+    latency_avg: u64 = 0,
+}{};
 
 var timer: std.time.Timer = undefined;
 

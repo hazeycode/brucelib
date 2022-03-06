@@ -59,8 +59,8 @@ pub fn audioPlaybackBegin(allocator: std.mem.Allocator) !AudioPlaybackBuffer {
         };
     }
 
-    const num_channels = backend.audio_playback.interface.num_channels;
-    const sample_rate = backend.audio_playback.interface.sample_rate;
+    const num_channels = backend.audio_playback.stream.num_channels;
+    const sample_rate = backend.audio_playback.stream.sample_rate;
 
     const samples_per_frame = sample_rate / backend.target_framerate;
     const frames_per_frame = samples_per_frame / num_channels;

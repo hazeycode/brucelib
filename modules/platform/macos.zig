@@ -2,16 +2,43 @@ const std = @import("std");
 const builtin = @import("builtin");
 const objc = @import("zig-objcrt");
 
+// TODO(hazeycode): CoreAudio
+const AudioPlaybackStream = struct {
+    num_channels: u32 = 0,
+    sample_rate: u32 = 0,
+
+    pub fn init(_: u64) !AudioPlaybackStream {
+        return .{};
+    }
+};
+
 const FrameInput = @import("FrameInput.zig");
 
 const GraphicsAPI = enum {
     metal,
 };
 
-var target_framerate: u16 = undefined;
+pub var target_framerate: u16 = undefined;
+
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
-var audio_enabled: bool = undefined;
+
+pub const max_audio_latency_samples = 16;
+
+pub var audio_playback = struct {
+    enabled: bool = false,
+    stream: AudioPlaybackStream = undefined,
+    ring_buf: []f32 = undefined,
+    ring_read_cur: usize = 0,
+    ring_write_cur: usize = 0,
+    samples_queued: usize = 0,
+    thread: std.Thread = undefined,
+    write_cursor: usize = 0,
+    read_cursor: usize = 0,
+    latency: [max_audio_latency_samples]u64 = .{0} ** max_audio_latency_samples,
+    latency_cur: usize = 0,
+    latency_avg: u64 = 0,
+}{};
 
 var timer: std.time.Timer = undefined;
 
@@ -52,7 +79,7 @@ pub fn run(args: struct {
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
     target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
-    audio_enabled = args.audio_enabled;
+    audio_playback.enabled = args.audio_enabled;
     frame_fn = args.frame_fn;
 
     try args.init_fn(allocator);
