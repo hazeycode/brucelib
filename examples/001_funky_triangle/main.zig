@@ -25,6 +25,7 @@ var state: struct {
     triangle_hue: f32 = 0,
     tone_hz: f32 = 440,
     volume: f32 = 0.67,
+    debug_gui: graphics.DebugGUI.State = .{},
 } = .{};
 
 fn init(allocator: std.mem.Allocator) !void {
@@ -86,11 +87,28 @@ fn frame(input: platform.FrameInput) !bool {
     }
 
     { // update and draw debug overlay
+        for (input.input_events.mouse_button_events) |mouse_ev| {
+            if (mouse_ev.button.index != 0) continue;
+
+            switch (mouse_ev.button.action) {
+                .press => {
+                    state.debug_gui.input.mouse_button_down = true;
+                },
+                .release => {
+                    state.debug_gui.input.mouse_button_down = false;
+                },
+            }
+
+            state.debug_gui.input.mouse_x = @intToFloat(f32, mouse_ev.x);
+            state.debug_gui.input.mouse_y = @intToFloat(f32, mouse_ev.y);
+        }
+
         var debug_gui = graphics.DebugGUI.begin(
             input.frame_arena_allocator,
             &draw_list,
             @intToFloat(f32, input.window_size.width),
             @intToFloat(f32, input.window_size.height),
+            &state.debug_gui,
         );
 
         try debug_gui.label(
@@ -108,6 +126,10 @@ fn frame(input: platform.FrameInput) !bool {
             "{d:.2} ms audio latency",
             .{input.debug_stats.audio_latency_avg_ms},
         );
+
+        try debug_gui.textField(f32, "{d:.2} Hz", &state.tone_hz);
+
+        // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz);
 
         try debug_gui.end();
     }

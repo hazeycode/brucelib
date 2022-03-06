@@ -293,22 +293,44 @@ pub fn usingAPI(comptime api: API) type {
             draw_list: *DrawList,
             canvas_width: f32,
             canvas_height: f32,
-            cur_line: u32,
-            vertices: std.ArrayList(TexturedVertex),
+            cur_x: f32,
+            cur_y: f32,
+            text_verts: std.ArrayList(TexturedVertex),
+            uniform_colour_verts: std.ArrayList(VertexPosition),
+            state: *State,
+
+            pub const ElemId = u32;
+
+            pub const State = struct {
+                input: Input = .{},
+                hover_id: ElemId = 0,
+                active_id: ElemId = 0,
+                text_field_cursor: u32 = 0,
+            };
+
+            pub const Input = struct {
+                mouse_button_down: bool = false,
+                mouse_x: f32 = undefined,
+                mouse_y: f32 = undefined,
+            };
 
             pub fn begin(
                 allocator: std.mem.Allocator,
                 draw_list: *DrawList,
                 canvas_width: f32,
                 canvas_height: f32,
+                state: *State,
             ) DebugGUI {
                 return DebugGUI{
                     .allocator = allocator,
                     .draw_list = draw_list,
                     .canvas_width = canvas_width,
                     .canvas_height = canvas_height,
-                    .cur_line = 0,
-                    .vertices = std.ArrayList(TexturedVertex).init(allocator),
+                    .cur_x = 0,
+                    .cur_y = 0,
+                    .text_verts = std.ArrayList(TexturedVertex).init(allocator),
+                    .uniform_colour_verts = std.ArrayList(VertexPosition).init(allocator),
+                    .state = state,
                 };
             }
 
@@ -326,9 +348,13 @@ pub fn usingAPI(comptime api: API) type {
 
                 // calculate bounding rect
                 var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
-                for (self.vertices.items) |v| {
+                for (self.text_verts.items) |v| {
                     if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
                     if (v.pos[1] > rect.max_y) rect.max_y = v.pos[1];
+                }
+                for (self.uniform_colour_verts.items) |v| {
+                    if (v[0] > rect.max_x) rect.max_x = v[0];
+                    if (v[1] > rect.max_y) rect.max_y = v[0];
                 }
 
                 { // draw background
@@ -340,7 +366,7 @@ pub fn usingAPI(comptime api: API) type {
                     try self.draw_list.drawUniformColourVerts(bg_colour, verts);
                 }
 
-                try self.draw_list.drawTexturedVerts(debugfont_texture, self.vertices.items);
+                try self.draw_list.drawTexturedVerts(debugfont_texture, self.text_verts.items);
             }
 
             pub fn label(
@@ -351,13 +377,53 @@ pub fn usingAPI(comptime api: API) type {
                 var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
                 defer temp_arena.deinit();
                 const temp_allocator = temp_arena.allocator();
+
                 const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
 
+                const text_bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+
+                self.cur_y += (text_bounding_rect.max_y - text_bounding_rect.min_y);
+            }
+
+            pub fn textField(
+                self: *DebugGUI,
+                comptime T: type,
+                comptime fmt: []const u8,
+                value_ptr: *T,
+            ) !void {
+                const id = 1; // TODO(hazeycode): obtain some sort of unique identifier
+
+                var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+                defer temp_arena.deinit();
+                const temp_allocator = temp_arena.allocator();
+
+                const string = try std.fmt.allocPrint(temp_allocator, fmt, .{value_ptr.*});
+
+                const text_bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+
+                if (id == self.state.active_id) {
+                    // TODO
+                } else {
+                    // TODO
+                }
+
+                self.cur_y += (text_bounding_rect.max_y - text_bounding_rect.min_y);
+            }
+
+            fn drawText(
+                cur_x: f32,
+                cur_y: f32,
+                string: []const u8,
+                verts: *std.ArrayList(TexturedVertex),
+            ) !Rect {
                 // values for builtin debugfont
                 const glyph_width = 7;
                 const glyph_height = 12;
 
+                var cur_line: u32 = 0;
                 var column: u32 = 0;
+                var max_column: u32 = 0;
+
                 for (string) |c| {
                     const maybe_glyph_idx: ?u32 = switch (c) {
                         '0'...'9' => 0 + c - 48,
@@ -384,8 +450,8 @@ pub fn usingAPI(comptime api: API) type {
                         else => null,
                     };
                     if (maybe_glyph_idx) |glyph_idx| {
-                        const x = @intToFloat(f32, column * glyph_width);
-                        const y = @intToFloat(f32, self.cur_line * glyph_height);
+                        const x = cur_x + @intToFloat(f32, column * glyph_width);
+                        const y = cur_y + @intToFloat(f32, cur_line * glyph_height);
                         const rect = Rect{
                             .min_x = x,
                             .min_y = y,
@@ -403,12 +469,13 @@ pub fn usingAPI(comptime api: API) type {
                             .max_y = (v + glyph_height) / @intToFloat(f32, debugfont_texture.height),
                         };
 
-                        try self.vertices.appendSlice(&rect.texturedVertices(uv_rect));
+                        try verts.appendSlice(&rect.texturedVertices(uv_rect));
 
                         column += 1;
                     } else switch (c) {
                         '\n', '\r' => {
-                            self.cur_line += 1;
+                            cur_line += 1;
+                            if (column > max_column) max_column = column;
                             column = 0;
                         },
                         ' ' => {
@@ -420,7 +487,14 @@ pub fn usingAPI(comptime api: API) type {
                     }
                 }
 
-                self.cur_line += 1;
+                cur_line += 1;
+
+                return Rect{
+                    .min_x = cur_x,
+                    .min_y = cur_y,
+                    .max_x = cur_x + @intToFloat(f32, max_column * glyph_width),
+                    .max_y = cur_y + @intToFloat(f32, cur_line * glyph_height),
+                };
             }
         };
     };
