@@ -299,8 +299,12 @@ pub fn usingAPI(comptime api: API) type {
             uniform_colour_verts: std.ArrayList(VertexPosition),
             state: *State,
 
-            const inset: u32 = 4;
-            const line_spacing: u32 = 4;
+            const inset = 4;
+            const line_spacing = 4;
+
+            // values for builtin debugfont
+            const glyph_width = 7;
+            const glyph_height = 12;
 
             pub const ElemId = u32;
 
@@ -308,7 +312,9 @@ pub fn usingAPI(comptime api: API) type {
                 input: Input = .{},
                 hover_id: ElemId = 0,
                 active_id: ElemId = 0,
-                text_field_cursor: u32 = 0,
+                keyboard_focus: ElemId = 0,
+                text_cur_x: f32 = 0,
+                text_cur_y: f32 = 0,
             };
 
             pub const Input = struct {
@@ -364,16 +370,24 @@ pub fn usingAPI(comptime api: API) type {
                 rect.max_x += @intToFloat(f32, inset);
                 rect.max_y += @intToFloat(f32, inset);
 
-                { // draw background
-                    var verts = try self.allocator.alloc(VertexPosition, 6);
-                    errdefer self.allocator.free(verts);
+                // draw background
+                try self.drawColourRect(bg_colour, rect);
 
-                    std.mem.copy(VertexPosition, verts, &rect.vertices());
-
-                    try self.draw_list.drawUniformColourVerts(bg_colour, verts);
-                }
-
+                // draw all text
                 try self.draw_list.drawTexturedVerts(debugfont_texture, self.text_verts.items);
+
+                // draw text cursor if there is an element with keyboard focus
+                if (self.state.keyboard_focus > 0) {
+                    try self.drawColourRect(
+                        Colour.white,
+                        .{
+                            .min_x = self.state.text_cur_x - 1,
+                            .min_y = self.state.text_cur_y - line_spacing / 2,
+                            .max_x = self.state.text_cur_x + 1,
+                            .max_y = self.state.text_cur_y + glyph_height + line_spacing / 2,
+                        },
+                    );
+                }
             }
 
             pub fn label(
@@ -387,9 +401,9 @@ pub fn usingAPI(comptime api: API) type {
 
                 const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
 
-                const text_bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+                const bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
 
-                self.cur_y += (text_bounding_rect.max_y - text_bounding_rect.min_y);
+                self.cur_y += (bounding_rect.max_y - bounding_rect.min_y);
             }
 
             pub fn textField(
@@ -406,28 +420,44 @@ pub fn usingAPI(comptime api: API) type {
 
                 const string = try std.fmt.allocPrint(temp_allocator, fmt, .{value_ptr.*});
 
-                const text_bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+                const bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
 
                 const input = self.state.input;
 
-                const mouse_over = text_bounding_rect.containsPoint(input.mouse_x, input.mouse_y);
+                const mouse_over = bounding_rect.containsPoint(input.mouse_x, input.mouse_y);
 
                 if (id == self.state.active_id) {
-                    if (input.mouse_btn_down) {
-                        if (mouse_over) {
-                            // TODO(move cursor)
-                        }
+                    if (input.mouse_btn_down and id == self.state.keyboard_focus) {
+                        const line = 0;
+                        const column = std.math.max(
+                            0,
+                            @intCast(
+                                u32,
+                                std.math.min(
+                                    string.len,
+                                    @divFloor(
+                                        @floatToInt(i32, input.mouse_x - bounding_rect.min_x + @as(f32, glyph_width) / 2),
+                                        glyph_width,
+                                    ),
+                                ),
+                            ),
+                        );
+                        self.state.text_cur_x = bounding_rect.min_x + @intToFloat(f32, column * glyph_width);
+                        self.state.text_cur_y = bounding_rect.min_y + @intToFloat(f32, line * (glyph_height + line_spacing));
                     }
+
                     if (input.mouse_btn_was_released) {
-                        if (mouse_over == false) {
-                            self.state.active_id = 0;
-                        }
+                        self.state.active_id = 0;
                     }
                 }
                 else if (id == self.state.hover_id) {
                     if (input.mouse_btn_was_pressed) {
                         if (mouse_over) {
                             self.state.active_id = id;
+                            self.state.keyboard_focus = id;
+                        }
+                        else {
+                            self.state.keyboard_focus = 0;
                         }
                     }
                 } else {
@@ -436,7 +466,16 @@ pub fn usingAPI(comptime api: API) type {
                     }
                 }
 
-                self.cur_y += (text_bounding_rect.max_y - text_bounding_rect.min_y);
+                self.cur_y += (bounding_rect.max_y - bounding_rect.min_y);
+            }
+
+            fn drawColourRect(self: *DebugGUI, colour: Colour, rect: Rect) !void {
+                var verts = try self.allocator.alloc(VertexPosition, 6);
+                errdefer self.allocator.free(verts);
+
+                std.mem.copy(VertexPosition, verts, &rect.vertices());
+
+                try self.draw_list.drawUniformColourVerts(colour, verts);
             }
 
             fn drawText(
@@ -445,10 +484,6 @@ pub fn usingAPI(comptime api: API) type {
                 string: []const u8,
                 verts: *std.ArrayList(TexturedVertex),
             ) !Rect {
-                // values for builtin debugfont
-                const glyph_width = 7;
-                const glyph_height = 12;
-
                 var cur_line: u32 = 0;
                 var column: u32 = 0;
                 var max_column: u32 = 0;

@@ -155,6 +155,6 @@ pub const Rect = extern struct {
     }
 
     pub fn containsPoint(self: Rect, x: f32, y: f32) bool {
-        return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_x);
+        return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_y);
     }
 };

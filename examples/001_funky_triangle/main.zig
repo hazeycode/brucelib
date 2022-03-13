@@ -90,8 +90,11 @@ fn frame(input: platform.FrameInput) !bool {
         state.debug_gui.input.mouse_x = @intToFloat(f32, input.mouse_position.x);
         state.debug_gui.input.mouse_y = @intToFloat(f32, input.mouse_position.y);
 
+        state.debug_gui.input.mouse_btn_was_pressed = false;
+        state.debug_gui.input.mouse_btn_was_released = false;
+
         for (input.input_events.mouse_button_events) |mouse_ev| {
-            if (mouse_ev.button.index != 0) continue;
+            if (mouse_ev.button.index != 1) continue;
 
             switch (mouse_ev.button.action) {
                 .press => {
