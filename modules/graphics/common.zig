@@ -43,9 +43,7 @@ pub const VertexLayoutDesc = struct {
             }
 
             pub inline fn getSize(self: @This()) u32 {
-                return switch (self.format) {
-                    .f32x2, .f32x3, .f32x4 => @intCast(u32, @sizeOf(f32)) * self.getNumComponents(),
-                };
+                return @intCast(u32, @sizeOf(f32)) * self.getNumComponents();
             }
         };
     };
@@ -129,12 +127,34 @@ pub const Rect = extern struct {
 
     pub fn texturedVertices(self: Rect, uv_rect: Rect) [6]TexturedVertex {
         return [_]TexturedVertex{
-            TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
-            TexturedVertex{ .pos = .{ self.min_x, self.max_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.max_y } },
-            TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
-            TexturedVertex{ .pos = .{ self.max_x, self.max_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.max_y } },
-            TexturedVertex{ .pos = .{ self.max_x, self.min_y, 0.0 }, .uv = .{ uv_rect.max_x, uv_rect.min_y } },
-            TexturedVertex{ .pos = .{ self.min_x, self.min_y, 0.0 }, .uv = .{ uv_rect.min_x, uv_rect.min_y } },
+            TexturedVertex{
+                .pos = .{ self.min_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.min_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.min_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.min_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.min_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.min_y },
+            },
         };
+    }
+
+    pub fn containsPoint(self: Rect, x: f32, y: f32) bool {
+        return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_x);
     }
 };

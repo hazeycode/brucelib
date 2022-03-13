@@ -299,6 +299,9 @@ pub fn usingAPI(comptime api: API) type {
             uniform_colour_verts: std.ArrayList(VertexPosition),
             state: *State,
 
+            const inset: u32 = 4;
+            const line_spacing: u32 = 4;
+
             pub const ElemId = u32;
 
             pub const State = struct {
@@ -309,7 +312,9 @@ pub fn usingAPI(comptime api: API) type {
             };
 
             pub const Input = struct {
-                mouse_button_down: bool = false,
+                mouse_btn_down: bool = false,
+                mouse_btn_was_pressed: bool = false,
+                mouse_btn_was_released: bool = false,
                 mouse_x: f32 = undefined,
                 mouse_y: f32 = undefined,
             };
@@ -326,8 +331,8 @@ pub fn usingAPI(comptime api: API) type {
                     .draw_list = draw_list,
                     .canvas_width = canvas_width,
                     .canvas_height = canvas_height,
-                    .cur_x = 0,
-                    .cur_y = 0,
+                    .cur_x = @intToFloat(f32, inset),
+                    .cur_y = @intToFloat(f32, inset),
                     .text_verts = std.ArrayList(TexturedVertex).init(allocator),
                     .uniform_colour_verts = std.ArrayList(VertexPosition).init(allocator),
                     .state = state,
@@ -356,6 +361,8 @@ pub fn usingAPI(comptime api: API) type {
                     if (v[0] > rect.max_x) rect.max_x = v[0];
                     if (v[1] > rect.max_y) rect.max_y = v[0];
                 }
+                rect.max_x += @intToFloat(f32, inset);
+                rect.max_y += @intToFloat(f32, inset);
 
                 { // draw background
                     var verts = try self.allocator.alloc(VertexPosition, 6);
@@ -401,10 +408,32 @@ pub fn usingAPI(comptime api: API) type {
 
                 const text_bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
 
+                const input = self.state.input;
+
+                const mouse_over = text_bounding_rect.containsPoint(input.mouse_x, input.mouse_y);
+
                 if (id == self.state.active_id) {
-                    // TODO
+                    if (input.mouse_btn_down) {
+                        if (mouse_over) {
+                            // TODO(move cursor)
+                        }
+                    }
+                    if (input.mouse_btn_was_released) {
+                        if (mouse_over == false) {
+                            self.state.active_id = 0;
+                        }
+                    }
+                }
+                else if (id == self.state.hover_id) {
+                    if (input.mouse_btn_was_pressed) {
+                        if (mouse_over) {
+                            self.state.active_id = id;
+                        }
+                    }
                 } else {
-                    // TODO
+                    if (mouse_over) {
+                        self.state.hover_id = id;
+                    }
                 }
 
                 self.cur_y += (text_bounding_rect.max_y - text_bounding_rect.min_y);
@@ -447,11 +476,13 @@ pub fn usingAPI(comptime api: API) type {
                         '*' => 77,
                         '(' => 78,
                         ')' => 79,
+                        '_' => 80,
+                        '=' => 81,
                         else => null,
                     };
                     if (maybe_glyph_idx) |glyph_idx| {
                         const x = cur_x + @intToFloat(f32, column * glyph_width);
-                        const y = cur_y + @intToFloat(f32, cur_line * glyph_height);
+                        const y = cur_y + @intToFloat(f32, cur_line * (glyph_height + line_spacing));
                         const rect = Rect{
                             .min_x = x,
                             .min_y = y,
@@ -472,6 +503,7 @@ pub fn usingAPI(comptime api: API) type {
                         try verts.appendSlice(&rect.texturedVertices(uv_rect));
 
                         column += 1;
+                        if (column > max_column) max_column = column;
                     } else switch (c) {
                         '\n', '\r' => {
                             cur_line += 1;
@@ -480,6 +512,7 @@ pub fn usingAPI(comptime api: API) type {
                         },
                         ' ' => {
                             column += 1;
+                            if (column > max_column) max_column = column;
                         },
                         else => {
                             std.debug.panic("graphics.DebugGUI unmapped character {}", .{c});
@@ -493,7 +526,7 @@ pub fn usingAPI(comptime api: API) type {
                     .min_x = cur_x,
                     .min_y = cur_y,
                     .max_x = cur_x + @intToFloat(f32, max_column * glyph_width),
-                    .max_y = cur_y + @intToFloat(f32, cur_line * glyph_height),
+                    .max_y = cur_y + @intToFloat(f32, cur_line * (glyph_height + line_spacing)),
                 };
             }
         };

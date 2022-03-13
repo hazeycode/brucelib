@@ -47,3 +47,13 @@ try graphics.submitDrawList(draw_list);
 // cleanup
 graphics.deinit();
 ```
+For more usage examples, refer to the [brucelib examples](https://github.com/hazeycode/brucelib/tree/main/examples)
+
+
+### Debug GUI
+
+debugfont created with:
+
+`pbmtext -builtin fixed -plain -nomargins -space 0 "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:;'\"\\,.?/><-+%&*()_=" > data/debugfont.pbm
+`
+
