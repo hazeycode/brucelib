@@ -429,12 +429,12 @@ pub fn usingAPI(comptime api: API) type {
                 if (id == self.state.active_id) {
                     if (input.mouse_btn_down and id == self.state.keyboard_focus) {
                         const line = 0;
-                        const column = std.math.max(
-                            0,
-                            @intCast(
-                                u32,
+                        const column = @intCast(
+                            u32,
+                            std.math.max(
+                                0,
                                 std.math.min(
-                                    string.len,
+                                    @intCast(i32, string.len),
                                     @divFloor(
                                         @floatToInt(i32, input.mouse_x - text_rect.min_x + @as(f32, glyph_width) / 2),
                                         glyph_width,
