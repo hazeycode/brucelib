@@ -105,6 +105,8 @@ pub fn run(args: struct {
             &mouse_button_events,
         );
 
+        const mouse_pos = windowing.getMousePos();
+
         const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
         const quit = !(try args.frame_fn(.{
@@ -115,6 +117,10 @@ pub fn run(args: struct {
             .input_events = .{
                 .key_events = key_events.items,
                 .mouse_button_events = mouse_button_events.items,
+            },
+            .mouse_position = .{
+                .x = mouse_pos.x,
+                .y = mouse_pos.y,
             },
             .window_size = .{
                 .width = window_width,
@@ -341,6 +347,31 @@ const X11 = struct {
 
     fn swapBuffers() void {
         c.glXSwapBuffers(display, window);
+    }
+
+    fn getMousePos() struct { x: i32, y: i32 } {
+        var root: c.Window = undefined;
+        var child: c.Window = undefined;  
+        var root_x: i32 = 0;
+        var root_y: i32 = 0;
+        var win_x: i32 = 0;
+        var win_y: i32 = 0;
+        var mask: u32 = 0;
+        _ = c.XQueryPointer(
+            display,
+            window,
+            &root,
+            &child,
+            &root_x,
+            &root_y,
+            &win_x,
+            &win_y,
+            &mask,
+        );
+        return .{
+            .x = win_x,
+            .y = win_y,
+        };
     }
 
     fn processEvents(

@@ -87,20 +87,22 @@ fn frame(input: platform.FrameInput) !bool {
     }
 
     { // update and draw debug overlay
+        state.debug_gui.input.mouse_x = @intToFloat(f32, input.mouse_position.x);
+        state.debug_gui.input.mouse_y = @intToFloat(f32, input.mouse_position.y);
+
         for (input.input_events.mouse_button_events) |mouse_ev| {
             if (mouse_ev.button.index != 0) continue;
 
             switch (mouse_ev.button.action) {
                 .press => {
-                    state.debug_gui.input.mouse_button_down = true;
+                    state.debug_gui.input.mouse_btn_was_pressed = true;
+                    state.debug_gui.input.mouse_btn_down = true;
                 },
                 .release => {
-                    state.debug_gui.input.mouse_button_down = false;
+                    state.debug_gui.input.mouse_btn_was_released = true;
+                    state.debug_gui.input.mouse_btn_down = false;
                 },
             }
-
-            state.debug_gui.input.mouse_x = @intToFloat(f32, mouse_ev.x);
-            state.debug_gui.input.mouse_y = @intToFloat(f32, mouse_ev.y);
         }
 
         var debug_gui = graphics.DebugGUI.begin(
@@ -127,9 +129,14 @@ fn frame(input: platform.FrameInput) !bool {
             .{input.debug_stats.audio_latency_avg_ms},
         );
 
-        try debug_gui.textField(f32, "{d:.2} Hz", &state.tone_hz);
+        try debug_gui.textField(f32, "Tone: {d:.2} Hz", &state.tone_hz);
 
-        // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz);
+        // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz, 200);
+
+        try debug_gui.label(
+            "Mouse pos = ({}, {})",
+            .{input.mouse_position.x, input.mouse_position.y},
+        );
 
         try debug_gui.end();
     }

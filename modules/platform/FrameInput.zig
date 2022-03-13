@@ -25,6 +25,12 @@ input_events: struct {
     mouse_button_events: []MouseButtonEvent,
 },
 
+/// The current mouse pointer position relative to the window
+mouse_position: struct {
+    x: i32,
+    y: i32,
+} = .{ .x = 0, .y = 0 },
+
 /// The current window size / framebuffer dimensions
 window_size: struct {
     width: u16,
