@@ -12,6 +12,9 @@ platform:
 - all: audio output
 
 graphics:
+- DebugGUI: move text cursor with arrow keys
+- DebugGUI: highlight with mouse drag
+- DebugGUI: highlight with shift + arrow keys
 - premultiplied alpha
 - metal backend
 - remove libepoxy dependency
