@@ -108,7 +108,7 @@ fn frame(input: platform.FrameInput) !bool {
             }
         }
 
-        var debug_gui = graphics.DebugGUI.begin(
+        var debug_gui = try graphics.DebugGUI.begin(
             input.frame_arena_allocator,
             &draw_list,
             @intToFloat(f32, input.window_size.width),
@@ -132,7 +132,7 @@ fn frame(input: platform.FrameInput) !bool {
             .{input.debug_stats.audio_latency_avg_ms},
         );
 
-        try debug_gui.textField(f32, "Tone: {d:.2} Hz", &state.tone_hz);
+        try debug_gui.textField(f32, "{d:.2} Hz", &state.tone_hz);
 
         // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz, 200);
 

@@ -157,4 +157,13 @@ pub const Rect = extern struct {
     pub fn containsPoint(self: Rect, x: f32, y: f32) bool {
         return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_y);
     }
+
+    pub fn inset(self: Rect, left: f32, right: f32, top: f32, bottom: f32) Rect {
+        return .{
+            .min_x = self.min_x + left,
+            .max_x = self.max_x - right,
+            .min_y = self.min_y + top,
+            .max_y = self.max_y - bottom,
+        };
+    }
 };

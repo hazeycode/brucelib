@@ -331,7 +331,16 @@ pub fn usingAPI(comptime api: API) type {
                 canvas_width: f32,
                 canvas_height: f32,
                 state: *State,
-            ) DebugGUI {
+            ) !DebugGUI {
+                const projection = orthographic(canvas_width, canvas_height, 0, 1);
+                try draw_list.setProjectionTransform(projection);
+
+                const view = zmath.mul(
+                    zmath.translation(-canvas_width / 2, -canvas_height / 2, 0),
+                    zmath.scaling(1, -1, 1),
+                );
+                try draw_list.setViewTransform(view);
+
                 return DebugGUI{
                     .allocator = allocator,
                     .draw_list = draw_list,
@@ -346,17 +355,6 @@ pub fn usingAPI(comptime api: API) type {
             }
 
             pub fn end(self: *DebugGUI) !void {
-                const projection = orthographic(self.canvas_width, self.canvas_height, 0, 1);
-                try self.draw_list.setProjectionTransform(projection);
-
-                const view = zmath.mul(
-                    zmath.translation(-self.canvas_width / 2, -self.canvas_height / 2, 0),
-                    zmath.scaling(1, -1, 1),
-                );
-                try self.draw_list.setViewTransform(view);
-
-                const bg_colour = Colour.fromRGBA(0.13, 0.13, 0.13, 0.67);
-
                 // calculate bounding rect
                 var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
                 for (self.text_verts.items) |v| {
@@ -371,7 +369,7 @@ pub fn usingAPI(comptime api: API) type {
                 rect.max_y += @intToFloat(f32, inset);
 
                 // draw background
-                try self.drawColourRect(bg_colour, rect);
+                try self.drawColourRect(Colour.fromRGBA(0.13, 0.13, 0.13, 0.67), rect);
 
                 // draw all text
                 try self.draw_list.drawTexturedVerts(debugfont_texture, self.text_verts.items);
@@ -420,11 +418,13 @@ pub fn usingAPI(comptime api: API) type {
 
                 const string = try std.fmt.allocPrint(temp_allocator, fmt, .{value_ptr.*});
 
-                const bounding_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+                const text_rect = try drawText(self.cur_x, self.cur_y, string, &self.text_verts);
+
+                const bounding_rect = text_rect.inset(-4, -3, -4, 1);
+                try self.drawColourRectOutline(Colour.white, bounding_rect, 1);
 
                 const input = self.state.input;
-
-                const mouse_over = bounding_rect.containsPoint(input.mouse_x, input.mouse_y);
+                const mouse_over = text_rect.containsPoint(input.mouse_x, input.mouse_y);
 
                 if (id == self.state.active_id) {
                     if (input.mouse_btn_down and id == self.state.keyboard_focus) {
@@ -436,14 +436,14 @@ pub fn usingAPI(comptime api: API) type {
                                 std.math.min(
                                     string.len,
                                     @divFloor(
-                                        @floatToInt(i32, input.mouse_x - bounding_rect.min_x + @as(f32, glyph_width) / 2),
+                                        @floatToInt(i32, input.mouse_x - text_rect.min_x + @as(f32, glyph_width) / 2),
                                         glyph_width,
                                     ),
                                 ),
                             ),
                         );
-                        self.state.text_cur_x = bounding_rect.min_x + @intToFloat(f32, column * glyph_width);
-                        self.state.text_cur_y = bounding_rect.min_y + @intToFloat(f32, line * (glyph_height + line_spacing));
+                        self.state.text_cur_x = text_rect.min_x + @intToFloat(f32, column * glyph_width);
+                        self.state.text_cur_y = text_rect.min_y + @intToFloat(f32, line * (glyph_height + line_spacing));
                     }
 
                     if (input.mouse_btn_was_released) {
@@ -466,7 +466,7 @@ pub fn usingAPI(comptime api: API) type {
                     }
                 }
 
-                self.cur_y += (bounding_rect.max_y - bounding_rect.min_y);
+                self.cur_y += (text_rect.max_y - text_rect.min_y);
             }
 
             fn drawColourRect(self: *DebugGUI, colour: Colour, rect: Rect) !void {
@@ -474,6 +474,76 @@ pub fn usingAPI(comptime api: API) type {
                 errdefer self.allocator.free(verts);
 
                 std.mem.copy(VertexPosition, verts, &rect.vertices());
+
+                try self.draw_list.drawUniformColourVerts(colour, verts);
+            }
+
+            fn drawColourRectOutline(self: *DebugGUI, colour: Colour, rect: Rect, weight: f32) !void {
+                const num_verts = 6;
+                const num_sides = 4;
+
+                var verts = try self.allocator.alloc(VertexPosition, num_verts * num_sides);
+                errdefer self.allocator.free(verts);
+
+                { // left side
+                    const side_rect = Rect{
+                        .min_x = rect.min_x,
+                        .max_x = rect.min_x + weight,
+                        .min_y = rect.min_y,
+                        .max_y = rect.max_y,
+                    };
+                    const offset = 0 * num_verts;
+                    std.mem.copy(
+                        VertexPosition,
+                        verts[offset..(offset + num_verts)],
+                        &side_rect.vertices(),
+                    );
+                }
+
+                { // right side
+                    const side_rect = Rect{
+                        .min_x = rect.max_x - weight,
+                        .max_x = rect.max_x,
+                        .min_y = rect.min_y,
+                        .max_y = rect.max_y,
+                    };
+                    const offset = 1 * num_verts;
+                    std.mem.copy(
+                        VertexPosition,
+                        verts[offset..(offset + num_verts)],
+                        &side_rect.vertices(),
+                    );
+                }
+
+                { // top side
+                    const side_rect = Rect{
+                        .min_x = rect.min_x,
+                        .max_x = rect.max_x,
+                        .min_y = rect.min_y,
+                        .max_y = rect.min_y + weight,
+                    };
+                    const offset = 2 * num_verts;
+                    std.mem.copy(
+                        VertexPosition,
+                        verts[offset..(offset + num_verts)],
+                        &side_rect.vertices(),
+                    );
+                }
+
+                { // bottom side
+                    const side_rect = Rect{
+                        .min_x = rect.min_x,
+                        .max_x = rect.max_x,
+                        .min_y = rect.max_y - weight,
+                        .max_y = rect.max_y,
+                    };
+                    const offset = 3 * num_verts;
+                    std.mem.copy(
+                        VertexPosition,
+                        verts[offset..(offset + num_verts)],
+                        &side_rect.vertices(),
+                    );
+                }
 
                 try self.draw_list.drawUniformColourVerts(colour, verts);
             }
