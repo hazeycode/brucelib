@@ -146,7 +146,7 @@ pub fn run(args: struct {
 }
 
 const X11 = struct {
-    // TODO(chris): remove system header imports
+    // TODO(chris): remove system header imports, create bindings
     const c = @cImport({
         @cInclude("X11/Xlib-xcb.h");
         @cInclude("X11/XKBlib.h");
@@ -401,6 +401,7 @@ const X11 = struct {
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
                     if (translateKey(xcb_key_press_event.detail)) |key| {
+                        std.log.debug("{}", .{key});
                         if (key_repeats[@enumToInt(key)] > 0) {
                             key_repeats[@enumToInt(key)] += 1;
                             if (maybe_last_key_event) |last_key_event| {
@@ -420,8 +421,6 @@ const X11 = struct {
                             });
                         }
                         maybe_last_key_event = &key_events.items[key_events.items.len - 1];
-                    } else {
-                        std.log.debug("press {}", .{xcb_key_press_event.detail});
                     }
                 },
                 c.XCB_KEY_RELEASE => {
@@ -461,16 +460,134 @@ const X11 = struct {
             }
         }
     }
-};
 
-fn translateKey(keycode: u32) ?FrameInput.Key {
-    return switch (keycode) {
-        23 => .tab,
-        25 => .w,
-        38 => .a,
-        39 => .s,
-        40 => .d,
-        94 => .grave_accent,
-        else => null,
-    };
-}
+    fn translateKey(keycode: u8) ?FrameInput.Key {
+        // TODO(hazeycode): measure and consider cacheing this in a LUT for performance
+        var keysyms_per_keycode: c_int = 0;
+        const keysyms = c.XGetKeyboardMapping(display, keycode, 1, &keysyms_per_keycode);
+        const keysym = keysyms[0];
+        _ = c.XFree(keysyms);
+        return switch (keysym) {
+            c.XK_Escape      => .escape,
+            c.XK_Tab         => .tab,
+            c.XK_Shift_L     => .shift_left,
+            c.XK_Shift_R     => .shift_right,
+            c.XK_Control_L   => .ctrl_left,
+            c.XK_Control_R   => .ctrl_right,
+            c.XK_Meta_L, c.XK_Alt_L => .alt_left,
+            c.XK_Mode_switch, c.XK_ISO_Level3_Shift, c.XK_Meta_R, c.XK_Alt_R => .alt_right,
+            c.XK_Super_L     => .super_left,
+            c.XK_Super_R     => .super_right,
+            c.XK_Menu        => .menu,
+            c.XK_Num_Lock    => .numlock,
+            c.XK_Caps_Lock   => .capslock,
+            c.XK_Print       => .printscreen,
+            c.XK_Scroll_Lock => .scrolllock,
+            c.XK_Pause       => .pause,
+            c.XK_Delete      => .delete,
+            c.XK_BackSpace   => .backspace,
+            c.XK_Return      => .enter,
+            c.XK_Home        => .home,
+            c.XK_End         => .end,
+            c.XK_Page_Up     => .pageup,
+            c.XK_Page_Down   => .pagedown,
+            c.XK_Insert      => .insert,
+            c.XK_Left        => .left,
+            c.XK_Right       => .right,
+            c.XK_Down        => .down,
+            c.XK_Up          => .up,
+            c.XK_F1          => .f1,
+            c.XK_F2          => .f2,
+            c.XK_F3          => .f3,
+            c.XK_F4          => .f4,
+            c.XK_F5          => .f5,
+            c.XK_F6          => .f6,
+            c.XK_F7          => .f7,
+            c.XK_F8          => .f8,
+            c.XK_F9          => .f9,
+            c.XK_F10         => .f10,
+            c.XK_F11         => .f11,
+            c.XK_F12         => .f12,
+            c.XK_F13         => .f13,
+            c.XK_F14         => .f14,
+            c.XK_F15         => .f15,
+            c.XK_F16         => .f16,
+            c.XK_F17         => .f17,
+            c.XK_F18         => .f18,
+            c.XK_F19         => .f19,
+            c.XK_F20         => .f20,
+            c.XK_F21         => .f21,
+            c.XK_F22         => .f22,
+            c.XK_F23         => .f23,
+            c.XK_F24         => .f24,
+            c.XK_F25         => .f25,
+            c.XK_KP_Divide   => .keypad_divide,
+            c.XK_KP_Multiply => .keypad_multiply,
+            c.XK_KP_Subtract => .keypad_subtract,
+            c.XK_KP_Add      => .keypad_add,
+            c.XK_KP_Insert   => .keypad_0,
+            c.XK_KP_End      => .keypad_1,
+            c.XK_KP_Down     => .keypad_2,
+            c.XK_KP_Page_Down => .keypad_3,
+            c.XK_KP_Left     => .keypad_4,
+            c.XK_KP_Begin    => .keypad_5,
+            c.XK_KP_Right    => .keypad_6,
+            c.XK_KP_Home     => .keypad_7,
+            c.XK_KP_Up       => .keypad_8,
+            c.XK_KP_Page_Up  => .keypad_9,
+            c.XK_KP_Delete   => .keypad_decimal,
+            c.XK_KP_Equal    => .keypad_equal,
+            c.XK_KP_Enter    => .keypad_enter,
+            c.XK_a           => .a,
+            c.XK_b           => .b,
+            c.XK_c           => .c,
+            c.XK_d           => .d,
+            c.XK_e           => .e,
+            c.XK_f           => .f,
+            c.XK_g           => .g,
+            c.XK_h           => .h,
+            c.XK_i           => .i,
+            c.XK_j           => .j,
+            c.XK_k           => .k,
+            c.XK_l           => .l,
+            c.XK_m           => .m,
+            c.XK_n           => .n,
+            c.XK_o           => .o,
+            c.XK_p           => .p,
+            c.XK_q           => .q,
+            c.XK_r           => .r,
+            c.XK_s           => .s,
+            c.XK_t           => .t,
+            c.XK_u           => .u,
+            c.XK_v           => .v,
+            c.XK_w           => .w,
+            c.XK_x           => .x,
+            c.XK_y           => .y,
+            c.XK_z           => .z,
+            c.XK_1           => .one,
+            c.XK_2           => .two,
+            c.XK_3           => .three,
+            c.XK_4           => .four,
+            c.XK_5           => .five,
+            c.XK_6           => .six,
+            c.XK_7           => .seven,
+            c.XK_8           => .eight,
+            c.XK_9           => .nine,
+            c.XK_0           => .zero,
+            c.XK_space       => .space,
+            c.XK_minus       => .minus,
+            c.XK_equal       => .equal,
+            c.XK_bracketleft => .bracket_left,
+            c.XK_bracketright => .bracket_right,
+            c.XK_backslash   => .backslash,
+            c.XK_semicolon   => .semicolon,
+            c.XK_apostrophe  => .apostrophe,
+            c.XK_grave       => .grave_accent,
+            c.XK_comma       => .comma,
+            c.XK_period      => .period,
+            c.XK_slash       => .slash,
+            c.XK_less        => .world1,
+            else => .unknown,
+        };
+    }
+};

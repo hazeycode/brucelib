@@ -66,6 +66,7 @@ pub const KeyEvent = struct {
 
 pub const KeyReleaseEvent = Key;
 
+/// Represents a physical key position, using a typical QWERTY layout
 pub const Key = enum {
     unknown,
     space,
@@ -84,8 +85,8 @@ pub const Key = enum {
     seven,
     eight,
     nine,
-    semi_colon,
-    equals,
+    semicolon,
+    equal,
     a,
     b,
     c,
@@ -133,7 +134,7 @@ pub const Key = enum {
     home,
     end,
     capslock,
-    function,
+    scrolllock,
     numlock,
     printscreen,
     pause,
