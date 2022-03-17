@@ -37,8 +37,8 @@ var timer: std.time.Timer = undefined;
 
 var window_closed = false;
 const num_keys = std.meta.fields(FrameInput.Key).len;
+var key_states: [num_keys]bool = .{false} ** num_keys;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
-var maybe_last_key_event: ?*FrameInput.KeyEvent = null;
 
 pub fn timestamp() u64 {
     return timer.read();
@@ -401,26 +401,22 @@ const X11 = struct {
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
                     if (translateKey(xcb_key_press_event.detail)) |key| {
-                        std.log.debug("{}", .{key});
-                        if (key_repeats[@enumToInt(key)] > 0) {
+                        const repeat = key_states[@enumToInt(key)];
+                        if (repeat) {
                             key_repeats[@enumToInt(key)] += 1;
-                            if (maybe_last_key_event) |last_key_event| {
-                                if (last_key_event.action == .repeat and last_key_event.key == key) {
-                                    last_key_event.action.repeat += 1;
-                                }
-                            }
-                            try key_events.append(.{
-                                .action = .{ .repeat = key_repeats[@enumToInt(key)] },
-                                .key = key,
-                            });
-                        } else {
-                            key_repeats[@enumToInt(key)] = 1;
                             try key_events.append(.{
                                 .action = .press,
                                 .key = key,
                             });
                         }
-                        maybe_last_key_event = &key_events.items[key_events.items.len - 1];
+                        else {
+                            key_repeats[@enumToInt(key)] = 1;
+                            try key_events.append(.{
+                                .action = .{ .repeat = key_repeats[@enumToInt(key)] },
+                                .key = key,
+                            });
+                        }
+                        key_states[@enumToInt(key)] = true;
                     }
                 },
                 c.XCB_KEY_RELEASE => {
@@ -431,7 +427,7 @@ const X11 = struct {
                             .key = key,
                         });
                         key_repeats[@enumToInt(key)] = 0;
-                        maybe_last_key_event = &key_events.items[key_events.items.len - 1];
+                        key_states[@enumToInt(key)] = false;
                     }
                 },
                 c.XCB_BUTTON_PRESS => {
