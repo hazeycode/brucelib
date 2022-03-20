@@ -19,7 +19,6 @@ graphics:
 - metal backend
 - remove libepoxy dependency
 - support multiple render targets i.e. implement graphics.setRenderTarget
-- persistently mapped buffers (i.e. ARB_buffer_storage) instead of mapping/unmapping buffers
 - (sparse) bindless texture arrays
 - ARB_multi_draw_indirect
 - implement destroyViewLayout

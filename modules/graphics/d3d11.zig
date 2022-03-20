@@ -194,39 +194,49 @@ pub fn draw(offset: u32, count: u32) void {
     device_ctx.Draw(count, offset);
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !VertexBufferHandle {
+pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
-        .ByteWidth = @intCast(UINT, bytes.len),
+        .ByteWidth = @intCast(UINT, size),
         .Usage = d3d11.USAGE_DYNAMIC,
         .BindFlags = d3d11.BIND_VERTEX_BUFFER,
         .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
     };
-    const subresouce_data = d3d11.SUBRESOURCE_DATA{
-        .pSysMem = bytes.ptr,
-    };
     try win32.hrErrorOnFail(getD3D11Device().CreateBuffer(
         &desc,
-        &subresouce_data,
+        null,
         &buffer,
     ));
     return @ptrToInt(buffer.?);
 }
 
-pub fn writeBytesToVertexBuffer(buffer_handle: VertexBufferHandle, offset: usize, bytes: []const u8) !usize {
+pub fn destroyVertexBuffer(buffer_handle: VertexBufferHandle) !void {
+    _ = buffer_handle;
+    // TODO(hazeycode): impl this!
+}
+
+pub fn mapBuffer(
+    buffer_handle: VertexBufferHandle,
+    offset: usize,
+    size: usize,
+    comptime alignment: u7,
+) ![]align(alignment) u8 {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
-    const device_ctx = getD3D11DeviceContext();
     var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
-    try win32.hrErrorOnFail(device_ctx.Map(
+    try win32.hrErrorOnFail(getD3D11DeviceContext().Map(
         vertex_buffer,
         0,
         d3d11.MAP.WRITE_DISCARD,
         0,
         &subresource,
     ));
-    std.mem.copy(u8, @ptrCast([*]u8, subresource.pData)[offset..(offset + bytes.len)], bytes);
-    device_ctx.Unmap(vertex_buffer, 0);
-    return bytes.len;
+    const ptr = @ptrCast([*]u8, subresource.pData);
+    return @alignCast(alignment, ptr[offset..(offset + size)]);
+}
+
+pub fn unmapBuffer(buffer_handle: VertexBufferHandle) void {
+    const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
+    getD3D11DeviceContext().Unmap(vertex_buffer, 0);
 }
 
 pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHandle {

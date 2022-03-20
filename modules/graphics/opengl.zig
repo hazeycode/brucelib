@@ -44,32 +44,45 @@ pub fn draw(offset: u32, count: u32) void {
     );
 }
 
-pub fn createDynamicVertexBufferWithBytes(bytes: []const u8) !VertexBufferHandle {
+pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
     var vbo: c.GLuint = undefined;
     c.glGenBuffers(1, &vbo);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, vbo));
-    c.glBufferData(
+    c.glBufferStorage(
         c.GL_ARRAY_BUFFER,
-        @intCast(c.GLsizeiptr, bytes.len),
-        bytes.ptr,
-        c.GL_DYNAMIC_DRAW,
+        size,
+        null,
+        c.GL_MAP_WRITE_BIT | c.GL_MAP_PERSISTENT_BIT | c.GL_MAP_COHERENT_BIT,
     );
     return vbo;
 }
 
-pub fn writeBytesToVertexBuffer(
-    buffer_id: VertexBufferHandle,
+pub fn destroyVertexBuffer(buffer_handle: VertexBufferHandle) !void {
+    const buffer = @intCast(c.GLenum, buffer_handle);
+    c.glDeleteBuffers(1, &buffer);
+}
+
+pub fn mapBuffer(
+    buffer_handle: VertexBufferHandle,
     offset: usize,
-    bytes: []const u8,
-) !usize {
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, buffer_id));
-    c.glBufferSubData(
-        c.GL_ARRAY_BUFFER,
-        @intCast(c.GLintptr, offset),
-        @intCast(c.GLsizeiptr, bytes.len),
-        bytes.ptr,
+    size: usize,
+    comptime alignment: u7,
+) ![]align(alignment) u8 {
+    const buffer = @intCast(c.GLenum, buffer_handle);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, buffer);
+
+    const ptr = @ptrCast(
+        [*]u8,
+        c.glMapBuffer(c.GL_ARRAY_BUFFER, c.GL_WRITE_ONLY),
     );
-    return bytes.len;
+    return @alignCast(alignment, ptr[offset..(offset + size)]);
+}
+
+pub fn unmapBuffer(buffer_handle: VertexBufferHandle) void {
+    const buffer = @intCast(c.GLenum, buffer_handle);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, buffer);
+
+    _ = c.glUnmapBuffer(c.GL_ARRAY_BUFFER);
 }
 
 pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
