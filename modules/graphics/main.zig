@@ -85,11 +85,10 @@ pub fn usingAPI(comptime api: API) type {
 
                 pub fn write(self: *@This(), offset: u32, vertices: anytype) void {
                     if (self.mapped) |buffer| {
-                        const byte_offset = @sizeOf(VertexType) * offset;
                         const elems = vertices[0..];
                         std.mem.copy(
                             VertexType,
-                            buffer[byte_offset..(byte_offset + elems.len)],
+                            buffer[offset..(offset + elems.len)],
                             elems,
                         );
                     } else {
