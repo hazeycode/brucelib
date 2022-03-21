@@ -266,7 +266,7 @@ pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHan
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn bindVertexBuffers(_: VertexBufferHandle, vertex_layout_handle: VertexLayoutHandle) void {
+pub fn bindVertexLayout(vertex_layout_handle: VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
     getD3D11DeviceContext().IASetVertexBuffers(
         0,
