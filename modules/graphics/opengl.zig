@@ -117,7 +117,8 @@ pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     return vao;
 }
 
-pub fn setVertexLayout(layout_handle: VertexLayoutHandle) void {
+pub fn bindVertexBuffers(vertex_buffer_handle: VertexBufferHandle, layout_handle: VertexLayoutHandle) void {
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, @intCast(c.GLenum, vertex_buffer_handle));
     c.glBindVertexArray(@intCast(c.GLuint, layout_handle));
 }
 

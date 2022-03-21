@@ -324,7 +324,7 @@ pub fn usingAPI(comptime api: API) type {
 
                         backend.setShaderProgram(resources.program);
 
-                        backend.setVertexLayout(resources.vertex_layout);
+                        backend.bindVertexBuffers(resources.vertex_buffer.handle, resources.vertex_layout);
 
                         backend.setRasteriserState(resources.rasteriser_state);
 
@@ -349,7 +349,7 @@ pub fn usingAPI(comptime api: API) type {
 
                         backend.setShaderProgram(resources.program);
 
-                        backend.setVertexLayout(resources.vertex_layout);
+                        backend.bindVertexBuffers(resources.vertex_buffer.handle, resources.vertex_layout);
 
                         backend.setTexture(0, desc.texture.handle);
 
