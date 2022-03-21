@@ -29,7 +29,7 @@ var state: struct {
 } = .{};
 
 fn init(allocator: std.mem.Allocator) !void {
-    try graphics.init(allocator);
+    try graphics.init(platform, allocator);
 }
 
 fn deinit() void {

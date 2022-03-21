@@ -27,9 +27,9 @@ const d3d11 = win32.d3d11;
 const d3d11d = win32.d3d11d;
 const d3dcompiler = win32.d3dcompiler;
 
-extern fn getD3D11Device() *d3d11.IDevice;
-extern fn getD3D11DeviceContext() *d3d11.IDeviceContext;
-extern fn getD3D11RenderTargetView() *d3d11.IRenderTargetView;
+var device: *d3d11.IDevice = undefined;
+var device_context: *d3d11.IDeviceContext = undefined;
+var render_target_view: *d3d11.IRenderTargetView = undefined;
 
 var allocator: std.mem.Allocator = undefined;
 
@@ -66,7 +66,11 @@ var textures: TextureResourcesList = undefined;
 
 var debug_info_queue: *d3d11d.IInfoQueue = undefined;
 
-pub fn init(_allocator: std.mem.Allocator) !void {
+pub fn init(platform: anytype, _allocator: std.mem.Allocator) !void {
+    device = platform.getD3D11Device();
+    device_context = platform.getD3D11DeviceContext();
+    render_target_view = platform.getD3D11RenderTargetView();
+
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
     vertex_layouts = VertexLayoutList.init(allocator);
@@ -74,7 +78,7 @@ pub fn init(_allocator: std.mem.Allocator) !void {
     textures = TextureResourcesList.init(allocator);
 
     if (builtin.mode == .Debug) {
-        try win32.hrErrorOnFail(getD3D11Device().QueryInterface(
+        try win32.hrErrorOnFail(device.QueryInterface(
             &d3d11d.IID_IInfoQueue,
             @ptrCast(*?*anyopaque, &debug_info_queue),
         ));
@@ -170,13 +174,13 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
             .MaxDepth = 1.0,
         },
     };
-    getD3D11DeviceContext().RSSetViewports(1, &viewports);
+    device_context.RSSetViewports(1, &viewports);
 
     // TODO(hazeycode): delete in favour of setRenderTarget fn?
     const render_target_views = [_]*d3d11.IRenderTargetView{
-        getD3D11RenderTargetView(),
+        render_target_view,
     };
-    getD3D11DeviceContext().OMSetRenderTargets(
+    device_context.OMSetRenderTargets(
         1,
         @ptrCast([*]const d3d11.IRenderTargetView, &render_target_views),
         null,
@@ -185,11 +189,11 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
 
 pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
     const colour = [4]FLOAT{ r, g, b, a };
-    getD3D11DeviceContext().ClearRenderTargetView(getD3D11RenderTargetView(), &colour);
+    device_context.ClearRenderTargetView(render_target_view, &colour);
 }
 
 pub fn draw(offset: u32, count: u32) void {
-    const device_ctx = getD3D11DeviceContext();
+    const device_ctx = device_context;
     device_ctx.IASetPrimitiveTopology(d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST);
     device_ctx.Draw(count, offset);
 }
@@ -202,7 +206,7 @@ pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
         .BindFlags = d3d11.BIND_VERTEX_BUFFER,
         .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
     };
-    try win32.hrErrorOnFail(getD3D11Device().CreateBuffer(
+    try win32.hrErrorOnFail(device.CreateBuffer(
         &desc,
         null,
         &buffer,
@@ -223,7 +227,7 @@ pub fn mapBuffer(
 ) ![]align(alignment) u8 {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
     var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
-    try win32.hrErrorOnFail(getD3D11DeviceContext().Map(
+    try win32.hrErrorOnFail(device_context.Map(
         vertex_buffer,
         0,
         d3d11.MAP.WRITE_DISCARD,
@@ -236,7 +240,7 @@ pub fn mapBuffer(
 
 pub fn unmapBuffer(buffer_handle: VertexBufferHandle) void {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
-    getD3D11DeviceContext().Unmap(vertex_buffer, 0);
+    device_context.Unmap(vertex_buffer, 0);
 }
 
 pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
@@ -268,7 +272,7 @@ pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHan
 
 pub fn bindVertexLayout(vertex_layout_handle: VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
-    getD3D11DeviceContext().IASetVertexBuffers(
+    device_context.IASetVertexBuffers(
         0,
         1,
         vertex_layout.buffers.ptr,
@@ -301,7 +305,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
                 .uint8 => width,
             },
         };
-        try win32.hrErrorOnFail(getD3D11Device().CreateTexture2D(
+        try win32.hrErrorOnFail(device.CreateTexture2D(
             &desc,
             &subresouce_data,
             &texture,
@@ -310,7 +314,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
 
     var shader_res_view: ?*d3d11.IShaderResourceView = null;
     {
-        try win32.hrErrorOnFail(getD3D11Device().CreateShaderResourceView(
+        try win32.hrErrorOnFail(device.CreateShaderResourceView(
             @ptrCast(*d3d11.IResource, texture.?),
             null,
             &shader_res_view,
@@ -331,7 +335,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
             .MinLOD = 0,
             .MaxLOD = 0,
         };
-        try win32.hrErrorOnFail(getD3D11Device().CreateSamplerState(
+        try win32.hrErrorOnFail(device.CreateSamplerState(
             &desc,
             &sampler_state,
         ));
@@ -350,12 +354,12 @@ pub fn setTexture(slot: u32, texture_handle: TextureHandle) void {
     const samplers = [_]*d3d11.ISamplerState{
         textures.items[texture_handle].sampler_state,
     };
-    getD3D11DeviceContext().PSSetSamplers(0, 1, &samplers);
+    device_context.PSSetSamplers(0, 1, &samplers);
 
     const shader_res_views = [_]*d3d11.IShaderResourceView{
         textures.items[texture_handle].shader_res_view,
     };
-    getD3D11DeviceContext().PSSetShaderResources(slot, 1, &shader_res_views);
+    device_context.PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
 pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
@@ -366,7 +370,7 @@ pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
         .BindFlags = d3d11.BIND_CONSTANT_BUFFER,
         .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
     };
-    try win32.hrErrorOnFail(getD3D11Device().CreateBuffer(
+    try win32.hrErrorOnFail(device.CreateBuffer(
         &desc,
         null,
         &buffer,
@@ -389,7 +393,7 @@ pub fn updateShaderConstantBuffer(
         *d3d11.IResource,
         constant_buffers.items[buffer_handle].buffer,
     );
-    const device_ctx = getD3D11DeviceContext();
+    const device_ctx = device_context;
     var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
     try win32.hrErrorOnFail(device_ctx.Map(
         constant_buffer,
@@ -409,12 +413,12 @@ pub fn updateShaderConstantBuffer(
 pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
     const buffer = constant_buffers.items[buffer_handle];
     const buffers = [_]*d3d11.IBuffer{buffer.buffer};
-    getD3D11DeviceContext().VSSetConstantBuffers(
+    device_context.VSSetConstantBuffers(
         buffer.slot,
         1,
         @ptrCast([*]const *d3d11.IBuffer, &buffers),
     );
-    getD3D11DeviceContext().PSSetConstantBuffers(
+    device_context.PSSetConstantBuffers(
         buffer.slot,
         1,
         @ptrCast([*]const *d3d11.IBuffer, &buffers),
@@ -426,13 +430,13 @@ pub fn createRasteriserState() !RasteriserStateHandle {
     const desc = d3d11.RASTERIZER_DESC{
         .FrontCounterClockwise = TRUE,
     };
-    try win32.hrErrorOnFail(getD3D11Device().CreateRasterizerState(&desc, &res));
+    try win32.hrErrorOnFail(device.CreateRasterizerState(&desc, &res));
     return @ptrToInt(res);
 }
 
 pub fn setRasteriserState(state_handle: RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
-    getD3D11DeviceContext().RSSetState(state);
+    device_context.RSSetState(state);
 }
 
 pub fn createBlendState() !BlendStateHandle {
@@ -453,7 +457,7 @@ pub fn createBlendState() !BlendStateHandle {
         .IndependentBlendEnable = FALSE,
         .RenderTarget = rt_blend_descs,
     };
-    try win32.hrErrorOnFail(getD3D11Device().CreateBlendState(
+    try win32.hrErrorOnFail(device.CreateBlendState(
         &desc,
         &blend_state,
     ));
@@ -462,7 +466,7 @@ pub fn createBlendState() !BlendStateHandle {
 
 pub fn setBlendState(blend_state_handle: BlendStateHandle) void {
     const blend_state = @intToPtr(*d3d11.IBlendState, blend_state_handle);
-    getD3D11DeviceContext().OMSetBlendState(
+    device_context.OMSetBlendState(
         blend_state,
         null,
         0xffffffff,
@@ -470,11 +474,10 @@ pub fn setBlendState(blend_state_handle: BlendStateHandle) void {
 }
 
 pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
-    const device_ctx = getD3D11DeviceContext();
     const shader_program = shader_programs.items[program_handle];
-    device_ctx.IASetInputLayout(shader_program.input_layout);
-    device_ctx.VSSetShader(shader_program.vs, null, 0);
-    device_ctx.PSSetShader(shader_program.ps, null, 0);
+    device_context.IASetInputLayout(shader_program.input_layout);
+    device_context.VSSetShader(shader_program.vs, null, 0);
+    device_context.PSSetShader(shader_program.ps, null, 0);
 }
 
 pub fn createUniformColourShader() !ShaderProgramHandle {
@@ -562,7 +565,7 @@ pub fn createTexturedVertsShader() !ShaderProgramHandle {
 
 fn createInputLayout(desc: []const d3d11.INPUT_ELEMENT_DESC, vs_bytecode: *d3d.IBlob) !*d3d11.IInputLayout {
     var res: ?*d3d11.IInputLayout = null;
-    try win32.hrErrorOnFail(getD3D11Device().CreateInputLayout(
+    try win32.hrErrorOnFail(device.CreateInputLayout(
         @ptrCast(*const d3d11.INPUT_ELEMENT_DESC, desc.ptr),
         @intCast(UINT, desc.len),
         vs_bytecode.GetBufferPointer(),
@@ -574,7 +577,7 @@ fn createInputLayout(desc: []const d3d11.INPUT_ELEMENT_DESC, vs_bytecode: *d3d.I
 
 fn createVertexShader(bytecode: *d3d.IBlob) !*d3d11.IVertexShader {
     var res: ?*d3d11.IVertexShader = null;
-    try win32.hrErrorOnFail(getD3D11Device().CreateVertexShader(
+    try win32.hrErrorOnFail(device.CreateVertexShader(
         bytecode.GetBufferPointer(),
         bytecode.GetBufferSize(),
         null,
@@ -585,7 +588,7 @@ fn createVertexShader(bytecode: *d3d.IBlob) !*d3d11.IVertexShader {
 
 fn createPixelShader(bytecode: *d3d.IBlob) !*d3d11.IPixelShader {
     var res: ?*d3d11.IPixelShader = null;
-    try win32.hrErrorOnFail(getD3D11Device().CreatePixelShader(
+    try win32.hrErrorOnFail(device.CreatePixelShader(
         bytecode.GetBufferPointer(),
         bytecode.GetBufferSize(),
         null,

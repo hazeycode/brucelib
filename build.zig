@@ -16,6 +16,7 @@ const graphics = std.build.Pkg{
     .dependencies = &.{
         vendored.zwin32,
         vendored.zmath,
+        vendored.zig_opengl,
     },
 };
 
@@ -35,6 +36,10 @@ const vendored = struct {
     const zig_alsa = std.build.Pkg{
         .name = "zig-alsa",
         .path = .{ .path = "vendored/zig-alsa/src/main.zig" },
+    };
+    const zig_opengl = std.build.Pkg{
+        .name = "zig-opengl",
+        .path = .{ .path = "vendored/zig-opengl-exports/gl_4v4.zig" },
     };
 };
 
@@ -102,19 +107,16 @@ pub fn build(b: *std.build.Builder) !void {
     }
 }
 
-// TODO(hazeycode): load sytem libs at runtime, remove dependencies
 fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
         step.addIncludeDir("/usr/include");
         step.linkSystemLibrary("X11-xcb");
         step.linkSystemLibrary("GL");
-        step.linkSystemLibrary("epoxy");
     } else if (step.target.isDarwin()) {
         step.linkFramework("AppKit");
         step.linkFramework("MetalKit");
         step.linkFramework("OpenGL");
-        step.linkSystemLibrary("epoxy");
         step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
     } else if (step.target.isWindows()) {
         step.linkSystemLibrary("Kernel32");

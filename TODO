@@ -17,7 +17,6 @@ graphics:
 - DebugGUI: highlight with shift + arrow keys
 - premultiplied alpha
 - metal backend
-- remove libepoxy dependency
 - support multiple render targets i.e. implement graphics.setRenderTarget
 - (sparse) bindless texture arrays
 - ARB_multi_draw_indirect

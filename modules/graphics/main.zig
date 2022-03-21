@@ -215,8 +215,8 @@ pub fn usingAPI(comptime api: API) type {
 
         var debugfont_texture: Texture2d = undefined;
 
-        pub fn init(allocator: std.mem.Allocator) !void {
-            try backend.init(allocator);
+        pub fn init(platform: anytype, allocator: std.mem.Allocator) !void {
+            try backend.init(platform, allocator);
             errdefer backend.deinit();
 
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));

@@ -6,7 +6,7 @@ The graphics module provides an abstraaction over platform-specific graphics API
 This module **does not** handle graphics context creation. You must use some other means to do that, such as the [platform module](https://github.com/hazeycode/brucelib/tree/main/modules/platform)
 
 ### Supported backend APIs
-- OpenGL (4.2 core profile or greater)
+- OpenGL (4.4 core profile or greater)
 - D3D11
 - Metal (not yet implemented)
 - & more planned
@@ -20,7 +20,24 @@ The appropriate system libraries for the selected backend are required at runtim
 const graphics = @import("graphics").usingAPI(.default);
 
 // initilise
-try graphics.init(allocator);
+var context = struct {
+    pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
+        // call platform gl proc loader here
+    }
+
+    pub fn getD3D11Device() *d3d11.IDevice {
+        // return d3d11 device here
+    }
+
+    pub fn getD3D11DeviceContext() *d3d11.IDeviceContext {
+        // return d3d11 device context here
+    }
+
+    pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
+        // return d3d11 render target view here
+    }
+};
+try graphics.init(context, allocator);
 
 // begin a new draw list
 var draw_list = try graphics.beginDrawing(allocator);

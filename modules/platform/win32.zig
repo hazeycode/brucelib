@@ -66,6 +66,18 @@ var timer: std.time.Timer = undefined;
 var window_closed = false;
 var quit = false;
 
+pub fn getD3D11Device() *d3d11.IDevice {
+    return d3d11_device.?;
+}
+
+pub fn getD3D11DeviceContext() *d3d11.IDeviceContext {
+    return d3d11_device_context.?;
+}
+
+pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
+    return d3d11_render_target_view.?;
+}
+
 pub fn timestamp() u64 {
     return timer.read();
 }
@@ -429,16 +441,4 @@ fn createRenderTargetView() zwin32.HResultError!void {
         &d3d11_render_target_view,
     ));
     _ = framebuffer.Release();
-}
-
-export fn getD3D11Device() *d3d11.IDevice {
-    return d3d11_device.?;
-}
-
-export fn getD3D11DeviceContext() *d3d11.IDeviceContext {
-    return d3d11_device_context.?;
-}
-
-export fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
-    return d3d11_render_target_view.?;
 }
