@@ -34,10 +34,10 @@ try draw_list.clearViewport(graphics.Colour.black);
 // draw a triangle with a solid uniform orange colour
 try draw_list.drawUniformColourVerts(
     graphics.Colour.orange,
-    &[_]graphics.VertexPosition{
-        .{ -0.5, -0.5, 0.0 },
-        .{ 0.5, -0.5, 0.0 },
-        .{ 0.0, 0.5, 0.0 },
+    &[_]graphics.Vertex{
+        .{ .pos = .{ -0.5, -0.5, 0.0 } },
+        .{ .pos = .{ 0.5, -0.5, 0.0 } },
+        .{ .pos = .{ 0.0, 0.5, 0.0 } },
     },
 );
 
