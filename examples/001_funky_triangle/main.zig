@@ -78,10 +78,10 @@ fn frame(input: platform.FrameInput) !bool {
 
         try draw_list.drawUniformColourVerts(
             graphics.Colour.fromHSV(state.triangle_hue, 0.5, 1.0),
-            &[_]graphics.VertexPosition{
-                .{ -0.5, -0.5, 0.0 },
-                .{ 0.5, -0.5, 0.0 },
-                .{ 0.0, 0.5, 0.0 },
+            &[_]graphics.Vertex{
+                .{ .pos = .{ -0.5, -0.5, 0.0 } },
+                .{ .pos = .{ 0.5, -0.5, 0.0 } },
+                .{ .pos = .{ 0.0, 0.5, 0.0 } },
             },
         );
     }
@@ -138,7 +138,7 @@ fn frame(input: platform.FrameInput) !bool {
 
         try debug_gui.label(
             "Mouse pos = ({}, {})",
-            .{input.mouse_position.x, input.mouse_position.y},
+            .{ input.mouse_position.x, input.mouse_position.y },
         );
 
         try debug_gui.end();

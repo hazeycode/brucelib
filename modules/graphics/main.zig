@@ -35,7 +35,7 @@ pub fn usingAPI(comptime api: API) type {
         pub const SamplerStateHandle = common.SamplerStateHandle;
         pub const VertexLayoutDesc = common.VertexLayoutDesc;
         pub const TextureFormat = common.TextureFormat;
-        pub const VertexPosition = common.VertexPosition;
+        pub const Vertex = common.Vertex;
         pub const VertexIndex = common.VertexIndex;
         pub const VertexUV = common.VertexUV;
         pub const TexturedVertex = common.TexturedVertex;
@@ -148,7 +148,7 @@ pub fn usingAPI(comptime api: API) type {
             pub fn drawUniformColourVerts(
                 self: *@This(),
                 colour: Colour,
-                vertices: []const VertexPosition,
+                vertices: []const Vertex,
             ) !void {
                 var resources = &pipeline_resources.uniform_colour_verts;
 
@@ -195,7 +195,7 @@ pub fn usingAPI(comptime api: API) type {
                 rasteriser_state: RasteriserStateHandle,
                 blend_state: BlendStateHandle,
                 constant_buffer: ConstantBufferHandle,
-                vertex_buffer: VertexBuffer(VertexPosition),
+                vertex_buffer: VertexBuffer(Vertex),
                 vertex_buffer_cur: u32,
             },
             textured_verts: struct {
@@ -223,7 +223,7 @@ pub fn usingAPI(comptime api: API) type {
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));
 
             {
-                const vertex_buffer = try VertexBuffer(VertexPosition).init(1e3);
+                const vertex_buffer = try VertexBuffer(Vertex).init(1e3);
 
                 const vertex_layout = try backend.createVertexLayout(.{
                     .entries = &[_]VertexLayoutDesc.Entry{
@@ -387,7 +387,7 @@ pub fn usingAPI(comptime api: API) type {
             cur_x: f32,
             cur_y: f32,
             text_verts: std.ArrayList(TexturedVertex),
-            uniform_colour_verts: std.ArrayList(VertexPosition),
+            uniform_colour_verts: std.ArrayList(Vertex),
             state: *State,
 
             const inset = 4;
@@ -440,7 +440,7 @@ pub fn usingAPI(comptime api: API) type {
                     .cur_x = @intToFloat(f32, inset),
                     .cur_y = @intToFloat(f32, inset),
                     .text_verts = std.ArrayList(TexturedVertex).init(allocator),
-                    .uniform_colour_verts = std.ArrayList(VertexPosition).init(allocator),
+                    .uniform_colour_verts = std.ArrayList(Vertex).init(allocator),
                     .state = state,
                 };
             }
@@ -453,8 +453,8 @@ pub fn usingAPI(comptime api: API) type {
                     if (v.pos[1] > rect.max_y) rect.max_y = v.pos[1];
                 }
                 for (self.uniform_colour_verts.items) |v| {
-                    if (v[0] > rect.max_x) rect.max_x = v[0];
-                    if (v[1] > rect.max_y) rect.max_y = v[0];
+                    if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
+                    if (v.pos[1] > rect.max_y) rect.max_y = v.pos[0];
                 }
                 rect.max_x += @intToFloat(f32, inset);
                 rect.max_y += @intToFloat(f32, inset);
@@ -570,10 +570,10 @@ pub fn usingAPI(comptime api: API) type {
             }
 
             fn drawColourRect(self: *DebugGUI, colour: Colour, rect: Rect) !void {
-                var verts = try self.allocator.alloc(VertexPosition, 6);
+                var verts = try self.allocator.alloc(Vertex, 6);
                 errdefer self.allocator.free(verts);
 
-                std.mem.copy(VertexPosition, verts, &rect.vertices());
+                std.mem.copy(Vertex, verts, &rect.vertices());
 
                 try self.draw_list.drawUniformColourVerts(colour, verts);
             }
@@ -582,7 +582,7 @@ pub fn usingAPI(comptime api: API) type {
                 const num_verts = 6;
                 const num_sides = 4;
 
-                var verts = try self.allocator.alloc(VertexPosition, num_verts * num_sides);
+                var verts = try self.allocator.alloc(Vertex, num_verts * num_sides);
                 errdefer self.allocator.free(verts);
 
                 { // left side
@@ -594,7 +594,7 @@ pub fn usingAPI(comptime api: API) type {
                     };
                     const offset = 0 * num_verts;
                     std.mem.copy(
-                        VertexPosition,
+                        Vertex,
                         verts[offset..(offset + num_verts)],
                         &side_rect.vertices(),
                     );
@@ -609,7 +609,7 @@ pub fn usingAPI(comptime api: API) type {
                     };
                     const offset = 1 * num_verts;
                     std.mem.copy(
-                        VertexPosition,
+                        Vertex,
                         verts[offset..(offset + num_verts)],
                         &side_rect.vertices(),
                     );
@@ -624,7 +624,7 @@ pub fn usingAPI(comptime api: API) type {
                     };
                     const offset = 2 * num_verts;
                     std.mem.copy(
-                        VertexPosition,
+                        Vertex,
                         verts[offset..(offset + num_verts)],
                         &side_rect.vertices(),
                     );
@@ -639,7 +639,7 @@ pub fn usingAPI(comptime api: API) type {
                     };
                     const offset = 3 * num_verts;
                     std.mem.copy(
-                        VertexPosition,
+                        Vertex,
                         verts[offset..(offset + num_verts)],
                         &side_rect.vertices(),
                     );

@@ -53,12 +53,15 @@ pub const TextureFormat = enum(u16) {
     uint8,
 };
 
-pub const VertexPosition = [3]f32;
+pub const Vertex = extern struct {
+    pos: [3]f32,
+};
+
 pub const VertexIndex = u16;
 pub const VertexUV = [2]f32;
 
 pub const TexturedVertex = extern struct {
-    pos: VertexPosition,
+    pos: [3]f32,
     uv: VertexUV,
 };
 
@@ -114,14 +117,14 @@ pub const Rect = extern struct {
     max_x: f32,
     max_y: f32,
 
-    pub fn vertices(self: Rect) [6]VertexPosition {
-        return [_]VertexPosition{
-            VertexPosition{ self.min_x, self.min_y, 0.0 },
-            VertexPosition{ self.min_x, self.max_y, 0.0 },
-            VertexPosition{ self.max_x, self.max_y, 0.0 },
-            VertexPosition{ self.max_x, self.max_y, 0.0 },
-            VertexPosition{ self.max_x, self.min_y, 0.0 },
-            VertexPosition{ self.min_x, self.min_y, 0.0 },
+    pub fn vertices(self: Rect) [6]Vertex {
+        return [_]Vertex{
+            .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
+            .{ .pos = .{ self.min_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.min_y, 0.0 } },
+            .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
         };
     }
 
