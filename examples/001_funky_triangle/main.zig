@@ -3,9 +3,7 @@ const std = @import("std");
 const platform = @import("platform");
 const graphics = @import("graphics").usingAPI(.default);
 
-const sin = std.math.sin;
-const pi = std.math.pi;
-const tao = 2 * pi;
+const audio_on = true;
 
 pub fn main() anyerror!void {
     try platform.run(.{
@@ -14,53 +12,39 @@ pub fn main() anyerror!void {
             .width = 854,
             .height = 480,
         },
-        .enable_audio = true,
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
+        .audio_playback_fn = if (audio_on) audioPlayback else null,
     });
 }
 
 var state: struct {
     triangle_hue: f32 = 0,
+    audio_cursor: u64 = 0,
     tone_hz: f32 = 440,
     volume: f32 = 0.67,
     debug_gui: graphics.DebugGUI.State = .{},
 } = .{};
 
+/// Called before the platform event loop begins
 fn init(allocator: std.mem.Allocator) !void {
     try graphics.init(platform, allocator);
 }
 
+/// Called before the program terminates, after the `frame_fn` returns false
 fn deinit() void {
     graphics.deinit();
 }
 
+/// Called every time the platform module wants a new frame to display to meet the target
+/// framerate. The target framerate is determined by the platform layer using the display
+/// refresh rate, frame metrics and the optional user set arg of `platform.run`:
+/// `.requested_framerate`. `FrameInput` is passed as an argument, containing events and
+/// other data used to produce the next frame.
 fn frame(input: platform.FrameInput) !bool {
     if (input.quit_requested) {
         return false;
-    }
-
-    { // queue up a frame of sine wave samples
-        // it's best to try and write audio out as early in the frame as possible after updates
-
-        const audio = try platform.audioPlaybackBegin(input.frame_arena_allocator);
-        const sample_rate = @intToFloat(f32, audio.sample_rate);
-
-        const audio_frames_to_write = audio.min_frames;
-
-        var n: u32 = 0;
-        while (n < audio_frames_to_write) : (n += 1) {
-            var sample = 0.5 * sin(@intToFloat(f32, audio.cursor + n) * (tao * state.tone_hz) / sample_rate);
-            sample *= state.volume;
-
-            var channel: u32 = 0;
-            while (channel < audio.channels) : (channel += 1) {
-                audio.sample_buf[n * audio.channels + channel] = @floatCast(f32, sample);
-            }
-        }
-
-        platform.audioPlaybackCommit(audio, audio_frames_to_write);
     }
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
@@ -127,11 +111,6 @@ fn frame(input: platform.FrameInput) !bool {
             .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
         );
 
-        try debug_gui.label(
-            "{d:.2} ms audio latency",
-            .{input.debug_stats.audio_latency_avg_ms},
-        );
-
         try debug_gui.textField(f32, "{d:.2} Hz", &state.tone_hz);
 
         // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz, 200);
@@ -147,4 +126,30 @@ fn frame(input: platform.FrameInput) !bool {
     try graphics.submitDrawList(draw_list);
 
     return true;
+}
+
+/// Optional audio playback callback. If set it can be called at any time by the platform module
+/// on a dedicated audio thread.
+fn audioPlayback(stream: platform.AudioPlaybackStream) !void {
+    const sin = std.math.sin;
+    const pi = std.math.pi;
+    const tao = 2 * pi;
+
+    const sample_rate = @intToFloat(f32, stream.sample_rate);
+    const num_frames = stream.sample_buf.len / stream.channels;
+
+    var n: u32 = 0;
+    while (n < num_frames) : (n += 1) {
+        var sample = 0.5 * sin(
+            @intToFloat(f32, state.audio_cursor + n) * (tao * state.tone_hz) / sample_rate,
+        );
+        sample *= state.volume;
+
+        var channel: u32 = 0;
+        while (channel < stream.channels) : (channel += 1) {
+            stream.sample_buf[n * stream.channels + channel] = @floatCast(f32, sample);
+        }
+    }
+
+    state.audio_cursor += num_frames;
 }

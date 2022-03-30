@@ -3,7 +3,7 @@ const std = @import("std");
 
 const alsa = @import("zig-alsa");
 
-pub const AlsaPlaybackStream = @This();
+pub const AlsaPlaybackInterface = @This();
 
 stream: *alsa.snd_pcm_t,
 num_channels: u32,
@@ -12,7 +12,7 @@ bits_per_sample: u32,
 write_cursor: usize = 0,
 read_cursor: usize = 0,
 
-pub fn init(target_framerate: u32) !AlsaPlaybackStream {
+pub fn init(target_framerate: u32) !AlsaPlaybackInterface {
     var stream: ?*alsa.snd_pcm_t = null;
     _ = try alsa.checkError(alsa.snd_pcm_open(
         &stream,
@@ -102,7 +102,7 @@ pub fn init(target_framerate: u32) !AlsaPlaybackStream {
 
     _ = try alsa.checkError(alsa.snd_pcm_prepare(stream));
 
-    return AlsaPlaybackStream{
+    return AlsaPlaybackInterface{
         .stream = stream.?,
         .num_channels = num_channels,
         .sample_rate = sample_rate,
@@ -110,20 +110,20 @@ pub fn init(target_framerate: u32) !AlsaPlaybackStream {
     };
 }
 
-pub fn deinit(self: *AlsaPlaybackStream) void {
+pub fn deinit(self: *AlsaPlaybackInterface) void {
     _ = alsa.snd_pcm_drain(self.stream);
     _ = alsa.snd_pcm_close(self.stream);
 }
 
-pub fn start(self: *AlsaPlaybackStream) !void {
+pub fn start(self: *AlsaPlaybackInterface) !void {
     _ = try alsa.checkError(alsa.snd_pcm_start(self.stream));
 }
 
-pub fn stop(self: *AlsaPlaybackStream) !void {
+pub fn stop(self: *AlsaPlaybackInterface) !void {
     _ = try alsa.checkError(alsa.snd_pcm_drain(self.stream));
 }
 
-pub fn waitBufferReady(self: AlsaPlaybackStream) !void {
+pub fn waitBufferReady(self: AlsaPlaybackInterface) !void {
     const res = try alsa.checkError(alsa.snd_pcm_wait(self.stream, -1));
     switch (res) {
         0 => return error.TimedOut,
@@ -134,16 +134,16 @@ pub fn waitBufferReady(self: AlsaPlaybackStream) !void {
     }
 }
 
-pub fn getBufferFramesAvailable(self: *AlsaPlaybackStream) !usize {
+pub fn getBufferFramesAvailable(self: *AlsaPlaybackInterface) !usize {
     const avail = try alsa.checkError(alsa.snd_pcm_avail_update(self.stream));
     return @intCast(usize, avail);
 }
 
-pub fn getBufferFramesRewindable(self: *AlsaPlaybackStream) !usize {
+pub fn getBufferFramesRewindable(self: *AlsaPlaybackInterface) !usize {
     return try alsa.checkError(alsa.snd_pcm_rewindable(self.stream));
 }
 
-pub fn rewindBuffer(self: *AlsaPlaybackStream, frames: usize) !usize {
+pub fn rewindBuffer(self: *AlsaPlaybackInterface, frames: usize) !usize {
     const dist = try alsa.checkError(alsa.snd_pcm_rewind(
         self.stream,
         @intCast(alsa.snd_pcm_sframes_t, frames),
@@ -152,13 +152,13 @@ pub fn rewindBuffer(self: *AlsaPlaybackStream, frames: usize) !usize {
     return dist;
 }
 
-pub fn writeSamples(self: *AlsaPlaybackStream, samples: []f32) !usize {
+pub fn writeSamples(self: *AlsaPlaybackInterface, samples: []f32) !usize {
     return try alsa.checkError(
         alsa.snd_pcm_writei(self.stream, samples.ptr, samples.len / self.num_channels),
     );
 }
 
-pub fn getLatency(self: *AlsaPlaybackStream) !usize {
+pub fn getLatency(self: *AlsaPlaybackInterface) !usize {
     var io_latency: alsa.snd_pcm_sframes_t = undefined;
     _ = try alsa.checkError(alsa.snd_pcm_delay(self.stream, &io_latency));
     return self.write_cursor - self.read_cursor + @intCast(usize, io_latency);

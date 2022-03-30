@@ -1,9 +1,11 @@
 const std = @import("std");
 
-const AlsaPlaybackStream = @import("linux/AlsaPlaybackStream.zig");
-const AudioPlaybackStream = AlsaPlaybackStream;
-
 const FrameInput = @import("FrameInput.zig");
+
+const AudioPlaybackStream = @import("AudioPlaybackStream.zig");
+
+const AlsaPlaybackInterface = @import("linux/AlsaPlaybackInterface.zig");
+const AudioPlaybackInterface = AlsaPlaybackInterface;
 
 const GraphicsAPI = enum {
     opengl,
@@ -19,18 +21,9 @@ var window_height: u16 = undefined;
 pub const max_audio_latency_samples = 16;
 
 pub var audio_playback = struct {
-    enabled: bool = false,
-    stream: AudioPlaybackStream = undefined,
-    ring_buf: []f32 = undefined,
-    ring_read_cur: usize = 0,
-    ring_write_cur: usize = 0,
-    samples_queued: usize = 0,
+    user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
+    interface: AudioPlaybackInterface = undefined,
     thread: std.Thread = undefined,
-    write_cursor: usize = 0,
-    read_cursor: usize = 0,
-    latency: [max_audio_latency_samples]u64 = .{0} ** max_audio_latency_samples,
-    latency_cur: usize = 0,
-    latency_avg: u64 = 0,
 }{};
 
 var timer: std.time.Timer = undefined;
@@ -59,10 +52,10 @@ pub fn run(args: struct {
         .width = 854,
         .height = 480,
     },
-    enable_audio: bool = false,
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
+    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!void = null,
 }) !void {
     timer = try std.time.Timer.start();
 
@@ -132,7 +125,6 @@ pub fn run(args: struct {
             },
             .debug_stats = .{
                 .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
-                .audio_latency_avg_ms = 0, // TODO(hazeycode): set avg audio latency
             },
         }));
 
