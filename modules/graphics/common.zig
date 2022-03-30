@@ -86,8 +86,9 @@ pub const Colour = extern struct {
 
     /// Returns a Colour for a given hue, saturation and value
     /// h, s, v are assumed to be in the range 0...1
-    /// Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
     pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
+        // Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
+        // TODO(hazeycode): compare performance & codegen of this vs zmath.hsvToRgb
         const hp = (h * 360) / 60;
         const c = v * s;
         const x = c * (1 - @fabs(@mod(hp, 2) - 1));
