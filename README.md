@@ -30,12 +30,12 @@ Brucelib also [vendors several libraries](vendored/) that are used by the above 
 ## Getting Started
 - Copy/clone/submodule this respository
 - Run all the tests with `zig build test`
-- Build and run an example: e.g. `zig build run-example-001`
+- Build and run an example: e.g. `zig build run-example-000`
 - List all available build targets with `zig build --help`
 - Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or add as a package in your build.zig along with any vendored libs it uses. Refer to [build.zig](build.zig) for an example.
 
 ### Examples
 
-[001-funky triangle](examples/001_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics) modules to open a window and draw stuff in it.
+[000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics) modules to open a window and draw stuff in it.
 
-<img src="examples/001_funky_triangle/screencap.gif" height=240/>
+<img src="examples/000_funky_triangle/screencap.gif" height=240/>

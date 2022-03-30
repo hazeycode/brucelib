@@ -75,8 +75,6 @@ pub fn build(b: *std.build.Builder) !void {
         while (try dir_it.next()) |entry| {
             switch (entry.kind) {
                 .Directory => {
-                    example_id += 1;
-
                     const example = b.addExecutable(
                         entry.name,
                         try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
@@ -100,6 +98,8 @@ pub fn build(b: *std.build.Builder) !void {
                         try std.fmt.allocPrint(b.allocator, "Build and run example {s}", .{entry.name}),
                     );
                     run.dependOn(&example_runstep.step);
+
+                    example_id += 1;
                 },
                 else => {},
             }
