@@ -18,8 +18,6 @@ pub var target_framerate: u16 = undefined;
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 
-pub const max_audio_latency_samples = 16;
-
 pub var audio_playback = struct {
     user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
     interface: AudioPlaybackInterface = undefined,
@@ -418,7 +416,7 @@ const X11 = struct {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
                     if (translateKey(xcb_key_press_event.detail)) |key| {
                         const repeat = key_states[@enumToInt(key)];
-                        if (repeat) {
+                        if (repeat == false) {
                             key_repeats[@enumToInt(key)] += 1;
                             try key_events.append(.{
                                 .action = .press,
