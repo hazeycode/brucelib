@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const platform = std.build.Pkg{
+pub const platform = PackageDesc{
     .name = "platform",
-    .path = .{ .path = "modules/platform/main.zig" },
+    .path = "modules/platform/main.zig",
     .dependencies = &.{
         vendored.zig_objcrt,
         vendored.zwin32,
@@ -10,9 +10,9 @@ const platform = std.build.Pkg{
     },
 };
 
-const graphics = std.build.Pkg{
+pub const graphics = PackageDesc{
     .name = "graphics",
-    .path = .{ .path = "modules/graphics/main.zig" },
+    .path = "modules/graphics/main.zig",
     .dependencies = &.{
         vendored.zwin32,
         vendored.zmath,
@@ -21,26 +21,48 @@ const graphics = std.build.Pkg{
 };
 
 const vendored = struct {
-    const zig_objcrt = std.build.Pkg{
+    const zig_objcrt = PackageDesc{
         .name = "zig-objcrt",
-        .path = .{ .path = "vendored/zig-objcrt/src/main.zig" },
+        .path = "vendored/zig-objcrt/src/main.zig",
     };
-    const zwin32 = std.build.Pkg{
+    const zwin32 = PackageDesc{
         .name = "zwin32",
-        .path = .{ .path = "vendored/zwin32/zwin32.zig" },
+        .path = "vendored/zwin32/zwin32.zig",
     };
-    const zmath = std.build.Pkg{
+    const zmath = PackageDesc{
         .name = "zmath",
-        .path = .{ .path = "vendored/zmath/zmath.zig" },
+        .path = "vendored/zmath/zmath.zig",
     };
-    const zig_alsa = std.build.Pkg{
+    const zig_alsa = PackageDesc{
         .name = "zig-alsa",
-        .path = .{ .path = "vendored/zig-alsa/src/main.zig" },
+        .path = "vendored/zig-alsa/src/main.zig",
     };
-    const zig_opengl = std.build.Pkg{
+    const zig_opengl = PackageDesc{
         .name = "zig-opengl",
-        .path = .{ .path = "vendored/zig-opengl-exports/gl_4v4.zig" },
+        .path = "vendored/zig-opengl-exports/gl_4v4.zig",
     };
+};
+
+pub const PackageDesc = struct {
+    name: []const u8,
+    path: []const u8,
+    dependencies: []const PackageDesc = &.{},
+
+    pub fn getPackage(
+        comptime self: PackageDesc,
+        allocator: std.mem.Allocator,
+        comptime relative_to_path: []const u8,
+    ) std.mem.Allocator.Error!std.build.Pkg {
+        var dependencies = try allocator.alloc(std.build.Pkg, self.dependencies.len);
+        inline for (self.dependencies) |dep, i| {
+            dependencies[i] = try dep.getPackage(allocator, relative_to_path);
+        }
+        return std.build.Pkg{
+            .name = self.name,
+            .path = .{ .path = relative_to_path ++ self.path },
+            .dependencies = dependencies,
+        };
+    }
 };
 
 pub fn build(b: *std.build.Builder) !void {
@@ -52,14 +74,17 @@ pub fn build(b: *std.build.Builder) !void {
 
     const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
 
+    const platform_pkg = try platform.getPackage(b.allocator, "./");
+    const graphics_pkg = try graphics.getPackage(b.allocator, "./");
+
     { // tests
-        const platform_tests = b.addTest(platform.path.path);
-        for (platform.dependencies.?) |dep| platform_tests.addPackage(dep);
+        const platform_tests = b.addTest(platform_pkg.path.path);
+        for (platform_pkg.dependencies.?) |dep| platform_tests.addPackage(dep);
         try addPlatformSystemDependencies(platform_tests);
         platform_tests.setBuildMode(mode);
 
-        const graphics_tests = b.addTest(graphics.path.path);
-        for (graphics.dependencies.?) |dep| graphics_tests.addPackage(dep);
+        const graphics_tests = b.addTest(graphics_pkg.path.path);
+        for (graphics_pkg.dependencies.?) |dep| graphics_tests.addPackage(dep);
         graphics_tests.setBuildMode(mode);
 
         const test_step = b.step("test", "Run all tests");
@@ -82,8 +107,8 @@ pub fn build(b: *std.build.Builder) !void {
                     example.setTarget(standard_target_opts);
                     example.setBuildMode(mode);
 
-                    example.addPackage(platform);
-                    example.addPackage(graphics);
+                    example.addPackage(platform_pkg);
+                    example.addPackage(graphics_pkg);
 
                     try addPlatformSystemDependencies(example);
 
@@ -107,7 +132,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
 }
 
-fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
+pub fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
     if (step.target.isLinux()) {
         step.linkLibC();
         step.addIncludeDir("/usr/include");
