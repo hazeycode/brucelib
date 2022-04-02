@@ -633,5 +633,6 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
 fn formatToDxgiFormat(format: TextureFormat) dxgi.FORMAT {
     return switch (format) {
         .uint8 => dxgi.FORMAT.R8_UNORM,
+        .rgba_u8 => dxgi.FORMAT.R8G8B8A8_UNORM,
     };
 }

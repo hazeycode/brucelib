@@ -291,17 +291,20 @@ fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !
 fn formatToGlInternalFormat(format: TextureFormat) gl.GLint {
     return switch (format) {
         .uint8 => gl.R8,
+        .rgba_u8 => gl.RGBA8UI,
     };
 }
 
 fn formatToGlFormat(format: TextureFormat) gl.GLenum {
     return switch (format) {
         .uint8 => gl.RED,
+        .rgba_u8 => gl.RGBA_INTEGER,
     };
 }
 
 fn formatToGlDataType(format: TextureFormat) gl.GLenum {
     return switch (format) {
         .uint8 => gl.UNSIGNED_BYTE,
+        .rgba_u8 => gl.UNSIGNED_BYTE,
     };
 }

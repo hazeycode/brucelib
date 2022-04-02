@@ -51,6 +51,7 @@ pub const VertexLayoutDesc = struct {
 
 pub const TextureFormat = enum(u16) {
     uint8,
+    rgba_u8,
 };
 
 pub const Vertex = extern struct {

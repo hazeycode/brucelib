@@ -1,5 +1,6 @@
 const std = @import("std");
-const core = @import("core");
+
+const stbi = @import("stb_image");
 
 const common = @import("common.zig");
 const TextureFormat = common.TextureFormat;
@@ -12,6 +13,43 @@ pub fn withBackend(comptime backend: anytype) type {
             format: TextureFormat,
             width: u32,
             height: u32,
+
+            pub fn fromBytes(bytes: []const u8) !Texture2d {
+                var width: u32 = undefined;
+                var height: u32 = undefined;
+                var channels: u32 = undefined;
+                
+                const texture_bytes = stbi.stbi_load_from_memory(
+                    bytes.ptr,
+                    @intCast(c_int, bytes.len),
+                    @ptrCast(*c_int, &width),
+                    @ptrCast(*c_int, &height),
+                    @ptrCast(*c_int, &channels),
+                    0,
+                );
+                defer stbi.stbi_image_free(texture_bytes);
+
+                const texture_bytes_size = width * height * channels * @sizeOf(u8);
+
+                const format: TextureFormat = switch (channels) {
+                    4 => .rgba_u8,
+                    else => unreachable,
+                };
+
+                const handle = try backend.createTexture2dWithBytes(
+                    texture_bytes[0..texture_bytes_size],
+                    width,
+                    height,
+                    format,
+                );
+
+                return Texture2d{
+                    .handle = handle,
+                    .format = format,
+                    .width = width,
+                    .height = height,
+                };
+            }
 
             pub fn fromPBM(allocator: std.mem.Allocator, pbm_bytes: []const u8) !Texture2d {
                 return try pbm.parse(allocator, pbm_bytes);
