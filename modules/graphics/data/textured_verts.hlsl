@@ -24,6 +24,10 @@ VS_Output vs_main(VS_Input input) {
 }
 
 float4 ps_main(VS_Output input) : SV_TARGET {
+    return texture0.Sample(sampler0, input.uv);
+}
+
+float4 ps_mono_main(VS_Output input) : SV_TARGET {
     float s = texture0.Sample(sampler0, input.uv);
     return float4(1, 1, 1, s);
 }

@@ -143,8 +143,9 @@ pub fn build(b: *std.build.Builder) !void {
 }
 
 pub fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
+    step.linkLibC();
+
     if (step.target.isLinux()) {
-        step.linkLibC();
         step.addIncludeDir("/usr/include");
         step.linkSystemLibrary("X11-xcb");
         step.linkSystemLibrary("GL");

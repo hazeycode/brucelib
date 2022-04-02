@@ -303,6 +303,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
             .pSysMem = bytes.ptr,
             .SysMemPitch = switch (format) {
                 .uint8 => width,
+                .rgba_u8 => width * 4,
             },
         };
         try win32.hrErrorOnFail(device.CreateTexture2D(
@@ -428,6 +429,7 @@ pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
 pub fn createRasteriserState() !RasteriserStateHandle {
     var res: ?*d3d11.IRasterizerState = null;
     const desc = d3d11.RASTERIZER_DESC{
+        .CullMode = .NONE,
         .FrontCounterClockwise = TRUE,
     };
     try win32.hrErrorOnFail(device.CreateRasterizerState(&desc, &res));
@@ -502,6 +504,52 @@ pub fn createUniformColourShader() !ShaderProgramHandle {
             .Format = dxgi.FORMAT.R32G32B32_FLOAT,
             .InputSlot = 0,
             .AlignedByteOffset = 0,
+            .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0,
+        },
+    };
+    const input_layout = try createInputLayout(&input_element_desc, vs_bytecode);
+
+    try shader_programs.append(.{
+        .vs = vs,
+        .ps = ps,
+        .input_layout = input_layout,
+    });
+
+    return (shader_programs.items.len - 1);
+}
+
+pub fn createTexturedVertsMonoShader() !ShaderProgramHandle {
+    const shader_src = @embedFile("data/textured_verts.hlsl");
+
+    const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
+    defer _ = vs_bytecode.Release();
+
+    const ps_bytecode = try compileHLSL(shader_src, "ps_mono_main", "ps_5_0");
+    defer _ = ps_bytecode.Release();
+
+    const vs = try createVertexShader(vs_bytecode);
+    errdefer _ = vs.Release();
+
+    const ps = try createPixelShader(ps_bytecode);
+    errdefer _ = ps.Release();
+
+    const input_element_desc = [_]d3d11.INPUT_ELEMENT_DESC{
+        .{
+            .SemanticName = "POSITION",
+            .SemanticIndex = 0,
+            .Format = dxgi.FORMAT.R32G32B32_FLOAT,
+            .InputSlot = 0,
+            .AlignedByteOffset = 0,
+            .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0,
+        },
+        .{
+            .SemanticName = "TEXCOORD",
+            .SemanticIndex = 0,
+            .Format = dxgi.FORMAT.R32G32_FLOAT,
+            .InputSlot = 0,
+            .AlignedByteOffset = 12,
             .InputSlotClass = d3d11.INPUT_CLASSIFICATION.INPUT_PER_VERTEX_DATA,
             .InstanceDataStepRate = 0,
         },

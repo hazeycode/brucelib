@@ -20,7 +20,7 @@ pub fn withBackend(comptime backend: anytype) type {
                 var channels: u32 = undefined;
 
                 stbi.stbi_set_flip_vertically_on_load(1);
-                
+
                 const texture_bytes = stbi.stbi_load_from_memory(
                     bytes.ptr,
                     @intCast(c_int, bytes.len),
