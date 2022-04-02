@@ -6,4 +6,5 @@ Each vendored library is listed below along with the modules that use it and the
 | zwin32 | The zwin32 lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [platform](modules/platform/), [graphics](modules/graphics/) | MIT |
 | zmath | The zmath linear maths lib from [zig-gamedev](https://github.com/michal-z/zig-gamedev) | [graphics](modules/graphics/) | MIT |
 | zig-alsa | ALSA bindings lib from [here](https://github.com/hazeycode/zig-alsa) | [platform](modules/platform/) | 0BSD |
+| stb_image | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | [graphics](modules/graphics/) | MIT |
 
