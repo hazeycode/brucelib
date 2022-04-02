@@ -211,6 +211,31 @@ pub fn usingAPI(comptime api: API) type {
 
                 resources.vertex_buffer_cur += count;
             }
+
+            pub fn drawTexturedQuad(
+                self: *@This(),
+                args: struct {
+                    texture: Texture2d,
+                    uv_rect: Rect = .{
+                        .min_x = 0,
+                        .min_y = 0,
+                        .max_x = 1,
+                        .max_y = 1,
+                    },
+                },
+            ) !void {
+                const aspect_ratio = @intToFloat(f32, args.texture.height) / @intToFloat(f32, args.texture.width);
+                const rect = Rect{
+                    .min_x = -1,
+                    .min_y = -1 * aspect_ratio,
+                    .max_x = 1,
+                    .max_y = 1 * aspect_ratio,
+                };
+                try self.drawTexturedVerts(
+                    args.texture,
+                    &rect.texturedVertices(args.uv_rect),
+                );
+            }
         };
 
         var pipeline_resources: struct {
