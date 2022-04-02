@@ -232,7 +232,7 @@ pub fn createTexturedVertsShader() !ShaderProgramHandle {
 
 pub fn createTexturedVertsMonoShader() !ShaderProgramHandle {
     const vert_shader_src = @embedFile("data/textured_verts_vs.glsl");
-    const frag_shader_src = @embedFile("data/textured_verts_fs_mono.glsl");
+    const frag_shader_src = @embedFile("data/textured_verts_mono_fs.glsl");
 
     const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
     defer gl.deleteShader(vertex_shader);
