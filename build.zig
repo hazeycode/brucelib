@@ -17,29 +17,35 @@ pub const graphics = PackageDesc{
         vendored.zwin32,
         vendored.zmath,
         vendored.zig_opengl,
+        vendored.stb_image,
     },
 };
 
-const vendored = struct {
-    const zig_objcrt = PackageDesc{
+pub const vendored = struct {
+    pub const zig_objcrt = PackageDesc{
         .name = "zig-objcrt",
         .path = "vendored/zig-objcrt/src/main.zig",
     };
-    const zwin32 = PackageDesc{
+    pub const zwin32 = PackageDesc{
         .name = "zwin32",
         .path = "vendored/zwin32/zwin32.zig",
     };
-    const zmath = PackageDesc{
+    pub const zmath = PackageDesc{
         .name = "zmath",
         .path = "vendored/zmath/zmath.zig",
     };
-    const zig_alsa = PackageDesc{
+    pub const zig_alsa = PackageDesc{
         .name = "zig-alsa",
         .path = "vendored/zig-alsa/src/main.zig",
     };
-    const zig_opengl = PackageDesc{
+    pub const zig_opengl = PackageDesc{
         .name = "zig-opengl",
         .path = "vendored/zig-opengl-exports/gl_4v4.zig",
+    };
+    pub const stb_image = PackageDesc{
+        .name = "stb_image",
+        .path = "vendored/stb_image/main.zig",
+        .c_inc_path = "vendored/stb_image",
     };
 };
 
@@ -47,6 +53,7 @@ pub const PackageDesc = struct {
     name: []const u8,
     path: []const u8,
     dependencies: []const PackageDesc = &.{},
+    c_inc_path: []const u8 = &.{},
 
     pub fn getPackage(
         comptime self: PackageDesc,
@@ -57,11 +64,12 @@ pub const PackageDesc = struct {
         inline for (self.dependencies) |dep, i| {
             dependencies[i] = try dep.getPackage(allocator, relative_to_path);
         }
-        return std.build.Pkg{
+        var pkg = std.build.Pkg{
             .name = self.name,
             .path = .{ .path = relative_to_path ++ self.path },
             .dependencies = dependencies,
         };
+        return pkg;
     }
 };
 
@@ -106,6 +114,8 @@ pub fn build(b: *std.build.Builder) !void {
                     );
                     example.setTarget(standard_target_opts);
                     example.setBuildMode(mode);
+
+                    example.addIncludeDir("./" ++ vendored.stb_image.c_inc_path);
 
                     example.addPackage(platform_pkg);
                     example.addPackage(graphics_pkg);
