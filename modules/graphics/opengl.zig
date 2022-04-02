@@ -230,6 +230,19 @@ pub fn createTexturedVertsShader() !ShaderProgramHandle {
     return try createShaderProgram(vertex_shader, fragment_shader);
 }
 
+pub fn createTexturedVertsMonoShader() !ShaderProgramHandle {
+    const vert_shader_src = @embedFile("data/textured_verts_vs.glsl");
+    const frag_shader_src = @embedFile("data/textured_verts_fs_mono.glsl");
+
+    const vertex_shader = try compileShaderSource(.vertex, vert_shader_src);
+    defer gl.deleteShader(vertex_shader);
+
+    const fragment_shader = try compileShaderSource(.fragment, frag_shader_src);
+    defer gl.deleteShader(fragment_shader);
+
+    return try createShaderProgram(vertex_shader, fragment_shader);
+}
+
 fn compileShaderSource(stage: enum { vertex, fragment }, source: [:0]const u8) !u32 {
     var temp_arena = std.heap.ArenaAllocator.init(allocator);
     defer temp_arena.deinit();
@@ -291,14 +304,14 @@ fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !
 fn formatToGlInternalFormat(format: TextureFormat) gl.GLint {
     return switch (format) {
         .uint8 => gl.R8,
-        .rgba_u8 => gl.RGBA8UI,
+        .rgba_u8 => gl.RGBA,
     };
 }
 
 fn formatToGlFormat(format: TextureFormat) gl.GLenum {
     return switch (format) {
         .uint8 => gl.RED,
-        .rgba_u8 => gl.RGBA_INTEGER,
+        .rgba_u8 => gl.RGBA,
     };
 }
 

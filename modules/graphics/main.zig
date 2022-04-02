@@ -110,6 +110,11 @@ pub fn usingAPI(comptime api: API) type {
                     vertex_offset: u32,
                     vertex_count: u32,
                 },
+                textured_verts_mono: struct {
+                    texture: Texture2d,
+                    vertex_offset: u32,
+                    vertex_count: u32,
+                },
                 textured_verts: struct {
                     texture: Texture2d,
                     vertex_offset: u32,
@@ -165,6 +170,27 @@ pub fn usingAPI(comptime api: API) type {
                 resources.vertex_buffer_cur += count;
             }
 
+            pub fn drawTexturedVertsMono(
+                self: *@This(),
+                texture: Texture2d,
+                vertices: []const TexturedVertex,
+            ) !void {
+                var resources = &pipeline_resources.textured_verts_mono;
+
+                resources.vertex_buffer.write(resources.vertex_buffer_cur, vertices);
+
+                const vertex_offset = @intCast(u32, resources.vertex_buffer_cur);
+                const count = @intCast(u32, vertices.len);
+
+                try self.entries.append(.{ .textured_verts_mono = .{
+                    .texture = texture,
+                    .vertex_offset = vertex_offset,
+                    .vertex_count = count,
+                } });
+
+                resources.vertex_buffer_cur += count;
+            }
+
             pub fn drawTexturedVerts(
                 self: *@This(),
                 texture: Texture2d,
@@ -195,6 +221,15 @@ pub fn usingAPI(comptime api: API) type {
                 blend_state: BlendStateHandle,
                 constant_buffer: ConstantBufferHandle,
                 vertex_buffer: VertexBuffer(Vertex),
+                vertex_buffer_cur: u32,
+            },
+            textured_verts_mono: struct {
+                program: ShaderProgramHandle,
+                vertex_layout: VertexLayoutHandle,
+                rasteriser_state: RasteriserStateHandle,
+                blend_state: BlendStateHandle,
+                constant_buffer: ConstantBufferHandle,
+                vertex_buffer: VertexBuffer(TexturedVertex),
                 vertex_buffer_cur: u32,
             },
             textured_verts: struct {
@@ -264,6 +299,34 @@ pub fn usingAPI(comptime api: API) type {
                     },
                 });
 
+                pipeline_resources.textured_verts_mono = .{
+                    .program = try backend.createTexturedVertsMonoShader(),
+                    .vertex_layout = vertex_layout,
+                    .rasteriser_state = try backend.createRasteriserState(),
+                    .blend_state = try backend.createBlendState(),
+                    // TODO(hazeycode): create constant buffer of exactly the required size
+                    .constant_buffer = try backend.createConstantBuffer(0x1000),
+                    .vertex_buffer = vertex_buffer,
+                    .vertex_buffer_cur = 0,
+                };
+            }
+
+            {
+                const vertex_buffer = try VertexBuffer(TexturedVertex).init(1e3);
+
+                const vertex_layout = try backend.createVertexLayout(.{
+                    .entries = &[_]VertexLayoutDesc.Entry{
+                        .{
+                            .buffer_handle = vertex_buffer.handle,
+                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
+                                .{ .format = .f32x3 },
+                                .{ .format = .f32x2 },
+                            },
+                            .offset = 0,
+                        },
+                    },
+                });
+
                 pipeline_resources.textured_verts = .{
                     .program = try backend.createTexturedVertsShader(),
                     .vertex_layout = vertex_layout,
@@ -283,9 +346,11 @@ pub fn usingAPI(comptime api: API) type {
 
         pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
             pipeline_resources.uniform_colour_verts.vertex_buffer_cur = 0;
+            pipeline_resources.textured_verts_mono.vertex_buffer_cur = 0;
             pipeline_resources.textured_verts.vertex_buffer_cur = 0;
 
             try pipeline_resources.uniform_colour_verts.vertex_buffer.map();
+            try pipeline_resources.textured_verts_mono.vertex_buffer.map();
             try pipeline_resources.textured_verts.vertex_buffer.map();
 
             return DrawList{
@@ -299,6 +364,7 @@ pub fn usingAPI(comptime api: API) type {
             var projection = zmath.identity();
 
             pipeline_resources.uniform_colour_verts.vertex_buffer.unmap();
+            pipeline_resources.textured_verts_mono.vertex_buffer.unmap();
             pipeline_resources.textured_verts.vertex_buffer.unmap();
 
             for (draw_list.entries.items) |entry| {
@@ -333,6 +399,33 @@ pub fn usingAPI(comptime api: API) type {
                         const constants = ShaderConstants{
                             .mvp = zmath.mul(zmath.mul(model, view), projection),
                             .colour = desc.colour,
+                        };
+                        try backend.updateShaderConstantBuffer(
+                            resources.constant_buffer,
+                            std.mem.asBytes(&constants),
+                        );
+
+                        backend.setConstantBuffer(resources.constant_buffer);
+
+                        backend.draw(desc.vertex_offset, desc.vertex_count);
+                    },
+                    .textured_verts_mono => |desc| {
+                        const resources = pipeline_resources.textured_verts_mono;
+
+                        backend.setShaderProgram(resources.program);
+
+                        backend.bindVertexLayout(resources.vertex_layout);
+
+                        backend.setTexture(0, desc.texture.handle);
+
+                        backend.setRasteriserState(resources.rasteriser_state);
+
+                        backend.setBlendState(resources.blend_state);
+
+                        // update shaders constants
+                        const constants = ShaderConstants{
+                            .mvp = zmath.mul(zmath.mul(model, view), projection),
+                            .colour = Colour.white,
                         };
                         try backend.updateShaderConstantBuffer(
                             resources.constant_buffer,
@@ -462,7 +555,7 @@ pub fn usingAPI(comptime api: API) type {
                 try self.drawColourRect(Colour.fromRGBA(0.13, 0.13, 0.13, 0.67), rect);
 
                 // draw all text
-                try self.draw_list.drawTexturedVerts(debugfont_texture, self.text_verts.items);
+                try self.draw_list.drawTexturedVertsMono(debugfont_texture, self.text_verts.items);
 
                 // draw text cursor if there is an element with keyboard focus
                 if (self.state.keyboard_focus > 0) {

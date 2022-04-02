@@ -7,5 +7,5 @@ in vec2 tex_coord;
 out vec4 out_colour;
 
 void main() {
-    out_colour = texture(texture_sampler, tex_coord);
+    out_colour = vec4(1, 1, 1, texture(texture_sampler, tex_coord));
 }

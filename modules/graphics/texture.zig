@@ -18,6 +18,8 @@ pub fn withBackend(comptime backend: anytype) type {
                 var width: u32 = undefined;
                 var height: u32 = undefined;
                 var channels: u32 = undefined;
+
+                stbi.stbi_set_flip_vertically_on_load(1);
                 
                 const texture_bytes = stbi.stbi_load_from_memory(
                     bytes.ptr,
