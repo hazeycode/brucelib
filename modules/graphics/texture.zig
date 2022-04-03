@@ -19,7 +19,7 @@ pub fn withBackend(comptime backend: anytype) type {
                 var height: u32 = undefined;
                 var channels: u32 = 1;
 
-                stbi.stbi_set_flip_vertically_on_load(1);
+                // stbi.stbi_set_flip_vertically_on_load(1);
 
                 const texture_bytes = stbi.stbi_load_from_memory(
                     bytes.ptr,
@@ -55,15 +55,24 @@ pub fn withBackend(comptime backend: anytype) type {
                 };
             }
 
-            pub fn fromPBM(allocator: std.mem.Allocator, pbm_bytes: []const u8) !Texture2d {
-                return try pbm.parse(allocator, pbm_bytes);
+            pub fn fromPBM(
+                allocator: std.mem.Allocator,
+                pbm_bytes: []const u8,
+                flip_vertically: bool,
+            ) !Texture2d {
+                return try pbm.parse(allocator, pbm_bytes, flip_vertically);
             }
 
             const pbm = struct {
-                pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) !Texture2d {
+                pub fn parse(
+                    allocator: std.mem.Allocator,
+                    bytes: []const u8,
+                    flip_vertically: bool,
+                ) !Texture2d {
                     var parser = Parser{
                         .bytes = bytes,
                         .cur = 0,
+                        .flip_vertically = flip_vertically,
                     };
                     return parser.parse(allocator);
                 }
@@ -71,6 +80,7 @@ pub fn withBackend(comptime backend: anytype) type {
                 pub const Parser = struct {
                     bytes: []const u8,
                     cur: usize,
+                    flip_vertically: bool,
 
                     fn parse(self: *@This(), allocator: std.mem.Allocator) !Texture2d {
                         const magic_number = try self.magicNumber();
@@ -78,7 +88,7 @@ pub fn withBackend(comptime backend: anytype) type {
 
                         const width = self.integer();
                         self.whitespace();
-                        
+
                         const height = self.integer();
                         self.whitespace();
 
@@ -93,7 +103,7 @@ pub fn withBackend(comptime backend: anytype) type {
                                 allocator.free(row.*);
                             }
                         }
-                        
+
                         var texture_bytes = try allocator.alloc(u8, width * height);
                         defer allocator.free(texture_bytes);
 
@@ -115,16 +125,29 @@ pub fn withBackend(comptime backend: anytype) type {
                                     }
                                 }
 
-                                { // write to final buffer for upload, flippling rows
-                                    var row: isize = height - 1;
-                                    var i: usize = 0;
-                                    while (row >= 0) : (row -= 1) {
-                                        std.mem.copy(
-                                            u8,
-                                            texture_bytes[i..(i+width)],
-                                            texture_rows[@intCast(usize, row)],
-                                        );
-                                        i += width;
+                                { // write to final buffer for upload
+                                    if (self.flip_vertically) {
+                                        var row: isize = height - 1;
+                                        var i: usize = 0;
+                                        while (row >= 0) : (row -= 1) {
+                                            std.mem.copy(
+                                                u8,
+                                                texture_bytes[i..(i + width)],
+                                                texture_rows[@intCast(usize, row)],
+                                            );
+                                            i += width;
+                                        }
+                                    } else {
+                                        var row: usize = 0;
+                                        var i: usize = 0;
+                                        while (row < height) : (row += 1) {
+                                            std.mem.copy(
+                                                u8,
+                                                texture_bytes[i..(i + width)],
+                                                texture_rows[@intCast(usize, row)],
+                                            );
+                                            i += width;
+                                        }
                                     }
                                 }
 
