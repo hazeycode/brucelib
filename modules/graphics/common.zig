@@ -134,27 +134,27 @@ pub const Rect = extern struct {
         return [_]TexturedVertex{
             TexturedVertex{
                 .pos = .{ self.min_x, self.min_y, 0.0 },
-                .uv = .{ uv_rect.min_x, uv_rect.min_y },
-            },
-            TexturedVertex{
-                .pos = .{ self.min_x, self.max_y, 0.0 },
                 .uv = .{ uv_rect.min_x, uv_rect.max_y },
             },
             TexturedVertex{
-                .pos = .{ self.max_x, self.max_y, 0.0 },
-                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+                .pos = .{ self.min_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.min_y },
             },
             TexturedVertex{
                 .pos = .{ self.max_x, self.max_y, 0.0 },
-                .uv = .{ uv_rect.max_x, uv_rect.max_y },
-            },
-            TexturedVertex{
-                .pos = .{ self.max_x, self.min_y, 0.0 },
                 .uv = .{ uv_rect.max_x, uv_rect.min_y },
             },
             TexturedVertex{
+                .pos = .{ self.max_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.min_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+            },
+            TexturedVertex{
                 .pos = .{ self.min_x, self.min_y, 0.0 },
-                .uv = .{ uv_rect.min_x, uv_rect.min_y },
+                .uv = .{ uv_rect.min_x, uv_rect.max_y },
             },
         };
     }

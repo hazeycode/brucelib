@@ -227,9 +227,9 @@ pub fn usingAPI(comptime api: API) type {
                 const aspect_ratio = @intToFloat(f32, args.texture.height) / @intToFloat(f32, args.texture.width);
                 const rect = Rect{
                     .min_x = -1,
-                    .min_y = -1 * aspect_ratio,
+                    .min_y = 1 * aspect_ratio,
                     .max_x = 1,
-                    .max_y = 1 * aspect_ratio,
+                    .max_y = -1 * aspect_ratio,
                 };
                 try self.drawTexturedVerts(
                     args.texture,

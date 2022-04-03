@@ -189,7 +189,10 @@ pub fn createRasteriserState() !RasteriserStateHandle {
     return 0;
 }
 
-pub fn setRasteriserState(_: RasteriserStateHandle) void {}
+pub fn setRasteriserState(_: RasteriserStateHandle) void {
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+}
 
 pub fn createBlendState() !BlendStateHandle {
     return 0;

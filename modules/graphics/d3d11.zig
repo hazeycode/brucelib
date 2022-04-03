@@ -429,7 +429,6 @@ pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
 pub fn createRasteriserState() !RasteriserStateHandle {
     var res: ?*d3d11.IRasterizerState = null;
     const desc = d3d11.RASTERIZER_DESC{
-        .CullMode = .NONE,
         .FrontCounterClockwise = TRUE,
     };
     try win32.hrErrorOnFail(device.CreateRasterizerState(&desc, &res));
