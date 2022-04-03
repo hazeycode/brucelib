@@ -19,8 +19,6 @@ pub fn withBackend(comptime backend: anytype) type {
                 var height: u32 = undefined;
                 var channels: u32 = 1;
 
-                // stbi.stbi_set_flip_vertically_on_load(1);
-
                 const texture_bytes = stbi.stbi_load_from_memory(
                     bytes.ptr,
                     @intCast(c_int, bytes.len),
@@ -58,21 +56,18 @@ pub fn withBackend(comptime backend: anytype) type {
             pub fn fromPBM(
                 allocator: std.mem.Allocator,
                 pbm_bytes: []const u8,
-                flip_vertically: bool,
             ) !Texture2d {
-                return try pbm.parse(allocator, pbm_bytes, flip_vertically);
+                return try pbm.parse(allocator, pbm_bytes);
             }
 
             const pbm = struct {
                 pub fn parse(
                     allocator: std.mem.Allocator,
                     bytes: []const u8,
-                    flip_vertically: bool,
                 ) !Texture2d {
                     var parser = Parser{
                         .bytes = bytes,
                         .cur = 0,
-                        .flip_vertically = flip_vertically,
                     };
                     return parser.parse(allocator);
                 }
@@ -80,7 +75,6 @@ pub fn withBackend(comptime backend: anytype) type {
                 pub const Parser = struct {
                     bytes: []const u8,
                     cur: usize,
-                    flip_vertically: bool,
 
                     fn parse(self: *@This(), allocator: std.mem.Allocator) !Texture2d {
                         const magic_number = try self.magicNumber();
@@ -111,44 +105,14 @@ pub fn withBackend(comptime backend: anytype) type {
                             .p1 => {
                                 const format = TextureFormat.uint8;
 
-                                { // read rows
-                                    var i: usize = 0;
-                                    for (self.bytes[self.cur..]) |c| {
-                                        if (isWhitespace(c)) continue;
-                                        const row = @divTrunc(i, width);
-                                        const col = i % width;
-                                        texture_rows[row][col] = switch (c) {
-                                            '1' => 255,
-                                            else => 0,
-                                        };
-                                        i += 1;
-                                    }
-                                }
-
-                                { // write to final buffer for upload
-                                    if (self.flip_vertically) {
-                                        var row: isize = height - 1;
-                                        var i: usize = 0;
-                                        while (row >= 0) : (row -= 1) {
-                                            std.mem.copy(
-                                                u8,
-                                                texture_bytes[i..(i + width)],
-                                                texture_rows[@intCast(usize, row)],
-                                            );
-                                            i += width;
-                                        }
-                                    } else {
-                                        var row: usize = 0;
-                                        var i: usize = 0;
-                                        while (row < height) : (row += 1) {
-                                            std.mem.copy(
-                                                u8,
-                                                texture_bytes[i..(i + width)],
-                                                texture_rows[@intCast(usize, row)],
-                                            );
-                                            i += width;
-                                        }
-                                    }
+                                var i: usize = 0;
+                                for (self.bytes[self.cur..]) |c| {
+                                    if (isWhitespace(c)) continue;
+                                    texture_bytes[i] = switch (c) {
+                                        '1' => 255,
+                                        else => 0,
+                                    };
+                                    i += 1;
                                 }
 
                                 const handle = try backend.createTexture2dWithBytes(
