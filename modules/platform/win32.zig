@@ -47,6 +47,8 @@ var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var mouse_x: i32 = undefined;
 var mouse_y: i32 = undefined;
+var key_events: std.ArrayList(FrameInput.KeyEvent) = undefined;
+var mouse_button_events: std.ArrayList(FrameInput.MouseButtonEvent) = undefined;
 
 pub var audio_playback = struct {
     user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
@@ -167,8 +169,8 @@ pub fn run(args: struct {
 
         var frame_arena_allocator = frame_mem_arena.allocator();
 
-        var key_events = std.ArrayList(FrameInput.KeyEvent).init(frame_arena_allocator);
-        var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(frame_arena_allocator);
+        key_events = std.ArrayList(FrameInput.KeyEvent).init(frame_arena_allocator);
+        mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(frame_arena_allocator);
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
@@ -289,6 +291,20 @@ fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) L
             mouse_x = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_X_LPARAM(lparam)) * scale);
             mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
             // TODO(hazeycode): Also track mouse position even when it's outside the window
+        },
+        user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN, user32.WM_KEYUP, user32.WM_SYSKEYUP => {
+            const key = translateKey(wparam);
+            key_events.append(.{
+                .action = switch (msg) {
+                    user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => .press,
+                    user32.WM_KEYUP, user32.WM_SYSKEYUP => .release,
+                    else => unreachable,
+                    // TODO(hazeycode): key repeat events
+                },
+                .key = key,
+            }) catch |err| {
+                std.log.warn("Failed to translate key {} with error: {}", .{ wparam, err });
+            };
         },
         else => {},
     }
@@ -421,4 +437,113 @@ fn createRenderTargetView() zwin32.HResultError!void {
         &d3d11_render_target_view,
     ));
     _ = framebuffer.Release();
+}
+
+fn translateKey(wparam: WPARAM) FrameInput.Key {
+    return switch (wparam) {
+        zwin32.base.VK_ESCAPE => .escape,
+        zwin32.base.VK_TAB => .tab,
+        zwin32.base.VK_LSHIFT => .shift_left,
+        zwin32.base.VK_RSHIFT => .shift_right,
+        zwin32.base.VK_LCONTROL => .ctrl_left,
+        zwin32.base.VK_RCONTROL => .ctrl_right,
+        zwin32.base.VK_LMENU => .alt_left,
+        zwin32.base.VK_RMENU => .alt_right,
+        zwin32.base.VK_LWIN => .super_left,
+        zwin32.base.VK_RWIN => .super_right,
+        zwin32.base.VK_APPS => .menu,
+        zwin32.base.VK_NUMLOCK => .numlock,
+        zwin32.base.VK_CAPITAL => .capslock,
+        zwin32.base.VK_SNAPSHOT => .printscreen,
+        zwin32.base.VK_SCROLL => .scrolllock,
+        zwin32.base.VK_PAUSE => .pause,
+        zwin32.base.VK_DELETE => .delete,
+        zwin32.base.VK_BACK => .backspace,
+        zwin32.base.VK_RETURN => .enter,
+        zwin32.base.VK_HOME => .home,
+        zwin32.base.VK_END => .end,
+        zwin32.base.VK_PRIOR => .pageup,
+        zwin32.base.VK_NEXT => .pagedown,
+        zwin32.base.VK_INSERT => .insert,
+        zwin32.base.VK_LEFT => .left,
+        zwin32.base.VK_RIGHT => .right,
+        zwin32.base.VK_DOWN => .down,
+        zwin32.base.VK_UP => .up,
+        zwin32.base.VK_F1 => .f1,
+        zwin32.base.VK_F2 => .f2,
+        zwin32.base.VK_F3 => .f3,
+        zwin32.base.VK_F4 => .f4,
+        zwin32.base.VK_F5 => .f5,
+        zwin32.base.VK_F6 => .f6,
+        zwin32.base.VK_F7 => .f7,
+        zwin32.base.VK_F8 => .f8,
+        zwin32.base.VK_F9 => .f9,
+        zwin32.base.VK_F10 => .f10,
+        zwin32.base.VK_F11 => .f11,
+        zwin32.base.VK_F12 => .f12,
+        zwin32.base.VK_DIVIDE => .keypad_divide,
+        zwin32.base.VK_MULTIPLY => .keypad_multiply,
+        zwin32.base.VK_SUBTRACT => .keypad_subtract,
+        zwin32.base.VK_ADD => .keypad_add,
+        zwin32.base.VK_NUMPAD0 => .keypad_0,
+        zwin32.base.VK_NUMPAD1 => .keypad_1,
+        zwin32.base.VK_NUMPAD2 => .keypad_2,
+        zwin32.base.VK_NUMPAD3 => .keypad_3,
+        zwin32.base.VK_NUMPAD4 => .keypad_4,
+        zwin32.base.VK_NUMPAD5 => .keypad_5,
+        zwin32.base.VK_NUMPAD6 => .keypad_6,
+        zwin32.base.VK_NUMPAD7 => .keypad_7,
+        zwin32.base.VK_NUMPAD8 => .keypad_8,
+        zwin32.base.VK_NUMPAD9 => .keypad_9,
+        zwin32.base.VK_DECIMAL => .keypad_decimal,
+        'A' => .a,
+        'B' => .b,
+        'C' => .c,
+        'D' => .d,
+        'E' => .e,
+        'F' => .f,
+        'G' => .g,
+        'H' => .h,
+        'I' => .i,
+        'J' => .j,
+        'K' => .k,
+        'L' => .l,
+        'M' => .m,
+        'N' => .n,
+        'O' => .o,
+        'P' => .p,
+        'Q' => .q,
+        'R' => .r,
+        'S' => .s,
+        'T' => .t,
+        'U' => .u,
+        'V' => .v,
+        'W' => .w,
+        'X' => .x,
+        'Y' => .y,
+        'Z' => .z,
+        '1' => .one,
+        '2' => .two,
+        '3' => .three,
+        '4' => .four,
+        '5' => .five,
+        '6' => .six,
+        '7' => .seven,
+        '8' => .eight,
+        '9' => .nine,
+        '0' => .zero,
+        zwin32.base.VK_SPACE => .space,
+        zwin32.base.VK_OEM_MINUS => .minus,
+        zwin32.base.VK_OEM_PLUS => .equal,
+        zwin32.base.VK_OEM_4 => .bracket_left,
+        zwin32.base.VK_OEM_6 => .bracket_right,
+        zwin32.base.VK_OEM_5 => .backslash,
+        zwin32.base.VK_OEM_1 => .semicolon,
+        zwin32.base.VK_OEM_7 => .apostrophe,
+        zwin32.base.VK_OEM_3 => .grave_accent,
+        zwin32.base.VK_OEM_COMMA => .comma,
+        zwin32.base.VK_OEM_PERIOD => .period,
+        zwin32.base.VK_OEM_2 => .slash,
+        else => .unknown,
+    };
 }
