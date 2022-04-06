@@ -4,8 +4,7 @@ platform:
 - macOS: hook up CADisplayLink for proper display sync 
 - macOS: OpenGL -> Metal context
 - macOS: key and mouse events
-- win32: key and mouse events
-- win32: update while moving window or resizing
+- win32: key events
 - all: gamepad input
 - macos: migrate all objective-c code to zig
 - linux: audio output (started alsa backend in dev-alsa branch)

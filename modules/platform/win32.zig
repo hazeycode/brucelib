@@ -45,6 +45,8 @@ pub var target_framerate: u16 = undefined;
 var target_frame_dt: u64 = undefined;
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
+var mouse_x: i32 = undefined;
+var mouse_y: i32 = undefined;
 
 pub var audio_playback = struct {
     user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
@@ -189,6 +191,10 @@ pub fn run(args: struct {
                 .key_events = key_events.items,
                 .mouse_button_events = mouse_button_events.items,
             },
+            .mouse_position = .{
+                .x = mouse_x,
+                .y = mouse_y,
+            },
             .window_size = .{
                 .width = window_width,
                 .height = window_height,
@@ -277,6 +283,13 @@ fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) L
             return 0;
         },
         user32.WM_DESTROY => user32.postQuitMessage(0),
+        user32.WM_MOUSEMOVE => {
+            // TODO(hazeycode): Scale mouse using dpi
+            const scale: f32 = 1;
+            mouse_x = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_X_LPARAM(lparam)) * scale);
+            mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
+            // TODO(hazeycode): Also track mouse position even when it's outside the window
+        },
         else => {},
     }
     return user32.defWindowProcW(hwnd, msg, wparam, lparam);

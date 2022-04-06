@@ -29,7 +29,7 @@ input_events: struct {
 mouse_position: struct {
     x: i32,
     y: i32,
-} = .{ .x = 0, .y = 0 },
+},
 
 /// The current window size / framebuffer dimensions
 window_size: struct {
