@@ -71,26 +71,7 @@ fn frame(input: platform.FrameInput) !bool {
     }
 
     { // update and draw debug overlay
-        state.debug_gui.input.mouse_x = @intToFloat(f32, input.mouse_position.x);
-        state.debug_gui.input.mouse_y = @intToFloat(f32, input.mouse_position.y);
-
-        state.debug_gui.input.mouse_btn_was_pressed = false;
-        state.debug_gui.input.mouse_btn_was_released = false;
-
-        for (input.input_events.mouse_button_events) |mouse_ev| {
-            if (mouse_ev.button.index != 1) continue;
-
-            switch (mouse_ev.button.action) {
-                .press => {
-                    state.debug_gui.input.mouse_btn_was_pressed = true;
-                    state.debug_gui.input.mouse_btn_down = true;
-                },
-                .release => {
-                    state.debug_gui.input.mouse_btn_was_released = true;
-                    state.debug_gui.input.mouse_btn_down = false;
-                },
-            }
-        }
+        state.debug_gui.mapPlatformInput(input);
 
         var debug_gui = try graphics.DebugGUI.begin(
             input.frame_arena_allocator,
