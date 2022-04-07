@@ -1,8 +1,11 @@
 const std = @import("std");
 
-const FrameInput = @import("FrameInput.zig");
-
-const AudioPlaybackStream = @import("AudioPlaybackStream.zig");
+const common = @import("common.zig");
+const FrameInput = common.FrameInput;
+const AudioPlaybackStream = common.AudioPlaybackStream;
+const KeyEvent = common.KeyEvent;
+const MouseButtonEvent = common.MouseButtonEvent;
+const Key = common.Key;
 
 const AlsaPlaybackInterface = @import("linux/AlsaPlaybackInterface.zig");
 const AudioPlaybackInterface = AlsaPlaybackInterface;
@@ -27,7 +30,7 @@ pub var audio_playback = struct {
 var timer: std.time.Timer = undefined;
 
 var window_closed = false;
-const num_keys = std.meta.fields(FrameInput.Key).len;
+const num_keys = std.meta.fields(Key).len;
 var key_states: [num_keys]bool = .{false} ** num_keys;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
 
@@ -92,8 +95,8 @@ pub fn run(args: struct {
 
         const arena_allocator = frame_mem_arena.allocator();
 
-        var key_events = std.ArrayList(FrameInput.KeyEvent).init(arena_allocator);
-        var mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(arena_allocator);
+        var key_events = std.ArrayList(KeyEvent).init(arena_allocator);
+        var mouse_button_events = std.ArrayList(MouseButtonEvent).init(arena_allocator);
 
         try windowing.processEvents(
             &key_events,
@@ -470,7 +473,7 @@ const X11 = struct {
         }
     }
 
-    fn translateKey(keycode: u8) ?FrameInput.Key {
+    fn translateKey(keycode: u8) ?Key {
         // TODO(hazeycode): measure and consider cacheing this in a LUT for performance
         var keysyms_per_keycode: c_int = 0;
         const keysyms = c.XGetKeyboardMapping(display, keycode, 1, &keysyms_per_keycode);

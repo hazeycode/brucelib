@@ -2,9 +2,12 @@ const std = @import("std");
 const builtin = @import("builtin");
 const objc = @import("zig-objcrt");
 
-const FrameInput = @import("FrameInput.zig");
-
-const AudioPlaybackStream = @import("AudioPlaybackStream.zig");
+const common = @import("common.zig");
+const FrameInput = common.FrameInput;
+const AudioPlaybackStream = common.AudioPlaybackStream;
+const KeyEvent = common.KeyEvent;
+const MouseButtonEvent = common.MouseButtonEvent;
+const Key = common.Key;
 
 // TODO(hazeycode): CoreAudio
 const AudioPlaybackInterface = struct {

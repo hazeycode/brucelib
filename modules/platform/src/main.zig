@@ -10,9 +10,7 @@ const backend = switch (builtin.os.tag) {
 
 pub usingnamespace backend;
 
-pub const FrameInput = @import("FrameInput.zig");
-
-pub const AudioPlaybackStream = @import("AudioPlaybackStream.zig");
+pub usingnamespace @import("common.zig");
 
 test {
     std.testing.refAllDecls(@This());

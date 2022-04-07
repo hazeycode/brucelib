@@ -1,9 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const FrameInput = @import("FrameInput.zig");
-
-const AudioPlaybackStream = @import("AudioPlaybackStream.zig");
+const common = @import("common.zig");
+const FrameInput = common.FrameInput;
+const AudioPlaybackStream = common.AudioPlaybackStream;
+const KeyEvent = common.KeyEvent;
+const MouseButtonEvent = common.MouseButtonEvent;
+const Key = common.Key;
 
 const WasapiInterface = @import("win32/WasapiInterface.zig");
 const AudioPlaybackInterface = WasapiInterface;
@@ -47,8 +50,8 @@ var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 var mouse_x: i32 = undefined;
 var mouse_y: i32 = undefined;
-var key_events: std.ArrayList(FrameInput.KeyEvent) = undefined;
-var mouse_button_events: std.ArrayList(FrameInput.MouseButtonEvent) = undefined;
+var key_events: std.ArrayList(KeyEvent) = undefined;
+var mouse_button_events: std.ArrayList(MouseButtonEvent) = undefined;
 
 pub var audio_playback = struct {
     user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
@@ -169,8 +172,8 @@ pub fn run(args: struct {
 
         var frame_arena_allocator = frame_mem_arena.allocator();
 
-        key_events = std.ArrayList(FrameInput.KeyEvent).init(frame_arena_allocator);
-        mouse_button_events = std.ArrayList(FrameInput.MouseButtonEvent).init(frame_arena_allocator);
+        key_events = std.ArrayList(KeyEvent).init(frame_arena_allocator);
+        mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
 
         var msg: user32.MSG = undefined;
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
@@ -439,7 +442,7 @@ fn createRenderTargetView() zwin32.HResultError!void {
     _ = framebuffer.Release();
 }
 
-fn translateKey(wparam: WPARAM) FrameInput.Key {
+fn translateKey(wparam: WPARAM) Key {
     return switch (wparam) {
         zwin32.base.VK_ESCAPE => .escape,
         zwin32.base.VK_TAB => .tab,
