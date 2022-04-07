@@ -343,22 +343,14 @@ pub fn usingAPI(comptime api: API) type {
                     .uniform_colour_verts => |desc| {
                         const resources = pipeline_resources.uniform_colour_verts;
 
-                        backend.setShaderProgram(resources.program);
+                        bindPipeline(resources);
 
-                        backend.bindVertexLayout(resources.vertex_layout);
-
-                        backend.setRasteriserState(resources.rasteriser_state);
-
-                        backend.setBlendState(resources.blend_state);
-
-                        // update shaders constants
-                        const constants = ShaderConstants{
-                            .mvp = zmath.mul(zmath.mul(model, view), projection),
-                            .colour = desc.colour,
-                        };
                         try backend.updateShaderConstantBuffer(
                             resources.constant_buffer,
-                            std.mem.asBytes(&constants),
+                            std.mem.asBytes(&.{
+                                .mvp = zmath.mul(zmath.mul(model, view), projection),
+                                .colour = desc.colour,
+                            }),
                         );
 
                         backend.setConstantBuffer(resources.constant_buffer);
@@ -368,54 +360,34 @@ pub fn usingAPI(comptime api: API) type {
                     .textured_verts_mono => |desc| {
                         const resources = pipeline_resources.textured_verts_mono;
 
-                        backend.setShaderProgram(resources.program);
-
-                        backend.bindVertexLayout(resources.vertex_layout);
+                        bindPipeline(resources);
 
                         backend.setTexture(0, desc.texture.handle);
 
-                        backend.setRasteriserState(resources.rasteriser_state);
-
-                        backend.setBlendState(resources.blend_state);
-
-                        // update shaders constants
-                        const constants = ShaderConstants{
-                            .mvp = zmath.mul(zmath.mul(model, view), projection),
-                            .colour = Colour.white,
-                        };
                         try backend.updateShaderConstantBuffer(
                             resources.constant_buffer,
-                            std.mem.asBytes(&constants),
+                            std.mem.asBytes(&.{
+                                .mvp = zmath.mul(zmath.mul(model, view), projection),
+                                .colour = Colour.white,
+                            }),
                         );
-
-                        backend.setConstantBuffer(resources.constant_buffer);
 
                         backend.draw(desc.vertex_offset, desc.vertex_count);
                     },
                     .textured_verts => |desc| {
                         const resources = pipeline_resources.textured_verts;
 
-                        backend.setShaderProgram(resources.program);
-
-                        backend.bindVertexLayout(resources.vertex_layout);
+                        bindPipeline(resources);
 
                         backend.setTexture(0, desc.texture.handle);
 
-                        backend.setRasteriserState(resources.rasteriser_state);
-
-                        backend.setBlendState(resources.blend_state);
-
-                        // update shaders constants
-                        const constants = ShaderConstants{
-                            .mvp = zmath.mul(zmath.mul(model, view), projection),
-                            .colour = Colour.white,
-                        };
                         try backend.updateShaderConstantBuffer(
                             resources.constant_buffer,
-                            std.mem.asBytes(&constants),
+                            std.mem.asBytes(&.{
+                                .mvp = zmath.mul(zmath.mul(model, view), projection),
+                                .colour = Colour.white,
+                            }),
                         );
-
-                        backend.setConstantBuffer(resources.constant_buffer);
 
                         backend.draw(desc.vertex_offset, desc.vertex_count);
                     },
@@ -425,6 +397,14 @@ pub fn usingAPI(comptime api: API) type {
             if (builtin.mode == .Debug) {
                 try backend.logDebugMessages();
             }
+        }
+
+        fn bindPipeline(resources: anytype) void {
+            backend.setShaderProgram(resources.program);
+            backend.bindVertexLayout(resources.vertex_layout);
+            backend.setRasteriserState(resources.rasteriser_state);
+            backend.setBlendState(resources.blend_state);
+            backend.setConstantBuffer(resources.constant_buffer);
         }
 
         pub const DebugGUI = struct {
@@ -463,7 +443,7 @@ pub fn usingAPI(comptime api: API) type {
                 mouse_x: f32 = undefined,
                 mouse_y: f32 = undefined,
 
-                /// Optional helper fn for mapping brucelib.platform.FrameInput to debug gui input
+                /// Optional helper fn for mapping brucelib.platform.FrameInput to DebugGUI.Input
                 /// `platform_input` can be any weakly conforming type
                 pub fn mapPlatformInput(self: *Input, platform_input: anytype) void {
                     self.mouse_x = @intToFloat(f32, platform_input.mouse_position.x);
