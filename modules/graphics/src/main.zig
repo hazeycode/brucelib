@@ -454,31 +454,6 @@ pub fn usingAPI(comptime api: API) type {
                 keyboard_focus: ElemId = 0,
                 text_cur_x: f32 = 0,
                 text_cur_y: f32 = 0,
-
-                /// Optional helper fn for mapping brucelib.platform.FrameInput to debug gui input
-                /// `platform_input` can be any weakly conforming type
-                pub fn mapPlatformInput(self: *State, platform_input: anytype) void {
-                    self.input.mouse_x = @intToFloat(f32, platform_input.mouse_position.x);
-                    self.input.mouse_y = @intToFloat(f32, platform_input.mouse_position.y);
-
-                    self.input.mouse_btn_was_pressed = false;
-                    self.input.mouse_btn_was_released = false;
-
-                    for (platform_input.input_events.mouse_button_events) |mouse_ev| {
-                        if (mouse_ev.button.index != 1) continue;
-
-                        switch (mouse_ev.button.action) {
-                            .press => {
-                                self.input.mouse_btn_was_pressed = true;
-                                self.input.mouse_btn_down = true;
-                            },
-                            .release => {
-                                self.input.mouse_btn_was_released = true;
-                                self.input.mouse_btn_down = false;
-                            },
-                        }
-                    }
-                }
             };
 
             pub const Input = struct {
@@ -487,6 +462,31 @@ pub fn usingAPI(comptime api: API) type {
                 mouse_btn_was_released: bool = false,
                 mouse_x: f32 = undefined,
                 mouse_y: f32 = undefined,
+
+                /// Optional helper fn for mapping brucelib.platform.FrameInput to debug gui input
+                /// `platform_input` can be any weakly conforming type
+                pub fn mapPlatformInput(self: *Input, platform_input: anytype) void {
+                    self.mouse_x = @intToFloat(f32, platform_input.mouse_position.x);
+                    self.mouse_y = @intToFloat(f32, platform_input.mouse_position.y);
+
+                    self.mouse_btn_was_pressed = false;
+                    self.mouse_btn_was_released = false;
+
+                    for (platform_input.input_events.mouse_button_events) |mouse_ev| {
+                        if (mouse_ev.button.index != 1) continue;
+
+                        switch (mouse_ev.button.action) {
+                            .press => {
+                                self.mouse_btn_was_pressed = true;
+                                self.mouse_btn_down = true;
+                            },
+                            .release => {
+                                self.mouse_btn_was_released = true;
+                                self.mouse_btn_down = false;
+                            },
+                        }
+                    }
+                }
             };
 
             pub fn begin(

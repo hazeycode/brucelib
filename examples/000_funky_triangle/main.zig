@@ -71,7 +71,7 @@ fn frame(input: platform.FrameInput) !bool {
     }
 
     { // update and draw debug overlay
-        state.debug_gui.mapPlatformInput(input);
+        state.debug_gui.input.mapPlatformInput(input);
 
         var debug_gui = try graphics.DebugGUI.begin(
             input.frame_arena_allocator,
