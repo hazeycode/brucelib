@@ -67,9 +67,9 @@ var textures: TextureResourcesList = undefined;
 var debug_info_queue: *d3d11d.IInfoQueue = undefined;
 
 pub fn init(platform: anytype, _allocator: std.mem.Allocator) !void {
-    device = platform.getD3D11Device();
-    device_context = platform.getD3D11DeviceContext();
-    render_target_view = platform.getD3D11RenderTargetView();
+    device = @ptrCast(*d3d11.IDevice, platform.getD3D11Device());
+    device_context = @ptrCast(*d3d11.IDeviceContext, platform.getD3D11DeviceContext());
+    render_target_view = @ptrCast(*d3d11.IRenderTargetView, platform.getD3D11RenderTargetView());
 
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
@@ -482,7 +482,7 @@ pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
 }
 
 pub fn createUniformColourShader() !ShaderProgramHandle {
-    const shader_src = @embedFile("data/uniform_colour.hlsl");
+    const shader_src = @embedFile("../data/uniform_colour.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
     defer _ = vs_bytecode.Release();
@@ -519,7 +519,7 @@ pub fn createUniformColourShader() !ShaderProgramHandle {
 }
 
 pub fn createTexturedVertsMonoShader() !ShaderProgramHandle {
-    const shader_src = @embedFile("data/textured_verts.hlsl");
+    const shader_src = @embedFile("../data/textured_verts.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
     defer _ = vs_bytecode.Release();
@@ -565,7 +565,7 @@ pub fn createTexturedVertsMonoShader() !ShaderProgramHandle {
 }
 
 pub fn createTexturedVertsShader() !ShaderProgramHandle {
-    const shader_src = @embedFile("data/textured_verts.hlsl");
+    const shader_src = @embedFile("../data/textured_verts.hlsl");
 
     const vs_bytecode = try compileHLSL(shader_src, "vs_main", "vs_5_0");
     defer _ = vs_bytecode.Release();

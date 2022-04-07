@@ -22,7 +22,7 @@ TODO: detail dependencies
 
 ### Minimal usage example
 ```zig
-const platform = @import("platform");
+const platform = @import("brucelib.platform");
 
 pub fn main() anyerror!void {
 
@@ -80,3 +80,15 @@ fn audioPlayback(_: platform.AudioPlaybackStream) !void {
 }
 ```
 For more usage examples, refer to the [brucelib examples](https://github.com/hazeycode/brucelib/tree/main/examples)
+
+
+### Vendored libs
+
+Each vendored library is listed below with the license it is under; also see the [NOTICE](NOTICE) file.
+
+| Name | Description | License |
+| :--- | :---------- | :------ |
+| zwin32 | https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32 | MIT |
+| zig-objcrt | https://github.com/hazeycode/zig-objcrt | 0BSD |
+| zig-alsa | https://github.com/hazeycode/zig-alsa | 0BSD |
+

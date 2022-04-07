@@ -1,12 +1,8 @@
-This is the umbrella NOTICE file for the brucelib monorepo. Module specific
-NOTICE files are also provided.
-
-
 ===============================================================================
-brucelib Apache 2.0 License
+brucelib.graphics Apache 2.0 License
 ===============================================================================
 
-Code in this repository, with exception to portions described later in this
+brucelib.graphics code, with exception to portions described later in this
 file, is licensed under the Apache 2.0 license.
 
  Copyright 2022 Chris Heyes

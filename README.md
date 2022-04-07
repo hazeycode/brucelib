@@ -8,7 +8,7 @@ A monorepo of modules for programming cross-platform games, simulations, engines
 
 
 ### Supported targets
-The planned scope of this project is to target all the popular desktop, mobile and console platforms. Most modules have no system dependencies. Refer to the [platform](modules/platform/) and [graphics](modules/graphics) module documentation for more information.
+The planned scope of this project is to target all the popular desktop, mobile and console platforms. Most modules have no system dependencies. Refer to the [platform](modules/platform/) and [graphics](modules/graphics/) module documentation for more information.
 
 
 ### Modules
@@ -21,10 +21,6 @@ The planned scope of this project is to target all the popular desktop, mobile a
 | audio | Audio mixing, synthesis and signal processsing | planned |
 | asset | Data-agnostic, graph-based asset system | planned |
 | algo | Implementations of commonly used algorithms in games and simulations | planned |
-| noise | Various noise generators | planned |
-
-
-Brucelib also [vendors several libraries](vendored/) that are used by the above modules. Also see the [NOTICE](NOTICE) file.
 
 
 ## Getting Started
@@ -34,8 +30,14 @@ Brucelib also [vendors several libraries](vendored/) that are used by the above 
 - List all available build targets with `zig build --help`
 - Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or add as a package in your build.zig along with any vendored libs it uses. Refer to [build.zig](build.zig) for helper fns.
 
+
 ### Examples
 
-[000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics) modules to open a window and draw stuff in it.
+[000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window and draw stuff in it.
 
 <img src="examples/000_funky_triangle/screencap.gif" height=240/>
+
+
+## Licenses and attribution
+
+Each module comes with a NOTICE file with license attributions for module code and 3rd-party vendored libraries. Care has been taken to adhere to the licenses of all 3rd-party code and give proper attribution where required. The contents of module's NOTICE file must be preserved in projects that use it. Alternatively, an umbrella [NOTICE](NOTICE) is provided that covers the entire monorepo.

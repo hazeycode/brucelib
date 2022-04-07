@@ -279,7 +279,7 @@ pub fn usingAPI(comptime api: API) type {
             try backend.init(platform, allocator);
             errdefer backend.deinit();
 
-            debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("data/debugfont.pbm"));
+            debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("../data/debugfont.pbm"));
 
             {
                 const vertex_buffer = try VertexBuffer(Vertex).init(1e3);

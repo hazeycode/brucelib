@@ -1,99 +1,18 @@
 const std = @import("std");
 
-pub const platform = PackageDesc{
-    .name = "platform",
-    .path = "modules/platform/main.zig",
-    .dependencies = &.{
-        vendored.zig_objcrt,
-        vendored.zwin32,
-        vendored.zig_alsa,
-    },
-};
-
-pub const graphics = PackageDesc{
-    .name = "graphics",
-    .path = "modules/graphics/main.zig",
-    .dependencies = &.{
-        vendored.zwin32,
-        vendored.zmath,
-        vendored.zig_opengl,
-        vendored.stb_image,
-    },
-};
-
-pub const vendored = struct {
-    pub const zig_objcrt = PackageDesc{
-        .name = "zig-objcrt",
-        .path = "vendored/zig-objcrt/src/main.zig",
-    };
-    pub const zwin32 = PackageDesc{
-        .name = "zwin32",
-        .path = "vendored/zwin32/zwin32.zig",
-    };
-    pub const zmath = PackageDesc{
-        .name = "zmath",
-        .path = "vendored/zmath/zmath.zig",
-    };
-    pub const zig_alsa = PackageDesc{
-        .name = "zig-alsa",
-        .path = "vendored/zig-alsa/src/main.zig",
-    };
-    pub const zig_opengl = PackageDesc{
-        .name = "zig-opengl",
-        .path = "vendored/zig-opengl-exports/gl_4v4.zig",
-    };
-    pub const stb_image = PackageDesc{
-        .name = "stb_image",
-        .path = "vendored/stb_image/main.zig",
-        .c_inc_path = "vendored/stb_image",
-    };
-};
-
-pub const PackageDesc = struct {
-    name: []const u8,
-    path: []const u8,
-    dependencies: []const PackageDesc = &.{},
-    c_inc_path: []const u8 = &.{},
-
-    pub fn getPackage(
-        comptime self: PackageDesc,
-        allocator: std.mem.Allocator,
-        comptime relative_to_path: []const u8,
-    ) std.mem.Allocator.Error!std.build.Pkg {
-        var dependencies = try allocator.alloc(std.build.Pkg, self.dependencies.len);
-        inline for (self.dependencies) |dep, i| {
-            dependencies[i] = try dep.getPackage(allocator, relative_to_path);
-        }
-        var pkg = std.build.Pkg{
-            .name = self.name,
-            .path = .{ .path = relative_to_path ++ self.path },
-            .dependencies = dependencies,
-        };
-        return pkg;
-    }
-};
+pub const platform = @import("modules/platform/build.zig");
+pub const graphics = @import("modules/graphics/build.zig");
 
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const standard_target_opts = b.standardTargetOptions(.{});
-
-    const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
-
-    const platform_pkg = try platform.getPackage(b.allocator, "./");
-    const graphics_pkg = try graphics.getPackage(b.allocator, "./");
+    const target_opts = b.standardTargetOptions(.{});
 
     { // tests
-        const platform_tests = b.addTest(platform_pkg.path.path);
-        for (platform_pkg.dependencies.?) |dep| platform_tests.addPackage(dep);
-        try addPlatformSystemDependencies(platform_tests);
-        platform_tests.setBuildMode(mode);
-
-        const graphics_tests = b.addTest(graphics_pkg.path.path);
-        for (graphics_pkg.dependencies.?) |dep| graphics_tests.addPackage(dep);
-        graphics_tests.setBuildMode(mode);
+        const platform_tests = platform.buildTests(b, mode, target_opts);
+        const graphics_tests = graphics.buildTests(b, mode, target_opts);
 
         const test_step = b.step("test", "Run all tests");
         test_step.dependOn(&platform_tests.step);
@@ -101,6 +20,7 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     { // examples
+        const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
         const dir = try build_root_dir.openDir("examples", .{ .iterate = true });
 
         var example_id: usize = 0;
@@ -112,15 +32,14 @@ pub fn build(b: *std.build.Builder) !void {
                         entry.name,
                         try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
                     );
-                    example.setTarget(standard_target_opts);
+                    example.setTarget(target_opts);
                     example.setBuildMode(mode);
 
-                    example.addIncludeDir("./" ++ vendored.stb_image.c_inc_path);
+                    example.addPackage(platform.pkg);
+                    platform.buildAndLink(example);
 
-                    example.addPackage(platform_pkg);
-                    example.addPackage(graphics_pkg);
-
-                    try addPlatformSystemDependencies(example);
+                    example.addPackage(graphics.pkg);
+                    graphics.buildAndLink(example);
 
                     example.install();
 
@@ -139,28 +58,5 @@ pub fn build(b: *std.build.Builder) !void {
                 else => {},
             }
         }
-    }
-}
-
-pub fn addPlatformSystemDependencies(step: *std.build.LibExeObjStep) !void {
-    step.linkLibC();
-
-    if (step.target.isLinux()) {
-        step.addIncludeDir("/usr/include");
-        step.linkSystemLibrary("X11-xcb");
-        step.linkSystemLibrary("GL");
-    } else if (step.target.isDarwin()) {
-        step.linkFramework("AppKit");
-        step.linkFramework("MetalKit");
-        step.linkFramework("OpenGL");
-        step.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
-    } else if (step.target.isWindows()) {
-        step.linkSystemLibrary("Kernel32");
-        step.linkSystemLibrary("User32");
-        step.linkSystemLibrary("d3d11");
-        step.linkSystemLibrary("dxgi");
-        step.linkSystemLibrary("D3DCompiler_47");
-    } else {
-        return error.UnsupportedTarget;
     }
 }

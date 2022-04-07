@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const platform = @import("platform");
-const graphics = @import("graphics").usingAPI(.default);
+const platform = @import("brucelib.platform");
+const graphics = @import("brucelib.graphics").usingAPI(.default);
 
 const audio_on = true;
 

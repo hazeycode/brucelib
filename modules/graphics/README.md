@@ -17,7 +17,7 @@ The appropriate system libraries for the selected backend are required at runtim
 ### Example usage
 ```zig
 // import the graphics module and select the backend to use
-const graphics = @import("graphics").usingAPI(.default);
+const graphics = @import("brucelib.graphics").usingAPI(.default);
 
 // initilise
 var context = struct {
@@ -73,4 +73,16 @@ debugfont created with:
 
 `pbmtext -builtin fixed -plain -nomargins -space 0 "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:;'\"\\,.?/><-+%&*()_=" > data/debugfont.pbm
 `
+
+
+### Vendored libs
+
+Each vendored library is listed below with the license it is under; also see the [NOTICE](NOTICE) file.
+
+| Name | Description | License |
+| :--- | :---------- | :------ |
+| zwin32 | https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32 | MIT |
+| zmath | https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath | MIT |
+| stb_image | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | MIT |
+| zmesh | [Zig bindings from the zig-gamedev project](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h) | both MIT |
 
