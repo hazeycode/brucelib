@@ -36,12 +36,6 @@ pub fn usingAPI(comptime api: API) type {
         pub const SamplerStateHandle = common.SamplerStateHandle;
         pub const VertexLayoutDesc = common.VertexLayoutDesc;
         pub const TextureFormat = common.TextureFormat;
-        pub const Vertex = common.Vertex;
-        pub const VertexIndex = common.VertexIndex;
-        pub const VertexUV = common.VertexUV;
-        pub const TexturedVertex = common.TexturedVertex;
-        pub const Colour = common.Colour;
-        pub const Rect = common.Rect;
 
         const zmath = @import("zmath");
         pub const F32x4 = zmath.F32x4;
@@ -50,25 +44,171 @@ pub fn usingAPI(comptime api: API) type {
         pub const identityMatrix = zmath.identity;
         pub const orthographic = zmath.orthographicLh;
 
+        pub const Vertex = extern struct {
+            pos: [3]f32,
+
+            pub fn getLayoutAttributes() []const VertexLayoutDesc.Entry.Attribute {
+                return &[_]VertexLayoutDesc.Entry.Attribute{
+                    .{ .format = .f32x3 },
+                };
+            }
+        };
+
+        pub const VertexIndex = u16;
+        pub const VertexUV = [2]f32;
+
+        pub const TexturedVertex = extern struct {
+            pos: [3]f32,
+            uv: VertexUV,
+
+            pub fn getLayoutAttributes() []const VertexLayoutDesc.Entry.Attribute {
+                return &[_]VertexLayoutDesc.Entry.Attribute{
+                    .{ .format = .f32x3 },
+                    .{ .format = .f32x2 },
+                };
+            }
+        };
+
+        ///
+        pub const VertexLayout = struct {
+            handle: VertexLayoutHandle,
+            desc: VertexLayoutDesc,
+        };
+
+        ///
+        pub const PipelineResources = struct {
+            program: ShaderProgramHandle,
+            vertex_layout: VertexLayout,
+            constant_buffer: ConstantBufferHandle,
+            blend_state: BlendStateHandle,
+            rasteriser_state: RasteriserStateHandle,
+        };
+
+        ///
+        pub const Viewport = struct { x: u16, y: u16, width: u16, height: u16 };
+
+        pub const Colour = extern struct {
+            r: f32,
+            g: f32,
+            b: f32,
+            a: f32,
+
+            pub const black = fromRGB(0, 0, 0);
+            pub const white = fromRGB(1, 1, 1);
+            pub const red = fromRGB(1, 0, 0);
+            pub const orange = fromRGB(1, 0.5, 0);
+
+            pub fn fromRGB(r: f32, g: f32, b: f32) Colour {
+                return .{ .r = r, .g = g, .b = b, .a = 1 };
+            }
+
+            pub fn fromRGBA(r: f32, g: f32, b: f32, a: f32) Colour {
+                return .{ .r = r, .g = g, .b = b, .a = a };
+            }
+
+            /// Returns a Colour for a given hue, saturation and value
+            /// h, s, v are assumed to be in the range 0...1
+            pub fn fromHSV(h: f32, s: f32, v: f32) Colour {
+                // Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
+                // TODO(hazeycode): compare performance & codegen of this vs zmath.hsvToRgb
+                const hp = (h * 360) / 60;
+                const c = v * s;
+                const x = c * (1 - @fabs(@mod(hp, 2) - 1));
+                const m = v - c;
+                if (hp <= 1) {
+                    return Colour.fromRGB(c + m, x + m, m);
+                } else if (hp <= 2) {
+                    return Colour.fromRGB(x + m, c + m, m);
+                } else if (hp <= 3) {
+                    return Colour.fromRGB(m, c + m, x + m);
+                } else if (hp <= 4) {
+                    return Colour.fromRGB(m, x + m, c + m);
+                } else if (hp <= 5) {
+                    return Colour.fromRGB(x + m, m, c + m);
+                } else if (hp <= 6) {
+                    return Colour.fromRGB(c + m, m, x + m);
+                } else {
+                    std.debug.assert(false);
+                    return Colour.fromRGB(0, 0, 0);
+                }
+            }
+        };
+
+        pub const Rect = extern struct {
+            min_x: f32,
+            min_y: f32,
+            max_x: f32,
+            max_y: f32,
+
+            pub fn vertices(self: Rect) [6]Vertex {
+                return [_]Vertex{
+                    .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
+                    .{ .pos = .{ self.min_x, self.max_y, 0.0 } },
+                    .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+                    .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+                    .{ .pos = .{ self.max_x, self.min_y, 0.0 } },
+                    .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
+                };
+            }
+
+            pub fn texturedVertices(self: Rect, uv_rect: Rect) [6]TexturedVertex {
+                return [_]TexturedVertex{
+                    TexturedVertex{
+                        .pos = .{ self.min_x, self.min_y, 0.0 },
+                        .uv = .{ uv_rect.min_x, uv_rect.min_y },
+                    },
+                    TexturedVertex{
+                        .pos = .{ self.min_x, self.max_y, 0.0 },
+                        .uv = .{ uv_rect.min_x, uv_rect.max_y },
+                    },
+                    TexturedVertex{
+                        .pos = .{ self.max_x, self.max_y, 0.0 },
+                        .uv = .{ uv_rect.max_x, uv_rect.max_y },
+                    },
+                    TexturedVertex{
+                        .pos = .{ self.max_x, self.max_y, 0.0 },
+                        .uv = .{ uv_rect.max_x, uv_rect.max_y },
+                    },
+                    TexturedVertex{
+                        .pos = .{ self.max_x, self.min_y, 0.0 },
+                        .uv = .{ uv_rect.max_x, uv_rect.min_y },
+                    },
+                    TexturedVertex{
+                        .pos = .{ self.min_x, self.min_y, 0.0 },
+                        .uv = .{ uv_rect.min_x, uv_rect.min_y },
+                    },
+                };
+            }
+
+            pub fn containsPoint(self: Rect, x: f32, y: f32) bool {
+                return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_y);
+            }
+
+            pub fn inset(self: Rect, left: f32, right: f32, top: f32, bottom: f32) Rect {
+                return .{
+                    .min_x = self.min_x + left,
+                    .max_x = self.max_x - right,
+                    .min_y = self.min_y + top,
+                    .max_y = self.max_y - bottom,
+                };
+            }
+        };
+
+        ///
         pub const DrawList = struct {
             pub const Entry = union(enum) {
-                set_viewport: struct { x: u16, y: u16, width: u16, height: u16 },
+                set_viewport: Viewport,
                 clear_viewport: Colour,
+                bind_pipeline_resources: *PipelineResources,
                 set_projection_transform: Matrix,
                 set_view_transform: Matrix,
                 set_model_transform: Matrix,
-                uniform_colour_verts: struct {
-                    colour: Colour,
-                    vertex_offset: u32,
-                    vertex_count: u32,
-                },
-                textured_verts_mono: struct {
+                set_colour: Colour,
+                bind_texture: struct {
+                    slot: u32,
                     texture: Texture2d,
-                    vertex_offset: u32,
-                    vertex_count: u32,
                 },
-                textured_verts: struct {
-                    texture: Texture2d,
+                draw: struct {
                     vertex_offset: u32,
                     vertex_count: u32,
                 },
@@ -76,29 +216,64 @@ pub fn usingAPI(comptime api: API) type {
 
             entries: std.ArrayList(Entry),
 
-            pub fn setViewport(self: *@This(), x: u16, y: u16, width: u16, height: u16) !void {
-                try self.entries.append(.{ .set_viewport = .{
-                    .x = x,
-                    .y = y,
-                    .width = width,
-                    .height = height,
-                } });
+            pub fn setViewport(self: *@This(), viewport: Viewport) !void {
+                try self.entries.append(.{ 
+                    .set_viewport = viewport,
+                });
             }
 
             pub fn clearViewport(self: *@This(), colour: Colour) !void {
-                try self.entries.append(.{ .clear_viewport = colour });
+                try self.entries.append(.{ 
+                    .clear_viewport = colour,
+                });
+            }
+
+            pub fn bindPipelineResources(self: *@This(), resources: *PipelineResources) !void {
+                try self.entries.append(.{ 
+                    .bind_pipeline_resources = resources,
+                });
             }
 
             pub fn setProjectionTransform(self: *@This(), transform: Matrix) !void {
-                try self.entries.append(.{ .set_projection_transform = transform });
+                try self.entries.append(.{ 
+                    .set_projection_transform = transform,
+                });
             }
 
             pub fn setViewTransform(self: *@This(), transform: Matrix) !void {
-                try self.entries.append(.{ .set_view_transform = transform });
+                try self.entries.append(.{ 
+                    .set_view_transform = transform,
+                });
             }
 
             pub fn setModelTransform(self: *@This(), transform: Matrix) !void {
-                try self.entries.append(.{ .set_model_transform = transform });
+                try self.entries.append(.{ 
+                    .set_model_transform = transform,
+                });
+            }
+
+            pub fn setColour(self: *@This(), colour: Colour) !void {
+                try self.entries.append(.{ 
+                    .set_colour = colour,
+                });
+            }
+
+            pub fn bindTexture(self: *@This(), slot: u32, texture: Texture2d) !void {
+                try self.entries.append(.{
+                    .bind_texture = .{
+                        .slot = slot, 
+                        .texture = texture,
+                    },
+                });
+            }
+
+            pub fn draw(self: *@This(), vertex_offset: u32, vertex_count: u32) !void {
+                try self.entries.append(.{ 
+                    .draw = .{
+                        .vertex_offset = vertex_offset,
+                        .vertex_count = vertex_count,
+                    },
+                });
             }
 
             pub fn drawUniformColourVerts(
@@ -106,15 +281,13 @@ pub fn usingAPI(comptime api: API) type {
                 colour: Colour,
                 vertices: []const Vertex,
             ) !void {
-                var resources = &pipeline_resources.uniform_colour_verts;
+                var resources = &builtin_pipeline_resources.uniform_colour_verts;
 
-                const vert_offset = resources.vertex_buffer.append(vertices);
+                const vert_offset = builtin_vertex_buffers.pos.append(vertices);
 
-                try self.entries.append(.{ .uniform_colour_verts = .{
-                    .colour = colour,
-                    .vertex_offset = vert_offset,
-                    .vertex_count = @intCast(u32, vertices.len),
-                } });
+                try self.bindPipelineResources(resources);
+                try self.setColour(colour);
+                try self.draw(vert_offset, @intCast(u32, vertices.len));
             }
 
             pub fn drawTexturedVertsMono(
@@ -122,15 +295,13 @@ pub fn usingAPI(comptime api: API) type {
                 texture: Texture2d,
                 vertices: []const TexturedVertex,
             ) !void {
-                var resources = &pipeline_resources.textured_verts_mono;
+                var resources = &builtin_pipeline_resources.textured_verts_mono;
 
-                const vert_offset = resources.vertex_buffer.append(vertices);
+                const vert_offset = builtin_vertex_buffers.pos_uv.append(vertices);
 
-                try self.entries.append(.{ .textured_verts_mono = .{
-                    .texture = texture,
-                    .vertex_offset = vert_offset,
-                    .vertex_count = @intCast(u32, vertices.len),
-                } });
+                try self.bindPipelineResources(resources);
+                try self.bindTexture(0, texture);
+                try self.draw(vert_offset, @intCast(u32, vertices.len));
             }
 
             pub fn drawTexturedVerts(
@@ -138,15 +309,13 @@ pub fn usingAPI(comptime api: API) type {
                 texture: Texture2d,
                 vertices: []const TexturedVertex,
             ) !void {
-                var resources = &pipeline_resources.textured_verts;
+                var resources = &builtin_pipeline_resources.textured_verts;
 
-                const vert_offset = resources.vertex_buffer.append(vertices);
+                const vert_offset = builtin_vertex_buffers.pos_uv.append(vertices);
 
-                try self.entries.append(.{ .textured_verts = .{
-                    .texture = texture,
-                    .vertex_offset = vert_offset,
-                    .vertex_count = @intCast(u32, vertices.len),
-                } });
+                try self.bindPipelineResources(resources);
+                try self.bindTexture(0, texture);
+                try self.draw(vert_offset, @intCast(u32, vertices.len));
             }
 
             pub fn drawTexturedQuad(
@@ -161,7 +330,9 @@ pub fn usingAPI(comptime api: API) type {
                     },
                 },
             ) !void {
-                const aspect_ratio = @intToFloat(f32, args.texture.height) / @intToFloat(f32, args.texture.width);
+                const width = @intToFloat(f32, args.texture.height);
+                const height = @intToFloat(f32, args.texture.width);
+                const aspect_ratio = width / height;
                 const rect = Rect{
                     .min_x = -1,
                     .min_y = 1 * aspect_ratio,
@@ -175,32 +346,21 @@ pub fn usingAPI(comptime api: API) type {
             }
         };
 
-        var pipeline_resources: struct {
-            uniform_colour_verts: struct {
-                program: ShaderProgramHandle,
-                vertex_layout: VertexLayoutHandle,
-                rasteriser_state: RasteriserStateHandle,
-                blend_state: BlendStateHandle,
-                constant_buffer: ConstantBufferHandle,
-                vertex_buffer: VertexBuffer(Vertex),
-            },
-            textured_verts_mono: struct {
-                program: ShaderProgramHandle,
-                vertex_layout: VertexLayoutHandle,
-                rasteriser_state: RasteriserStateHandle,
-                blend_state: BlendStateHandle,
-                constant_buffer: ConstantBufferHandle,
-                vertex_buffer: VertexBuffer(TexturedVertex),
-            },
-            textured_verts: struct {
-                program: ShaderProgramHandle,
-                vertex_layout: VertexLayoutHandle,
-                rasteriser_state: RasteriserStateHandle,
-                blend_state: BlendStateHandle,
-                constant_buffer: ConstantBufferHandle,
-                vertex_buffer: VertexBuffer(TexturedVertex),
-            },
+        var builtin_pipeline_resources: struct {
+            uniform_colour_verts: PipelineResources,
+            textured_verts_mono: PipelineResources,
+            textured_verts: PipelineResources,
         } = undefined;
+
+        var builtin_vertex_buffers: struct {
+            pos: VertexBuffer(Vertex),
+            pos_uv: VertexBuffer(TexturedVertex),
+        } = undefined;
+
+        const VertexBufferMap = std.AutoHashMap(
+            VertexBufferHandle,
+            *align(@alignOf(VertexBuffer(TexturedVertex))) anyopaque,
+        );
 
         const ShaderConstants = extern struct {
             mvp: Matrix,
@@ -209,89 +369,85 @@ pub fn usingAPI(comptime api: API) type {
 
         var debugfont_texture: Texture2d = undefined;
 
-        pub fn init(platform: anytype, allocator: std.mem.Allocator) !void {
+        pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
+
             try backend.init(platform, allocator);
             errdefer backend.deinit();
 
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("../data/debugfont.pbm"));
 
-            {
-                const vertex_buffer = try VertexBuffer(Vertex).init(1e3);
+            builtin_vertex_buffers.pos = try VertexBuffer(Vertex).init(1e3);
+            builtin_vertex_buffers.pos_uv = try VertexBuffer(TexturedVertex).init(1e3);
 
-                const vertex_layout = try backend.createVertexLayout(.{
+            { // create builtin uniform_colour_verts pipeline
+                const vertex_layout_desc = VertexLayoutDesc{
                     .entries = &[_]VertexLayoutDesc.Entry{
                         .{
-                            .buffer_handle = vertex_buffer.handle,
-                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
-                                .{ .format = .f32x3 },
-                            },
+                            .buffer_handle = builtin_vertex_buffers.pos.handle,
+                            .attributes = Vertex.getLayoutAttributes(),
                             .offset = 0,
                         },
                     },
-                });
+                };
 
-                pipeline_resources.uniform_colour_verts = .{
+                builtin_pipeline_resources.uniform_colour_verts = .{
                     .program = try backend.createUniformColourShader(),
-                    .vertex_layout = vertex_layout,
+                    .vertex_layout = .{
+                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .desc = vertex_layout_desc,
+                    },
                     .rasteriser_state = try backend.createRasteriserState(),
                     .blend_state = try backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
                     .constant_buffer = try backend.createConstantBuffer(0x1000),
-                    .vertex_buffer = vertex_buffer,
                 };
             }
 
-            {
-                const vertex_buffer = try VertexBuffer(TexturedVertex).init(1e3);
-
-                const vertex_layout = try backend.createVertexLayout(.{
+            { // create builtin uniform_colour_verts pipeline
+                const vertex_layout_desc = VertexLayoutDesc{
                     .entries = &[_]VertexLayoutDesc.Entry{
                         .{
-                            .buffer_handle = vertex_buffer.handle,
-                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
-                                .{ .format = .f32x3 },
-                                .{ .format = .f32x2 },
-                            },
+                            .buffer_handle = builtin_vertex_buffers.pos_uv.handle,
+                            .attributes = TexturedVertex.getLayoutAttributes(),
                             .offset = 0,
                         },
                     },
-                });
+                };
 
-                pipeline_resources.textured_verts_mono = .{
+                builtin_pipeline_resources.textured_verts_mono = .{
                     .program = try backend.createTexturedVertsMonoShader(),
-                    .vertex_layout = vertex_layout,
+                    .vertex_layout = .{
+                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .desc = vertex_layout_desc,
+                    },
                     .rasteriser_state = try backend.createRasteriserState(),
                     .blend_state = try backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
                     .constant_buffer = try backend.createConstantBuffer(0x1000),
-                    .vertex_buffer = vertex_buffer,
                 };
             }
 
-            {
-                const vertex_buffer = try VertexBuffer(TexturedVertex).init(1e3);
-
-                const vertex_layout = try backend.createVertexLayout(.{
+            { // create builtin uniform_colour_verts pipeline
+                const vertex_layout_desc = VertexLayoutDesc{
                     .entries = &[_]VertexLayoutDesc.Entry{
                         .{
-                            .buffer_handle = vertex_buffer.handle,
-                            .attributes = &[_]VertexLayoutDesc.Entry.Attribute{
-                                .{ .format = .f32x3 },
-                                .{ .format = .f32x2 },
-                            },
+                            .buffer_handle = builtin_vertex_buffers.pos_uv.handle,
+                            .attributes = TexturedVertex.getLayoutAttributes(),
                             .offset = 0,
                         },
                     },
-                });
+                };
 
-                pipeline_resources.textured_verts = .{
+                builtin_pipeline_resources.textured_verts = .{
                     .program = try backend.createTexturedVertsShader(),
-                    .vertex_layout = vertex_layout,
+                    .vertex_layout = .{
+                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .desc = vertex_layout_desc,
+                    },
                     .rasteriser_state = try backend.createRasteriserState(),
                     .blend_state = try backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
                     .constant_buffer = try backend.createConstantBuffer(0x1000),
-                    .vertex_buffer = vertex_buffer,
                 };
             }
         }
@@ -301,13 +457,11 @@ pub fn usingAPI(comptime api: API) type {
         }
 
         pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
-            pipeline_resources.uniform_colour_verts.vertex_buffer.clear(false);
-            pipeline_resources.textured_verts_mono.vertex_buffer.clear(false);
-            pipeline_resources.textured_verts.vertex_buffer.clear(false);
+            try builtin_vertex_buffers.pos.map();
+            builtin_vertex_buffers.pos.clear(false);
 
-            try pipeline_resources.uniform_colour_verts.vertex_buffer.map();
-            try pipeline_resources.textured_verts_mono.vertex_buffer.map();
-            try pipeline_resources.textured_verts.vertex_buffer.map();
+            try builtin_vertex_buffers.pos_uv.map();
+            builtin_vertex_buffers.pos_uv.clear(false);
 
             return DrawList{
                 .entries = std.ArrayList(DrawList.Entry).init(allocator),
@@ -318,10 +472,11 @@ pub fn usingAPI(comptime api: API) type {
             var model = zmath.identity();
             var view = zmath.identity();
             var projection = zmath.identity();
+            var current_colour = Colour.white;
+            var constant_buffer_handle: ConstantBufferHandle = 0;
 
-            pipeline_resources.uniform_colour_verts.vertex_buffer.unmap();
-            pipeline_resources.textured_verts_mono.vertex_buffer.unmap();
-            pipeline_resources.textured_verts.vertex_buffer.unmap();
+            builtin_vertex_buffers.pos.unmap();
+            builtin_vertex_buffers.pos_uv.unmap();
 
             for (draw_list.entries.items) |entry| {
                 switch (entry) {
@@ -340,52 +495,26 @@ pub fn usingAPI(comptime api: API) type {
                     .set_model_transform => |transform| {
                         model = transform;
                     },
-                    .uniform_colour_verts => |desc| {
-                        const resources = pipeline_resources.uniform_colour_verts;
-
-                        bindPipeline(resources);
-
-                        try backend.updateShaderConstantBuffer(
-                            resources.constant_buffer,
-                            std.mem.asBytes(&.{
-                                .mvp = zmath.mul(zmath.mul(model, view), projection),
-                                .colour = desc.colour,
-                            }),
-                        );
-
+                    .set_colour => |colour| {
+                        current_colour = colour;
+                    },
+                    .bind_pipeline_resources => |resources| {
+                        backend.setShaderProgram(resources.program);
+                        backend.bindVertexLayout(resources.vertex_layout.handle);
+                        backend.setRasteriserState(resources.rasteriser_state);
+                        backend.setBlendState(resources.blend_state);
                         backend.setConstantBuffer(resources.constant_buffer);
-
-                        backend.draw(desc.vertex_offset, desc.vertex_count);
+                        constant_buffer_handle = resources.constant_buffer;
                     },
-                    .textured_verts_mono => |desc| {
-                        const resources = pipeline_resources.textured_verts_mono;
-
-                        bindPipeline(resources);
-
-                        backend.setTexture(0, desc.texture.handle);
-
+                    .bind_texture => |desc| {
+                        backend.bindTexture(desc.slot, desc.texture.handle);
+                    },
+                    .draw => |desc| {
                         try backend.updateShaderConstantBuffer(
-                            resources.constant_buffer,
+                            constant_buffer_handle,
                             std.mem.asBytes(&.{
                                 .mvp = zmath.mul(zmath.mul(model, view), projection),
-                                .colour = Colour.white,
-                            }),
-                        );
-
-                        backend.draw(desc.vertex_offset, desc.vertex_count);
-                    },
-                    .textured_verts => |desc| {
-                        const resources = pipeline_resources.textured_verts;
-
-                        bindPipeline(resources);
-
-                        backend.setTexture(0, desc.texture.handle);
-
-                        try backend.updateShaderConstantBuffer(
-                            resources.constant_buffer,
-                            std.mem.asBytes(&.{
-                                .mvp = zmath.mul(zmath.mul(model, view), projection),
-                                .colour = Colour.white,
+                                .colour = current_colour,
                             }),
                         );
 
@@ -397,14 +526,6 @@ pub fn usingAPI(comptime api: API) type {
             if (builtin.mode == .Debug) {
                 try backend.logDebugMessages();
             }
-        }
-
-        fn bindPipeline(resources: anytype) void {
-            backend.setShaderProgram(resources.program);
-            backend.bindVertexLayout(resources.vertex_layout);
-            backend.setRasteriserState(resources.rasteriser_state);
-            backend.setBlendState(resources.blend_state);
-            backend.setConstantBuffer(resources.constant_buffer);
         }
 
         pub const DebugGUI = struct {

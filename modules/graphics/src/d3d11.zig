@@ -351,7 +351,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return (textures.items.len - 1);
 }
 
-pub fn setTexture(slot: u32, texture_handle: TextureHandle) void {
+pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     const samplers = [_]*d3d11.ISamplerState{
         textures.items[texture_handle].sampler_state,
     };

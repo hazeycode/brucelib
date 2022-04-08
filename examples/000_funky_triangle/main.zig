@@ -29,7 +29,7 @@ var state: struct {
 
 /// Called before the platform event loop begins
 fn init(allocator: std.mem.Allocator) !void {
-    try graphics.init(platform, allocator);
+    try graphics.init(allocator, platform);
 }
 
 /// Called before the program terminates, after the `frame_fn` returns false
@@ -49,7 +49,12 @@ fn frame(input: platform.FrameInput) !bool {
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
 
-    try draw_list.setViewport(0, 0, input.window_size.width, input.window_size.height);
+    try draw_list.setViewport(.{
+        .x = 0,
+        .y = 0,
+        .width = input.window_size.width,
+        .height = input.window_size.height,
+    });
     try draw_list.clearViewport(graphics.Colour.black);
 
     { // update and draw funky triangle

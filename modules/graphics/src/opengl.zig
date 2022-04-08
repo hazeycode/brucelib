@@ -144,7 +144,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return texture;
 }
 
-pub fn setTexture(slot: u32, texture_handle: TextureHandle) void {
+pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     // skip binding 0, which is used for the uniform block
     const binding = 1 + switch (slot) {
         0 => @as(gl.GLenum, gl.TEXTURE0),
