@@ -1,16 +1,16 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-pub const API = enum {
+pub const BackendAPI = enum {
     default,
     opengl,
     metal,
     d3d11,
 };
 
-pub fn usingAPI(comptime api: API) type {
+pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
     return struct {
-        pub const backend = switch (api) {
+        pub const backend = switch (backend_api) {
             .default => switch (builtin.os.tag) {
                 .linux => @import("opengl.zig"),
                 .macos => @import("metal.zig"),
