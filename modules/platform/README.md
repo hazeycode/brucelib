@@ -88,7 +88,7 @@ Each vendored library is listed below with the license it is under; also see the
 
 | Name | Description | License |
 | :--- | :---------- | :------ |
-| zwin32 | https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32 | MIT |
-| zig-objcrt | https://github.com/hazeycode/zig-objcrt | 0BSD |
-| zig-alsa | https://github.com/hazeycode/zig-alsa | 0BSD |
+| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [zig-objcrt](https://github.com/hazeycode/zig-objcrt) | Zig bindings for the [Objective-C runtime](https://developer.apple.com/documentation/objectivec/objective-c_runtime#see-also) | 0BSD |
+| [zig-alsa](https://github.com/hazeycode/zig-alsa) | Zig bindings for [ALSA](https://github.com/alsa-project/alsa-lib) | 0BSD |
 

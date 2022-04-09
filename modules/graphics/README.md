@@ -14,13 +14,83 @@ This module **does not** handle graphics context creation. You must use some oth
 The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
 
 
+### Selecting a backend API
+
+A backend graphics API is selected at comptime with `usingBackendAPI(backend_api)` where `backend_api` is one of:
+
+```zig
+.opengl,
+.d3d11,
+.default // use the target platform default
+```
+
+
+```zig
+const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
+```
+
+
+### Backend API abstraction
+
+A backend API abstraction is lazily defined by the backend implementations weakly conforming to the same interface. The selected backend API is exposed by the namespace returned by `usingBackendAPI`. Refer to the implementation of `DrawList` for usage examples.
+
+
+### DrawList API
+
+`graphics.DrawList` provides higher-level rendering procedures. The public interface of `DrawList` could be categoried into two sets, the Core API, and the Render API, which provides a convenient layer on top of the Core API.
+
+DrawList Core API
+
+```zig
+setViewport(*DrawList, Viewport) !void
+
+clearViewport(*DrawList, Colour) !void
+
+bindPipelineResources(*DrawList, *PipelineResources) !void
+
+setProjectionTransform(*DrawList, Matrix) !void
+
+setViewTransform(*DrawList, Matrix) !void
+
+setModelTransform(*DrawList, Matrix) !void
+
+setColour(*DrawList, Colour) !void
+
+bindTexture(*DrawList, slot: u32, Texture2d) !void
+```
+
+DrawList Render API
+
+```zig
+drawUniformColourVerts(*DrawList, Colour, []const Vertex) !void
+
+drawTexturedVertsMono(*DrawList, Texture2d, []const TexturedVertex) !void
+
+drawTexturedVerts(*DrawList, Texture2d, []const TexturedVertex) !void
+
+drawTexturedQuad(
+    *DrawList,
+    args: struct {
+        texture: Texture2d,
+        uv_rect: Rect = .{
+            .min_x = 0,
+            .min_y = 0,
+            .max_x = 1,
+            .max_y = 1,
+        },
+    },
+) !void
+
+```
+
+
 ### Example usage
 ```zig
 // import the graphics module and select the backend to use
-const graphics = @import("brucelib.graphics").usingAPI(.default);
+const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
 
-// initilise
-var context = struct {
+// initilise graphics with a strucure that weakly specifies graphics context
+try graphics.init(allocator, .{
     pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
         // call platform gl proc loader here
     }
@@ -36,8 +106,7 @@ var context = struct {
     pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
         // return d3d11 render target view here
     }
-};
-try graphics.init(context, allocator);
+});
 
 // begin a new draw list
 var draw_list = try graphics.beginDrawing(allocator);
@@ -81,8 +150,8 @@ Each vendored library is listed below with the license it is under; also see the
 
 | Name | Description | License |
 | :--- | :---------- | :------ |
-| zwin32 | https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32 | MIT |
-| zmath | https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath | MIT |
-| stb_image | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | MIT |
-| zmesh | [Zig bindings from the zig-gamedev project](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h) | both MIT |
+| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [zmath](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) | SIMD math library from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h) | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | MIT |
+| [zmesh](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) | Zig bindings for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h) from the Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) | both MIT |
 
