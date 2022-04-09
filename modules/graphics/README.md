@@ -1,26 +1,16 @@
 # graphics
 **WARNING: WORK IN PROGRESS**
 
-The graphics module provides an abstraaction over platform-specific graphics APIs and a simple push style API based on top of that. Common primitives and rendering routines are also provided.
-
 This module **does not** handle graphics context creation. You must use some other means to do that, such as the [platform module](https://github.com/hazeycode/brucelib/tree/main/modules/platform)
-
-### Supported backend APIs
-- OpenGL (4.4 core profile or greater)
-- D3D11
-- Metal (not yet implemented)
-- & more planned
-
-The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
-
 
 ### Selecting a backend API
 
 A backend graphics API is selected at comptime with `usingBackendAPI(backend_api)` where `backend_api` is one of:
 
 ```zig
-.opengl,
+.opengl, // 4.4 core profile or greater
 .d3d11,
+.metal, // not implemented
 .default // use the target platform default
 ```
 
@@ -29,6 +19,7 @@ A backend graphics API is selected at comptime with `usingBackendAPI(backend_api
 const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
 ```
 
+The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
 
 ### Backend API abstraction
 
