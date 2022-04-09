@@ -2,13 +2,13 @@
 
 **WARNING: WORK IN PROGRESS**
 
-A monorepo of [modules](#modules) for programming cross-platform games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products. Each module is designed to be easy to configure, extend or modify to your own specific needs, and to replace with something else in future if your project demands it. [The examples](#examples) demonstrate how one can use modules in combination with each other.
+A monorepo of [modules](#modules) for programming cross-platform games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products.
 
 "Absorb what is useful, discard what is useless and add what is specifically your own” - Bruce Lee
 
+Modules work standalone without any external dependencies and are designed to be easy to configure, extend or modify to your own specific needs, or to replace with something else in future if your project demands it. [The examples](#examples) demonstrate how one can use modules in combination with each other.
 
-### Modules
-| Name | Description | Status |
+| Module | Description | Status |
 | :--- | :---------- | :----- |
 | [platform](modules/platform/) | Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures | in-progress |
 | [graphics](modules/graphics/) | Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives | in-progress |
@@ -36,12 +36,6 @@ The planned scope of this project is to target all the popular desktop, mobile a
 | Example | Screen capture |
 | ------- | -------------- |
 | [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window and draw stuff in it. | <img src="examples/000_funky_triangle/screencap.gif" width=426/> |
-
-
-## Showcase
-
-
-## Contributing
 
 
 ## Licenses and attribution
