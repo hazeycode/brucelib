@@ -49,13 +49,13 @@ fn frame(input: platform.FrameInput) !bool {
 
     var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
 
-    try draw_list.setViewport(.{
+    try graphics.setViewport(&draw_list, .{
         .x = 0,
         .y = 0,
         .width = input.window_size.width,
         .height = input.window_size.height,
     });
-    try draw_list.clearViewport(graphics.Colour.black);
+    try graphics.clearViewport(&draw_list, graphics.Colour.black);
 
     { // update and draw funky triangle
         state.triangle_hue = @mod(
@@ -63,9 +63,10 @@ fn frame(input: platform.FrameInput) !bool {
             1.0,
         );
 
-        try draw_list.setProjectionTransform(graphics.identityMatrix());
+        try graphics.setProjectionTransform(&draw_list, graphics.identityMatrix());
 
-        try draw_list.drawUniformColourVerts(
+        try graphics.drawUniformColourVerts(
+            &draw_list,
             graphics.Colour.fromHSV(state.triangle_hue, 0.5, 1.0),
             &[_]graphics.Vertex{
                 .{ .pos = .{ -0.5, -0.5, 0.0 } },
@@ -109,7 +110,7 @@ fn frame(input: platform.FrameInput) !bool {
         try debug_gui.end();
     }
 
-    try graphics.submitDrawList(draw_list);
+    try graphics.submitDrawList(&draw_list);
 
     return true;
 }

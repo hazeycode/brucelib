@@ -42,6 +42,8 @@ A backend API abstraction is lazily defined by the backend implementations weakl
 DrawList Core API
 
 ```zig
+beginDrawing(std.mem.Allocator) !DrawList
+
 setViewport(*DrawList, Viewport) !void
 
 clearViewport(*DrawList, Colour) !void
@@ -57,6 +59,8 @@ setModelTransform(*DrawList, Matrix) !void
 setColour(*DrawList, Colour) !void
 
 bindTexture(*DrawList, slot: u32, Texture2d) !void
+
+submitDrawList(*DrawList) !void
 ```
 
 DrawList Render API
@@ -112,13 +116,14 @@ try graphics.init(allocator, .{
 var draw_list = try graphics.beginDrawing(allocator);
 
 // set the viewport
-try draw_list.setViewport(0, 0, viewport_width, viewport_height);
+try graphics.setViewport(&draw_list, 0, 0, viewport_width, viewport_height);
 
 // clear the viewport to black
-try draw_list.clearViewport(graphics.Colour.black);
+try graphics.clearViewport(&draw_list, graphics.Colour.black);
 
 // draw a triangle with a solid uniform orange colour
-try draw_list.drawUniformColourVerts(
+try graphics.drawUniformColourVerts(
+    &draw_list,
     graphics.Colour.orange,
     &[_]graphics.Vertex{
         .{ .pos = .{ -0.5, -0.5, 0.0 } },
@@ -128,7 +133,7 @@ try draw_list.drawUniformColourVerts(
 );
 
 // submit the drawlist for rendering
-try graphics.submitDrawList(draw_list);
+try graphics.submitDrawList(&draw_list);
 
 // cleanup
 graphics.deinit();
@@ -136,9 +141,11 @@ graphics.deinit();
 For more usage examples, refer to the [brucelib examples](https://github.com/hazeycode/brucelib/tree/main/examples)
 
 
-### Debug GUI
+### DebugGUI
 
-debugfont created with:
+`graphics.DebugGUI` provides an optional debug gui implemented ontop of the DrawList API.
+
+The builtin debugfont was created with:
 
 `pbmtext -builtin fixed -plain -nomargins -space 0 "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:;'\"\\,.?/><-+%&*()_=" > data/debugfont.pbm
 `
