@@ -53,3 +53,18 @@ pub const sndrv_pcm_hw_params_t = extern struct {
     fifo_size: sndrv_pcm_uframes_t,
     reserved: [64]u8,
 };
+
+pub const sndrv_pcm_sw_params_t = extern struct {
+    tstamp_mode: c_int,
+    period_step: c_uint,
+    sleep_min: c_uint,
+    avail_min: sndrv_pcm_uframes_t,
+    xfer_align: sndrv_pcm_uframes_t,
+    start_threshold: sndrv_pcm_uframes_t,
+    stop_threshold: sndrv_pcm_uframes_t,
+    silence_threshold: sndrv_pcm_uframes_t,
+    silence_size: sndrv_pcm_uframes_t,
+    boundary: sndrv_pcm_uframes_t,
+    reserved: [60]u8,
+    period_event: c_uint,
+};
