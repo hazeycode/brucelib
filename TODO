@@ -1,7 +1,4 @@
-platform:
-- linux: query monitor refresh and adjust target framerate accordingly
-- win32: query monitor refresh, adjust target framerate accordingly & set appropriate sync interval
-- all: gamepad input
+also see: https://github.com/hazeycode/brucelib/issues
 
 graphics:
 - DebugGUI: move text cursor with arrow keys
