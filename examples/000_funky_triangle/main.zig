@@ -117,13 +117,13 @@ fn frame(input: platform.FrameInput) !bool {
 
 /// Optional audio playback callback. If set it can be called at any time by the platform module
 /// on a dedicated audio thread.
-fn audioPlayback(stream: platform.AudioPlaybackStream) !void {
+fn audioPlayback(stream: platform.AudioPlaybackStream) !u32 {
     const sin = std.math.sin;
     const pi = std.math.pi;
     const tao = 2 * pi;
 
     const sample_rate = @intToFloat(f32, stream.sample_rate);
-    const num_frames = stream.sample_buf.len / stream.channels;
+    const num_frames = stream.max_frames;
 
     var n: u32 = 0;
     while (n < num_frames) : (n += 1) {
@@ -138,5 +138,9 @@ fn audioPlayback(stream: platform.AudioPlaybackStream) !void {
         }
     }
 
-    state.audio_cursor += num_frames;
+    const frames_written = num_frames;
+
+    state.audio_cursor += frames_written;
+
+    return frames_written;
 }

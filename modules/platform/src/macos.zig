@@ -29,7 +29,7 @@ var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 
 pub var audio_playback = struct {
-    user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
+    user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
     interface: AudioPlaybackInterface = undefined,
     thread: std.Thread = undefined,
 }{};
@@ -63,7 +63,7 @@ pub fn run(args: struct {
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
-    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!void = null,
+    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!u32 = null,
 }) !void {
     timer = try std.time.Timer.start();
 

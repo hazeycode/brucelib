@@ -54,7 +54,7 @@ var key_events: std.ArrayList(KeyEvent) = undefined;
 var mouse_button_events: std.ArrayList(MouseButtonEvent) = undefined;
 
 pub var audio_playback = struct {
-    user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
+    user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
     interface: AudioPlaybackInterface = undefined,
     thread: std.Thread = undefined,
 }{};
@@ -94,7 +94,7 @@ pub fn run(args: struct {
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
-    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!void = null,
+    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!u32 = null,
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -265,14 +265,15 @@ fn audioThread() void {
 
         const sample_buf = @ptrCast([*]f32, @alignCast(@alignOf(f32), byte_buf))[0..num_samples];
 
-        audio_playback.user_cb.?(.{
+        const frames_written = try audio_playback.user_cb.?(.{
             .sample_rate = audio_playback.interface.sample_rate,
             .channels = num_channels,
             .sample_buf = sample_buf,
-        }) catch |err| {
-            std.log.warn("User audio callback failed with err: {}", .{err});
-            for (sample_buf) |*sample| sample.* = 0;
-        };
+            .max_frames = num_frames,
+        });
+        if (frames_written < num_frames) {
+            std.log.warn("Audio playback underflow", .{});
+        }
 
         _ = audio_playback.interface.render_client.ReleaseBuffer(
             @intCast(UINT, num_frames),

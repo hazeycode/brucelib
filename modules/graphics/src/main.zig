@@ -366,7 +366,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         }
 
 
-        //
+        // Rendering Primitives
 
         ///
         pub const DrawList = struct {
@@ -418,7 +418,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         };
 
         pub const VertexIndex = u16;
-        
+
         pub const VertexUV = [2]f32;
 
         pub const TexturedVertex = extern struct {

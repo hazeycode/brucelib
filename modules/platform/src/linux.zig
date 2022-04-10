@@ -16,20 +16,24 @@ const GraphicsAPI = enum {
 
 var graphics_api: GraphicsAPI = undefined;
 
-pub var target_framerate: u16 = undefined;
+pub var target_framerate: u32 = undefined;
 
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 
 pub var audio_playback = struct {
-    user_cb: ?fn (AudioPlaybackStream) anyerror!void = null,
+    user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
     interface: AudioPlaybackInterface = undefined,
     thread: std.Thread = undefined,
 }{};
 
+var allocator: std.mem.Allocator = undefined;
+
 var timer: std.time.Timer = undefined;
 
 var window_closed = false;
+var quit = false;
+
 const num_keys = std.meta.fields(Key).len;
 var key_states: [num_keys]bool = .{false} ** num_keys;
 var key_repeats: [num_keys]u32 = .{0} ** num_keys;
@@ -56,14 +60,14 @@ pub fn run(args: struct {
     init_fn: fn (std.mem.Allocator) anyerror!void,
     deinit_fn: fn () void,
     frame_fn: fn (FrameInput) anyerror!bool,
-    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!void = null,
+    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!u32 = null,
 }) !void {
     timer = try std.time.Timer.start();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    const allocator = gpa.allocator();
+    allocator = gpa.allocator();
 
     const windowing = X11;
 
@@ -77,6 +81,44 @@ pub fn run(args: struct {
 
     try windowing.init(args.title);
     defer windowing.deinit();
+
+    const audio_enabled = (args.audio_playback_fn != null);
+
+    if (audio_enabled) {
+        audio_playback.user_cb = args.audio_playback_fn;
+
+        const sample_rate = 48000;
+        const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
+            u32, 
+            3 * sample_rate / target_framerate,
+        );
+
+        audio_playback.interface = try AudioPlaybackInterface.init(
+            sample_rate,
+            buffer_size_frames,
+        );
+
+        std.log.info(
+            \\Initilised audio playback (ALSA):
+            \\  {} channels
+            \\  {} Hz
+            \\  {} bits per sample
+        ,
+            .{
+                audio_playback.interface.num_channels,
+                audio_playback.interface.sample_rate,
+                audio_playback.interface.bits_per_sample,
+            },
+        );
+
+        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
+        audio_playback.thread.detach();
+    }
+    defer {
+        if (audio_enabled) {
+            audio_playback.interface.deinit();
+        }
+    }
 
     try args.init_fn(allocator);
     defer args.deinit_fn();
@@ -107,7 +149,7 @@ pub fn run(args: struct {
 
         const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
-        const quit = !(try args.frame_fn(.{
+        quit = !(try args.frame_fn(.{
             .frame_arena_allocator = arena_allocator,
             .quit_requested = window_closed,
             .target_frame_dt = target_frame_dt,
@@ -139,6 +181,78 @@ pub fn run(args: struct {
         windowing.swapBuffers();
 
         if (quit) break;
+    }
+}
+
+fn audioThread() !void {
+    var buffer = try allocator.alloc(
+        f32,
+        audio_playback.interface.buffer_frames * audio_playback.interface.num_channels,
+    );
+    defer allocator.free(buffer);
+
+    var read_cur: usize = 0;
+    var write_cur: usize = 0;
+    var samples_queued: usize = 0;
+
+    std.mem.set(f32, buffer, 0);
+
+    { // write a couple of frames of silence
+        const samples_silence = 2 * audio_playback.interface.sample_rate / target_framerate;
+        std.debug.assert(samples_silence < buffer.len);
+
+        _ = audio_playback.interface.writeSamples(buffer[0..(0 + samples_silence)]);
+    }
+
+    try audio_playback.interface.prepare();
+
+    while (quit == false) {
+        if (samples_queued > 0) {
+
+            var end = read_cur + samples_queued;
+            if (end > buffer.len) {
+                end = buffer.len;
+            }
+
+            if (end > read_cur) {
+
+                const samples = buffer[read_cur..end];
+                
+                read_cur = (read_cur + samples.len) % buffer.len;
+
+                samples_queued -= samples.len;
+
+                if (audio_playback.interface.writeSamples(samples) == false) {
+                    try audio_playback.interface.prepare();
+                    continue;
+                }
+            }
+        }
+
+        if (samples_queued < buffer.len) {
+            const max_samples = 3 * audio_playback.interface.sample_rate / target_framerate;
+            std.debug.assert(max_samples < buffer.len);
+
+            const end = if ((buffer.len - write_cur) > max_samples)
+                write_cur + max_samples
+            else
+                buffer.len;
+
+            const num_frames = try audio_playback.user_cb.?(.{
+                .sample_rate = audio_playback.interface.sample_rate,
+                .channels = audio_playback.interface.num_channels,
+                .sample_buf = buffer[write_cur..end],
+                .max_frames = @intCast(u32, end - write_cur) / audio_playback.interface.num_channels,
+            });
+
+            const num_samples = num_frames * audio_playback.interface.num_channels;
+
+            samples_queued += num_samples;
+
+            write_cur = (write_cur + num_samples) % buffer.len;
+        }
+
+        std.time.sleep(0);
     }
 }
 

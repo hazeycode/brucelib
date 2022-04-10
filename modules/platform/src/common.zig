@@ -10,6 +10,9 @@ pub const AudioPlaybackStream = struct {
 
     /// The buffer to write samples to
     sample_buf: []f32,
+
+    /// Maximum number of frames to write
+    max_frames: u32,
 };
 
 /// Defines the structure that is passed to the frame fn by the platform layer

@@ -76,7 +76,8 @@ fn frame(input: platform.Input) !bool {
     return (input.quit_requested == false);
 }
 
-fn audioPlayback(_: platform.AudioPlaybackStream) !void {
+fn audioPlayback(_: platform.AudioPlaybackStream) !u32 {
+    // return the number of audio frames that were written to the stream
 }
 ```
 For more usage examples, refer to the [brucelib examples](https://github.com/hazeycode/brucelib/tree/main/examples)
