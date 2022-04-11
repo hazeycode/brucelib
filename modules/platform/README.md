@@ -1,4 +1,4 @@
-# platform
+# brucelib.platform
 **WARNING: WORK IN PROGRESS**
 
 The platform module abstracts the target operating system and SDKs and provides an opaque interface. The design descisions regarding this interface are driven by the considerable differences between how platforms do things and the need for a simple interface for getting input events, creating graphics contexts, synchronising with the display refresh, piping out audio, etc.

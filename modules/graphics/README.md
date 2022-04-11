@@ -1,4 +1,4 @@
-# graphics
+# brucelib.graphics
 **WARNING: WORK IN PROGRESS**
 
 This module **does not** handle graphics context creation. You must use some other means to do that, such as the [platform module](https://github.com/hazeycode/brucelib/tree/main/modules/platform)

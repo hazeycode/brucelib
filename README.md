@@ -12,8 +12,8 @@ Modules work standalone without any external dependencies and are designed to be
 | :--- | :---------- | :----- |
 | [platform](modules/platform/) | Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures | in-progress |
 | [graphics](modules/graphics/) | Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives | in-progress |
+| [audio](modules/audio/) | Audio mixing, synthesis (planned) and signal processsing (planned) | in-progress |
 | gui | A flexible gui library with an immediate-mode interface | planned |
-| audio | Audio mixing, synthesis and signal processsing | planned |
 | asset | Data-agnostic, graph-based asset system | planned |
 | algo | Implementations of commonly used algorithms in games and simulations | planned |
 | build | Useful build and distribution packaging procedures to import into your build.zig | planned |
