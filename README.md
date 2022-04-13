@@ -38,7 +38,7 @@ The planned scope of this project is to target all the popular desktop, mobile a
 
 | Example | Screen capture |
 | ------- | -------------- |
-| [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window and draw stuff in it. | <img src="examples/000_funky_triangle/screencap.gif" width=426/> |
+| [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000_funky_triangle/screencap.gif" width=426/> |
 
 
 ## Licenses and attribution
