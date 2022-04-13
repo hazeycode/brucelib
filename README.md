@@ -2,14 +2,14 @@
 
 **WARNING: WORK IN PROGRESS**
 
-A monorepo of [modules](#modules) for programming cross-platform, interactive real-time applications such as games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products.
+A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products.
 
 "Absorb what is useful, discard what is useless and add what is specifically your own” - Bruce Lee
 
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Each module is designed to provide simple, direct abstractions that easy to adopt and easy to drop. [The examples](#examples) demonstrate how one can use modules in combination with each other.
+Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Each module is designed to provide simple, direct abstractions that are easy to adopt and easy to drop. [The examples](#examples) demonstrate how one can use modules in combination with each other.
 
 | Name | Description | Status |
 | :--- | :---------- | :----- |
