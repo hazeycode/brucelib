@@ -9,7 +9,7 @@ A monorepo of [modules](#modules) for programming cross-platform, interactive, r
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Each module is designed to provide simple, direct abstractions that are easy to adopt and easy to drop. [The examples](#examples) demonstrate how one can use modules in combination with each other.
+Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Each module is designed to provide simple abstractions that are easy to adopt and easy to drop. [The examples](#examples) demonstrate how one can use modules in combination with each other.
 
 | Name | Description | Status |
 | :--- | :---------- | :----- |
@@ -23,7 +23,7 @@ Modules are designed to be used standalone or in combination with each other. 3r
 
 
 ### Supported targets
-The planned scope of this project is to target all the popular desktop, mobile and console platforms. Most modules have no system dependencies. Refer to the [platform](modules/platform/) and [graphics](modules/graphics/) module documentation for more information.
+Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. The planned scope of this project is to target all the popular desktop, mobile and console platforms. However, current support is limited to Windows and Linux.
 
 
 ## Getting Started
@@ -39,6 +39,13 @@ The planned scope of this project is to target all the popular desktop, mobile a
 | Example | Screen capture |
 | ------- | -------------- |
 | [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000_funky_triangle/screencap.gif" width=426/> |
+
+
+## Contributing
+
+Feature requests, bug reports and pull requests are most welcome.
+
+To contribute code, you must have sole ownership or have permission from an employer or client where applicable and agree to license the contributed code under the license of this project as described in the [LICENSE](LICENSE) file.
 
 
 ## Licenses and attribution
