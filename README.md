@@ -43,9 +43,11 @@ Except for [platform](modules/platform/) and [graphics](modules/graphics/), modu
 
 ## Contributing
 
-Feature requests, bug reports and pull requests are most welcome.
+Feature requests, bug reports and pull requests are most welcome. Please note however, that this project is in early stages of development.
 
 To contribute code, you must have sole ownership or have permission from an employer or client where applicable and agree to license the contributed code under the license of this project as described in the [LICENSE](LICENSE) file.
+
+TODO: CLA
 
 
 ## Licenses and attribution
