@@ -9,6 +9,8 @@ const KeyEvent = common.KeyEvent;
 const MouseButtonEvent = common.MouseButtonEvent;
 const Key = common.Key;
 
+const num_keys = std.meta.fields(Key).len;
+
 const AlsaPlaybackInterface = @import("linux/AlsaPlaybackInterface.zig");
 const AudioPlaybackInterface = AlsaPlaybackInterface;
 
@@ -16,36 +18,22 @@ const GraphicsAPI = enum {
     opengl,
 };
 
-var graphics_api: GraphicsAPI = undefined;
-
-pub var target_framerate: u32 = undefined;
+var target_framerate: u32 = undefined;
 
 var window_width: u16 = undefined;
 var window_height: u16 = undefined;
 
-pub var audio_playback = struct {
+var window_closed = false;
+var quit = false;
+
+var audio_playback = struct {
     user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
     interface: AudioPlaybackInterface = undefined,
     thread: std.Thread = undefined,
 }{};
 
-var allocator: std.mem.Allocator = undefined;
-
-var timer: std.time.Timer = undefined;
-
-var window_closed = false;
-var quit = false;
-
-const num_keys = std.meta.fields(Key).len;
-var key_states: [num_keys]bool = .{false} ** num_keys;
-var key_repeats: [num_keys]u32 = .{0} ** num_keys;
-
 pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
     return X11.glXGetProcAddress(?*const anyopaque, entry_point.ptr) catch null;
-}
-
-pub fn timestamp() u64 {
-    return timer.read();
 }
 
 pub fn run(args: struct {
@@ -64,16 +52,12 @@ pub fn run(args: struct {
     frame_fn: fn (FrameInput) anyerror!bool,
     audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!u32 = null,
 }) !void {
-    timer = try std.time.Timer.start();
+    var timer = try std.time.Timer.start();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    allocator = gpa.allocator();
-
-    const windowing = X11;
-
-    graphics_api = args.graphics_api;
+    var allocator = gpa.allocator();
 
     // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
     target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
@@ -81,7 +65,10 @@ pub fn run(args: struct {
     window_width = args.window_size.width;
     window_height = args.window_size.height;
 
-    try windowing.init(args.title);
+    var windowing = try X11.init(.{
+        .graphics_api = args.graphics_api,
+        .window_title = args.title,
+    });
     defer windowing.deinit();
 
     const audio_enabled = (args.audio_playback_fn != null);
@@ -113,7 +100,7 @@ pub fn run(args: struct {
             },
         );
 
-        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
+        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
         audio_playback.thread.detach();
     }
     defer {
@@ -132,7 +119,7 @@ pub fn run(args: struct {
     while (true) {
         const prev_frame_elapsed = frame_timer.lap();
 
-        const start_cpu_time = timestamp();
+        const start_cpu_time = timer.read();
 
         var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
         defer frame_mem_arena.deinit();
@@ -173,7 +160,7 @@ pub fn run(args: struct {
             },
         }));
 
-        prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
+        prev_cpu_frame_elapsed = timer.read() - start_cpu_time;
 
         const remaining_frame_time = @intCast(i128, target_frame_dt - 100000) - frame_timer.read();
         if (remaining_frame_time > 0) {
@@ -186,7 +173,7 @@ pub fn run(args: struct {
     }
 }
 
-fn audioThread() !void {
+fn audioThread(allocator: std.mem.Allocator) !void {
     var buffer = try allocator.alloc(
         f32,
         audio_playback.interface.buffer_frames * audio_playback.interface.num_channels,
@@ -265,21 +252,27 @@ const X11 = struct {
         @cInclude("GL/glext.h");
     });
 
-    var display: *c.Display = undefined;
-    var connection: *c.xcb_connection_t = undefined;
-    var atom_protocols: *c.xcb_intern_atom_reply_t = undefined;
-    var atom_delete_window: *c.xcb_intern_atom_reply_t = undefined;
-    var window: u32 = undefined;
-    var fb_config: c.GLXFBConfig = undefined;
+    graphics_api: GraphicsAPI,
+    display: *c.Display,
+    connection: *c.xcb_connection_t,
+    atom_protocols: *c.xcb_intern_atom_reply_t,
+    atom_delete_window: *c.xcb_intern_atom_reply_t,
+    window: u32,
 
-    fn init(window_title: []const u8) !void {
+    key_states: [num_keys]bool = .{false} ** num_keys,
+    key_repeats: [num_keys]u32 = .{0} ** num_keys,
+
+    fn init(args: struct {
+        graphics_api: GraphicsAPI,
+        window_title: []const u8,
+    }) !X11 {
         c.XrmInitialize();
 
-        display = c.XOpenDisplay(@intToPtr(?*const u8, 0)) orelse return error.XOpenDisplayFailed;
+        const display = c.XOpenDisplay(@intToPtr(?*const u8, 0)) orelse return error.XOpenDisplayFailed;
 
         _ = c.XkbSetDetectableAutoRepeat(display, c.True, null);
 
-        connection = c.XGetXCBConnection(display) orelse return error.XGetXCBConnectionFailed;
+        const connection = c.XGetXCBConnection(display) orelse return error.XGetXCBConnectionFailed;
         errdefer c.xcb_disconnect(connection);
 
         c.XSetEventQueueOwner(display, c.XCBOwnsEventQueue);
@@ -301,14 +294,14 @@ const X11 = struct {
 
         const screen_root = screen.?.*.root;
 
-        atom_protocols = c.xcb_intern_atom_reply(
+        const atom_protocols = c.xcb_intern_atom_reply(
             connection,
             c.xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS"),
             0,
         );
         errdefer _ = c.XFree(atom_protocols);
 
-        atom_delete_window = c.xcb_intern_atom_reply(
+        const atom_delete_window = c.xcb_intern_atom_reply(
             connection,
             c.xcb_intern_atom(connection, 0, 16, "WM_DELETE_WINDOW"),
             0,
@@ -317,7 +310,9 @@ const X11 = struct {
 
         var visual_info: *c.XVisualInfo = undefined;
 
-        switch (graphics_api) {
+        var glx_fb_config: c.GLXFBConfig = undefined;
+
+        switch (args.graphics_api) {
             .opengl => {
                 // query opengl version
                 var glx_ver_min: c_int = undefined;
@@ -342,22 +337,22 @@ const X11 = struct {
                     c.GLX_SAMPLES,        4,
                     c.None,
                 };
-                var num_fb_configs: c_int = 0;
-                const fb_configs = c.glXChooseFBConfig(
+                var num_glx_fb_configs: c_int = 0;
+                const glx_fb_configs = c.glXChooseFBConfig(
                     display,
                     default_screen_num,
                     &attrib_list,
-                    &num_fb_configs,
+                    &num_glx_fb_configs,
                 );
 
-                if (fb_configs == null) return error.FailedToQueryFramebufferConfigs;
-                if (num_fb_configs == 0) return error.NoCompatibleFramebufferConfigsFound;
-                // defer _ = c.XFree(fb_configs);
+                if (glx_fb_configs == null) return error.FailedToQueryFramebufferConfigs;
+                if (num_glx_fb_configs == 0) return error.NoCompatibleFramebufferConfigsFound;
+                // defer _ = c.XFree(glx_fb_configs);
 
                 // use the first config and get visual info
-                fb_config = fb_configs[0];
+                glx_fb_config = glx_fb_configs[0];
 
-                visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
+                visual_info = c.glXGetVisualFromFBConfig(display, glx_fb_config) orelse return error.FailedToGetVisualFromFBConfig;
             },
         }
 
@@ -368,7 +363,7 @@ const X11 = struct {
         _ = c.xcb_create_colormap(connection, c.XCB_COLORMAP_ALLOC_NONE, colour_map, screen_root, visual_id);
 
         // create xcb window
-        window = c.xcb_generate_id(connection);
+        const window = c.xcb_generate_id(connection);
         if (c.xcb_request_check(
             connection,
             c.xcb_create_window_checked(
@@ -409,7 +404,7 @@ const X11 = struct {
             &(atom_delete_window.*.atom),
         );
 
-        if (window_title.len > 0) {
+        if (args.window_title.len > 0) {
             _ = c.xcb_change_property(
                 connection,
                 c.XCB_PROP_MODE_REPLACE,
@@ -417,15 +412,15 @@ const X11 = struct {
                 c.XCB_ATOM_WM_NAME,
                 c.XCB_ATOM_STRING,
                 8,
-                @intCast(u32, window_title.len),
-                &window_title[0],
+                @intCast(u32, args.window_title.len),
+                &args.window_title[0],
             );
         }
 
         _ = c.xcb_map_window(connection, window);
         _ = c.xcb_flush(connection);
 
-        switch (graphics_api) {
+        switch (args.graphics_api) {
             .opengl => {
                 // load glXCreateContextAttribsARB fn ptr
                 const glXGetProcAddressARBFn = fn (
@@ -446,13 +441,22 @@ const X11 = struct {
                     c.GLX_CONTEXT_MINOR_VERSION_ARB, 4,
                     c.GLX_CONTEXT_PROFILE_MASK_ARB,  c.GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
                 };
-                const context = glXCreateContextAttribsARB(display, fb_config, null, c.True, &attribs);
+                const context = glXCreateContextAttribsARB(display, glx_fb_config, null, c.True, &attribs);
                 if (context == null) return error.FailedToCreateGLXContext;
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
 
                 log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
         }
+
+        return X11{
+            .graphics_api = args.graphics_api,
+            .display = display,
+            .connection = connection,
+            .atom_protocols = atom_protocols,
+            .atom_delete_window = atom_delete_window,
+            .window = window,
+        };
     }
 
     fn glXGetProcAddress(comptime T: type, sym_name: [*c]const u8) !T {
@@ -465,24 +469,24 @@ const X11 = struct {
         return @ptrCast(T, fn_ptr);
     }
 
-    fn deinit() void {
-        switch (graphics_api) {
+    fn deinit(self: *X11) void {
+        switch (self.graphics_api) {
             .opengl => {
                 const context = c.glXGetCurrentContext();
-                _ = c.glXMakeCurrent(display, 0, null);
-                c.glXDestroyContext(display, context);
+                _ = c.glXMakeCurrent(self.display, 0, null);
+                c.glXDestroyContext(self.display, context);
             },
         }
-        _ = c.XFree(atom_delete_window);
-        _ = c.XFree(atom_protocols);
-        c.xcb_disconnect(connection);
+        _ = c.XFree(self.atom_delete_window);
+        _ = c.XFree(self.atom_protocols);
+        c.xcb_disconnect(self.connection);
     }
 
-    fn swapBuffers() void {
-        c.glXSwapBuffers(display, window);
+    fn swapBuffers(self: *X11) void {
+        c.glXSwapBuffers(self.display, self.window);
     }
 
-    fn getMousePos() struct { x: i32, y: i32 } {
+    fn getMousePos(self: *X11) struct { x: i32, y: i32 } {
         var root: c.Window = undefined;
         var child: c.Window = undefined;
         var root_x: i32 = 0;
@@ -491,8 +495,8 @@ const X11 = struct {
         var win_y: i32 = 0;
         var mask: u32 = 0;
         _ = c.XQueryPointer(
-            display,
-            window,
+            self.display,
+            self.window,
             &root,
             &child,
             &root_x,
@@ -508,19 +512,20 @@ const X11 = struct {
     }
 
     fn processEvents(
+        self: *X11,
         key_events: anytype,
         mouse_button_events: anytype,
     ) !void {
-        var xcb_event = c.xcb_poll_for_event(connection);
-        while (@ptrToInt(xcb_event) > 0) : (xcb_event = c.xcb_poll_for_event(connection)) {
+        var xcb_event = c.xcb_poll_for_event(self.connection);
+        while (@ptrToInt(xcb_event) > 0) : (xcb_event = c.xcb_poll_for_event(self.connection)) {
             defer _ = c.XFree(xcb_event);
             switch (xcb_event.*.response_type & ~@as(u32, 0x80)) {
                 c.XCB_EXPOSE => {
-                    _ = c.xcb_flush(connection);
+                    _ = c.xcb_flush(self.connection);
                 },
                 c.XCB_CLIENT_MESSAGE => {
                     const xcb_client_message_event = @ptrCast(*c.xcb_client_message_event_t, xcb_event);
-                    if (xcb_client_message_event.data.data32[0] == atom_delete_window.*.atom) {
+                    if (xcb_client_message_event.data.data32[0] == self.atom_delete_window.*.atom) {
                         window_closed = true;
                     }
                 },
@@ -533,33 +538,33 @@ const X11 = struct {
                 },
                 c.XCB_KEY_PRESS => {
                     const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
-                    if (translateKey(xcb_key_press_event.detail)) |key| {
-                        const repeat = key_states[@enumToInt(key)];
+                    if (translateKey(self.display, xcb_key_press_event.detail)) |key| {
+                        const repeat = self.key_states[@enumToInt(key)];
                         if (repeat == false) {
-                            key_repeats[@enumToInt(key)] += 1;
+                            self.key_repeats[@enumToInt(key)] += 1;
                             try key_events.append(.{
                                 .action = .press,
                                 .key = key,
                             });
                         } else {
-                            key_repeats[@enumToInt(key)] = 1;
+                            self.key_repeats[@enumToInt(key)] = 1;
                             try key_events.append(.{
-                                .action = .{ .repeat = key_repeats[@enumToInt(key)] },
+                                .action = .{ .repeat = self.key_repeats[@enumToInt(key)] },
                                 .key = key,
                             });
                         }
-                        key_states[@enumToInt(key)] = true;
+                        self.key_states[@enumToInt(key)] = true;
                     }
                 },
                 c.XCB_KEY_RELEASE => {
                     const xcb_key_release_event = @ptrCast(*c.xcb_key_release_event_t, xcb_event);
-                    if (translateKey(xcb_key_release_event.detail)) |key| {
+                    if (translateKey(self.display, xcb_key_release_event.detail)) |key| {
                         try key_events.append(.{
                             .action = .release,
                             .key = key,
                         });
-                        key_repeats[@enumToInt(key)] = 0;
-                        key_states[@enumToInt(key)] = false;
+                        self.key_repeats[@enumToInt(key)] = 0;
+                        self.key_states[@enumToInt(key)] = false;
                     }
                 },
                 c.XCB_BUTTON_PRESS => {
@@ -589,7 +594,7 @@ const X11 = struct {
         }
     }
 
-    fn translateKey(keycode: u8) ?Key {
+    fn translateKey(display: *c.Display, keycode: u8) ?Key {
         // TODO(hazeycode): measure and consider cacheing this in a LUT for performance
         var keysyms_per_keycode: c_int = 0;
         const keysyms = c.XGetKeyboardMapping(display, keycode, 1, &keysyms_per_keycode);
