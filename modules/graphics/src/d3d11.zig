@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const log = std.log.scoped(.@"brucelib.graphics.d3d11");
+
 const common = @import("common.zig");
 const VertexBufferHandle = common.VertexBufferHandle;
 const VertexLayoutDesc = common.VertexLayoutDesc;
@@ -158,7 +160,7 @@ pub fn logDebugMessages() !void {
                 &msg_size,
             ));
 
-            std.log.debug("d3d11: {s}", .{message.pDescription[0..message.DescriptionByteLength]});
+            log.debug("d3d11: {s}", .{message.pDescription[0..message.DescriptionByteLength]});
         }
     }
 }
@@ -669,7 +671,7 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
 
     if (compile_result != S_OK) {
         const err_msg = @ptrCast([*c]const u8, err_blob.GetBufferPointer());
-        std.log.err("Failed to compile shader:\n{s}", .{err_msg});
+        log.err("Failed to compile shader:\n{s}", .{err_msg});
         _ = err_blob.Release();
         return win32.hrToError(compile_result);
     }
