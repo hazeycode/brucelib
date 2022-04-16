@@ -99,9 +99,6 @@ pub fn run(args: struct {
                 audio_playback.interface.bits_per_sample,
             },
         );
-
-        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
-        audio_playback.thread.detach();
     }
     defer {
         if (audio_enabled) {
@@ -111,6 +108,11 @@ pub fn run(args: struct {
 
     try args.init_fn(allocator);
     defer args.deinit_fn();
+
+    if (audio_enabled) {
+        audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
+        audio_playback.thread.detach();
+    }
 
     var frame_timer = try std.time.Timer.start();
 
