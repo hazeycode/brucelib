@@ -1,6 +1,8 @@
 const std = @import("std");
 const gl = @import("zig-opengl");
 
+const log = std.log.scoped(.@"brucelib.graphics.opengl");
+
 const common = @import("common.zig");
 const VertexBufferHandle = common.VertexBufferHandle;
 const VertexLayoutDesc = common.VertexLayoutDesc;
@@ -267,7 +269,7 @@ fn compileShaderSource(stage: enum { vertex, fragment }, source: [:0]const u8) !
         if (log_len > 0) {
             const log_buffer = try temp_arena.allocator().alloc(u8, @intCast(usize, log_len));
             gl.getShaderInfoLog(shader, log_len, &log_len, @ptrCast([*c]u8, log_buffer));
-            std.log.err("{s}", .{log_buffer});
+            log.err("{s}", .{log_buffer});
         }
 
         return error.ShaderCompilationFailed;
@@ -296,7 +298,7 @@ fn createShaderProgram(vertex_shader_handle: u32, fragment_shader_handle: u32) !
         if (log_len > 0) {
             const log_buffer = try temp_arena.allocator().alloc(u8, @intCast(usize, log_len));
             gl.getProgramInfoLog(program, log_len, &log_len, log_buffer.ptr);
-            std.log.err("{s}", .{log_buffer});
+            log.err("{s}", .{log_buffer});
         }
         return error.FailedToLinkShaderProgram;
     }
