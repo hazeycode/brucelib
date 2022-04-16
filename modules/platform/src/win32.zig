@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const log = std.log.scoped(.@"brucelib.platform.win32");
+
 const common = @import("common.zig");
 const FrameInput = common.FrameInput;
 const AudioPlaybackStream = common.AudioPlaybackStream;
@@ -110,7 +112,7 @@ pub fn run(args: struct {
     timer = try std.time.Timer.start();
 
     const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
-        std.log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
+        log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
         return Error.FailedToGetModuleHandle;
     });
 
@@ -134,7 +136,7 @@ pub fn run(args: struct {
     if (audio_enabled) {
         audio_playback.user_cb = args.audio_playback_fn;
         audio_playback.interface = try AudioPlaybackInterface.init();
-        std.log.info(
+        log.info(
             \\Initilised audio playback (WASAPI):
             \\  {} channels
             \\  {} Hz
@@ -221,7 +223,7 @@ fn audioThread() void {
         hrErrorOnFail(audio_playback.interface.client.GetBufferSize(&buffer_frames)) catch {
             std.debug.panic("audioThread: failed to prefill silence", .{});
         };
-        std.log.debug("audio stream buffer size = {} frames", .{buffer_frames});
+        log.debug("audio stream buffer size = {} frames", .{buffer_frames});
 
         var ptr: [*]f32 = undefined;
         hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(
@@ -259,7 +261,7 @@ fn audioThread() void {
 
         var byte_buf: [*]BYTE = undefined;
         hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(num_frames, @ptrCast(*?[*]BYTE, &byte_buf))) catch |err| {
-            std.log.warn("Audio GetBuffer failed with error: {}", .{err});
+            log.warn("Audio GetBuffer failed with error: {}", .{err});
             continue;
         };
 
@@ -272,7 +274,7 @@ fn audioThread() void {
             .max_frames = num_frames,
         });
         if (frames_written < num_frames) {
-            std.log.warn("Audio playback underflow", .{});
+            log.warn("Audio playback underflow", .{});
         }
 
         _ = audio_playback.interface.render_client.ReleaseBuffer(
@@ -307,7 +309,7 @@ fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) L
                 },
                 .key = key,
             }) catch |err| {
-                std.log.warn("Failed to translate key {} with error: {}", .{ wparam, err });
+                log.warn("Failed to translate key {} with error: {}", .{ wparam, err });
             };
         },
         else => {},
