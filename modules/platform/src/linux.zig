@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const log = std.log.scoped(.@"brucelib.platform.linux");
+
 const common = @import("common.zig");
 const FrameInput = common.FrameInput;
 const AudioPlaybackStream = common.AudioPlaybackStream;
@@ -89,7 +91,7 @@ pub fn run(args: struct {
 
         const sample_rate = 48000;
         const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
-            u32, 
+            u32,
             3 * sample_rate / target_framerate,
         );
 
@@ -98,7 +100,7 @@ pub fn run(args: struct {
             buffer_size_frames,
         );
 
-        std.log.info(
+        log.info(
             \\Initilised audio playback (ALSA):
             \\  {} channels
             \\  {} Hz
@@ -208,16 +210,14 @@ fn audioThread() !void {
 
     while (quit == false) {
         if (samples_queued > 0) {
-
             var end = read_cur + samples_queued;
             if (end > buffer.len) {
                 end = buffer.len;
             }
 
             if (end > read_cur) {
-
                 const samples = buffer[read_cur..end];
-                
+
                 read_cur = (read_cur + samples.len) % buffer.len;
 
                 samples_queued -= samples.len;
@@ -323,7 +323,7 @@ const X11 = struct {
                 var glx_ver_min: c_int = undefined;
                 var glx_ver_maj: c_int = undefined;
                 if (c.glXQueryVersion(display, &glx_ver_maj, &glx_ver_min) == 0) return error.FailedToQueryGLXVersion;
-                std.log.info("GLX version {}.{}", .{ glx_ver_maj, glx_ver_min });
+                log.info("GLX version {}.{}", .{ glx_ver_maj, glx_ver_min });
 
                 // query framebuffer configurations that match visual_attribs
                 const attrib_list = [_]c_int{
@@ -349,12 +349,14 @@ const X11 = struct {
                     &attrib_list,
                     &num_fb_configs,
                 );
+
                 if (fb_configs == null) return error.FailedToQueryFramebufferConfigs;
                 if (num_fb_configs == 0) return error.NoCompatibleFramebufferConfigsFound;
-                defer _ = c.XFree(fb_configs);
+                // defer _ = c.XFree(fb_configs);
 
                 // use the first config and get visual info
                 fb_config = fb_configs[0];
+
                 visual_info = c.glXGetVisualFromFBConfig(display, fb_config) orelse return error.FailedToGetVisualFromFBConfig;
             },
         }
@@ -448,7 +450,7 @@ const X11 = struct {
                 if (context == null) return error.FailedToCreateGLXContext;
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
 
-                std.log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
+                log.info("OpenGL version {s}", .{c.glGetString(c.GL_VERSION)});
             },
         }
     }
