@@ -88,10 +88,16 @@ pub const Mixer = struct {
     /// Binds the sound to a free input channel or overrides a lower priority one
     /// Will be unbound if&when `sample_fn` writes no samples or when the user calls `stop` or `stopAll`
     /// Returns the input channel index that was bound or null if sound can't be played
-    pub fn play(self: *@This(), sound_source: anytype, priority: Sound.Priority) ?u32 {
+    pub fn play(
+        self: *@This(),
+        sound_source: anytype,
+        priority: Sound.Priority,
+        gain: f32,
+    ) ?u32 {
         std.debug.assert(@typeInfo(@TypeOf(sound_source)) == .Pointer);
 
         if (self.bindInput(sound_source, priority)) |input_channel_idx| {
+            self.inputs[input_channel_idx].gain = gain;
             return input_channel_idx;
         } else {
             log.warn("No free mixer channels to play sound", .{});
