@@ -93,17 +93,17 @@ pub const Mixer = struct {
         sound_source: anytype,
         priority: Sound.Priority,
         gain: f32,
-    ) ?u32 {
+    ) bool {
         std.debug.assert(@typeInfo(@TypeOf(sound_source)) == .Pointer);
 
         if (self.bindInput(sound_source, priority)) |input_channel_idx| {
             self.inputs[input_channel_idx].gain = gain;
-            return input_channel_idx;
+            return true;
         } else {
             log.warn("No free mixer channels to play sound", .{});
             std.debug.assert(priority != .high);
         }
-        return null;
+        return false;
     }
 
     /// Stop a playing sound by input channel index
@@ -119,6 +119,26 @@ pub const Mixer = struct {
         while (i < self.inputs.len) : (i += 1) {
             self.stop(i);
         }
+    }
+
+    /// Sets the input gain for a given sound source, if it's bound
+    /// Returns true if the sound is bound to a channel, otherwise false
+    pub fn setInputSourceGain(self: *@This(), sound_source: anytype, gain: f32) bool {
+        std.debug.assert(@typeInfo(@TypeOf(sound_source)) == .Pointer);
+
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        for (self.inputs) |*input| {
+            if (input.sound) |sound| {
+                if (sound.ptr == @ptrCast(*anyopaque, sound_source)) {
+                    input.gain = gain;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// Mixes all input channel and write to the given buffer
