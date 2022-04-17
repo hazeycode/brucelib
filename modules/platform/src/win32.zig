@@ -219,7 +219,7 @@ pub fn run(args: struct {
     }
 }
 
-fn audioThread() void {
+fn audioThread() !void {
     { // write some silence before starting the stream
         var buffer_frames: UINT = 0;
         hrErrorOnFail(audio_playback.interface.client.GetBufferSize(&buffer_frames)) catch {
