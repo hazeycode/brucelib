@@ -71,9 +71,6 @@ pub const Mixer = struct {
 
     /// Stop a playing sound by input channel index
     pub fn stop(self: *@This(), channel: u32) void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
-
         self.inputs[channel].sound = null;
         log.debug("Stopped playing sound on mixer channel {}", .{channel});
     }
@@ -97,55 +94,52 @@ pub const Mixer = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        var frames_remaining: u32 = num_frames;
-        while (frames_remaining > 0) {
+        // buffer up input samples
+        for (self.inputs) |*input, i| {
+            if (input.sound) |*sound| {
+                const max_samples = num_frames * sound.channels;
+                const read_samples = sound.sample(
+                    sample_rate,
+                    input.buffer[0..max_samples],
+                );
 
-            // buffer up input samples
-            for (self.inputs) |*input, i| {
-                if (input.sound) |*sound| {
-                    const num_samples = num_frames * sound.channels;
-                    const got_samples = sound.sample(
-                        sample_rate,
-                        input.buffer[0..num_samples],
-                    );
+                // unbind if no samples were written
+                if (read_samples == 0) {
+                    stop(self, @intCast(u32, i));
+                }
 
-                    // unbind if no samples were written
-                    if (got_samples == 0) {
-                        stop(self, @intCast(u32, i));
+                // fill any remaining space in buffer with silence
+                for (input.buffer[read_samples..]) |*sample| sample.* = 0.0;
+            }
+        }
+
+        const frames = num_frames;
+
+        var n: u32 = 0;
+        while (n < frames) : (n += 1) {
+            var samples: [2]f32 = .{ 0, 0 };
+
+            for (self.inputs) |input| {
+                if (input.sound) |sound| {
+                    switch (sound.channels) {
+                        1 => {
+                            samples[0] += input.sends[0] * input.gain * input.buffer[n];
+                            samples[1] += input.sends[1] * input.gain * input.buffer[n];
+                        },
+                        2 => {
+                            samples[0] += input.sends[0] * input.gain * input.buffer[n * 2 + 0];
+                            samples[1] += input.sends[1] * input.gain * input.buffer[n * 2 + 1];
+                        },
+                        else => std.debug.panic(
+                            "Input has unsupported number of channels: {}",
+                            .{sound.channels},
+                        ),
                     }
                 }
             }
 
-            const frames = num_frames;
-
-            var n: u32 = 0;
-            while (n < frames) : (n += 1) {
-                var samples: [2]f32 = .{ 0, 0 };
-
-                for (self.inputs) |input| {
-                    if (input.sound) |sound| {
-                        switch (sound.channels) {
-                            1 => {
-                                samples[0] += input.sends[0] * input.gain * input.buffer[n];
-                                samples[1] += input.sends[1] * input.gain * input.buffer[n];
-                            },
-                            2 => {
-                                samples[0] += input.sends[0] * input.gain * input.buffer[n * 2 + 0];
-                                samples[1] += input.sends[1] * input.gain * input.buffer[n * 2 + 1];
-                            },
-                            else => std.debug.panic(
-                                "Input has unsupported number of channels: {}",
-                                .{sound.channels},
-                            ),
-                        }
-                    }
-                }
-
-                sample_buf[n * out_channels + 0] = samples[0];
-                sample_buf[n * out_channels + 1] = samples[1];
-            }
-
-            frames_remaining -= frames;
+            sample_buf[n * out_channels + 0] = samples[0];
+            sample_buf[n * out_channels + 1] = samples[1];
         }
     }
 
