@@ -103,13 +103,14 @@ pub const Mixer = struct {
             // buffer up input samples
             for (self.inputs) |*input, i| {
                 if (input.sound) |*sound| {
-                    const num_samples = sound.sample(
+                    const num_samples = num_frames * sound.channels;
+                    const got_samples = sound.sample(
                         sample_rate,
-                        input.buffer[0..num_frames],
+                        input.buffer[0..num_samples],
                     );
 
                     // unbind if no samples were written
-                    if (num_samples == 0) {
+                    if (got_samples == 0) {
                         stop(self, @intCast(u32, i));
                     }
                 }
@@ -119,26 +120,29 @@ pub const Mixer = struct {
 
             var n: u32 = 0;
             while (n < frames) : (n += 1) {
-                var frame_samples: [2]f32 = .{ 0, 0 };
+                var samples: [2]f32 = .{ 0, 0 };
 
                 for (self.inputs) |input| {
                     if (input.sound) |sound| {
                         switch (sound.channels) {
                             1 => {
-                                frame_samples[0] += input.sends[0] * input.gain * input.buffer[n];
-                                frame_samples[1] += input.sends[1] * input.gain * input.buffer[n];
+                                samples[0] += input.sends[0] * input.gain * input.buffer[n];
+                                samples[1] += input.sends[1] * input.gain * input.buffer[n];
                             },
                             2 => {
-                                frame_samples[0] += input.sends[0] * input.gain * input.buffer[n * 2 + 0];
-                                frame_samples[1] += input.sends[1] * input.gain * input.buffer[n * 2 + 1];
+                                samples[0] += input.sends[0] * input.gain * input.buffer[n * 2 + 0];
+                                samples[1] += input.sends[1] * input.gain * input.buffer[n * 2 + 1];
                             },
-                            else => std.debug.panic("Unsupported number of channels: {}", .{sound.channels}),
+                            else => std.debug.panic(
+                                "Input has unsupported number of channels: {}",
+                                .{sound.channels},
+                            ),
                         }
                     }
                 }
 
-                sample_buf[n * out_channels + 0] = frame_samples[0];
-                sample_buf[n * out_channels + 1] = frame_samples[1];
+                sample_buf[n * out_channels + 0] = samples[0];
+                sample_buf[n * out_channels + 1] = samples[1];
             }
 
             frames_remaining -= frames;
