@@ -102,22 +102,25 @@ pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
             samples = try allocator.alloc(f32, num_samples);
             errdefer allocator.free(samples);
 
+            const recip_conv_factor = @intToFloat(f32, std.math.pow(u32, 2, bits_per_sample - 1) - 1);
+
             switch (format) {
                 .unsigned8 => for (samples) |*sample| {
-                    const int = try reader.readByte();
-                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u8));
+                    const max = std.math.pow(i16, 2, @intCast(i16, bits_per_sample - 1));
+                    const int = @intCast(i16, try reader.readIntLittle(u8)) - max;
+                    sample.* = @intToFloat(f32, int) / recip_conv_factor;
                 },
                 .signed16 => for (samples) |*sample| {
                     const int = try reader.readIntLittle(i16);
-                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u16) / 2);
+                    sample.* = @intToFloat(f32, int) / recip_conv_factor;
                 },
                 .signed24 => for (samples) |*sample| {
                     const int = try reader.readIntLittle(i24);
-                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u24) / 2);
+                    sample.* = @intToFloat(f32, int) / recip_conv_factor;
                 },
                 .signed32 => for (samples) |*sample| {
                     const int = try reader.readIntLittle(i32);
-                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u32) / 2);
+                    sample.* = @intToFloat(f32, int) / recip_conv_factor;
                 },
             }
 
