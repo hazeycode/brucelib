@@ -132,7 +132,10 @@ pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
         }
     }
 
-    log.debug("read wav: {} channels, {} Hz, {} samples", .{ channels, sample_rate, samples.len });
+    log.debug(
+        "read wav: {} channels, {} Hz, {} bit, {} samples",
+        .{ channels, sample_rate, bits_per_sample, samples.len },
+    );
 
     return Desc{
         .channels = channels,
