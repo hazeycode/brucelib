@@ -14,7 +14,7 @@ write_cursor: usize = 0,
 read_cursor: usize = 0,
 
 pub fn init(requested_sample_rate: u32, buffer_frames_requested: usize) !AlsaPlaybackInterface {
-    var stream: *alsa.snd_pcm_t = undefined; 
+    var stream: *alsa.snd_pcm_t = undefined;
     _ = try alsa.checkError(alsa.snd_pcm_open(
         @ptrCast(*?*alsa.snd_pcm_t, &stream),
         "default",
@@ -70,14 +70,14 @@ pub fn init(requested_sample_rate: u32, buffer_frames_requested: usize) !AlsaPla
         null,
     ));
 
-    _ = try alsa.checkError(alsa.snd_pcm_hw_params(stream, hw_params));
-
     var buf_frames: c_ulong = buffer_frames_requested;
     _ = try alsa.checkError(alsa.snd_pcm_hw_params_set_buffer_size_near(
         stream,
         hw_params,
         &buf_frames,
     ));
+
+    _ = try alsa.checkError(alsa.snd_pcm_hw_params(stream, hw_params));
 
     std.log.debug("alsa buffer size: {} frames", .{buf_frames});
 

@@ -218,10 +218,10 @@ fn audioThread(allocator: std.mem.Allocator) !void {
             }
         }
 
-        if (samples_queued < buffer.len) {
-            const max_samples = 3 * audio_playback.interface.sample_rate / target_framerate;
-            std.debug.assert(max_samples < buffer.len);
+        const max_samples = 3 * audio_playback.interface.sample_rate / target_framerate;
+        std.debug.assert(max_samples < buffer.len);
 
+        if (samples_queued < max_samples) {
             const end = if ((buffer.len - write_cur) > max_samples)
                 write_cur + max_samples
             else
