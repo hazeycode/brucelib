@@ -8,6 +8,37 @@ const sin = std.math.sin;
 const pi = std.math.pi;
 const tao = 2 * pi;
 
+pub const wav = @import("wav.zig");
+
+pub const Wav = struct {
+    desc: wav.Desc,
+    loop: bool = false,
+    cursor: usize = 0,
+
+    pub fn sound(self: *@This(), priority: Sound.Priority) Sound {
+        return Sound.init(@ptrCast(*anyopaque, self), @This().sample, self.desc.channels, priority);
+    }
+
+    pub fn sample(ptr: *anyopaque, _: u32, buffer: []f32) usize {
+        const self = @ptrCast(*Wav, @alignCast(@alignOf(*Wav), ptr));
+
+        // TODO(hazeycode): resampling
+        //std.debug.assert(sample_rate == self.desc.sample_rate);
+
+        // TODO(hazeycode): looping
+
+        const remaining_samples = self.desc.samples[self.cursor..];
+
+        const num_samples = std.math.min(buffer.len, remaining_samples.len);
+
+        std.mem.copy(f32, buffer, self.desc.samples[self.cursor..(self.cursor + num_samples)]);
+
+        self.cursor += num_samples;
+
+        return num_samples;
+    }
+};
+
 pub const SineWave = struct {
     freq: f32,
     cursor: usize = 0,
@@ -72,6 +103,7 @@ pub const Mixer = struct {
     /// Stop a playing sound by input channel index
     pub fn stop(self: *@This(), channel: u32) void {
         self.inputs[channel].sound = null;
+        std.mem.set(f32, &self.inputs[channel].buffer, 0);
         log.debug("Stopped playing sound on mixer channel {}", .{channel});
     }
 
