@@ -22,10 +22,12 @@ pub const Wav = struct {
     pub fn sample(ptr: *anyopaque, _: u32, buffer: []f32) usize {
         const self = @ptrCast(*Wav, @alignCast(@alignOf(*Wav), ptr));
 
-        // TODO(hazeycode): resampling
+        // TODO(hazeycode): resampling. probably not here, but in the loader
         //std.debug.assert(sample_rate == self.desc.sample_rate);
 
-        // TODO(hazeycode): looping
+        if (self.loop and self.cursor >= self.desc.samples.len) {
+            self.cursor = 0;
+        }
 
         const remaining_samples = self.desc.samples[self.cursor..];
 
