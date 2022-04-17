@@ -2,27 +2,26 @@ const std = @import("std");
 
 const log = std.log.scoped(.@"brucelib.audio.wav");
 
-pub const Format = enum {
+pub const Desc = struct {
+    channels: u16,
+    sample_rate: u32,
+    samples: []f32,
+};
+
+const Format = enum {
     unsigned8,
     signed16,
     signed24,
     signed32,
 };
 
-pub const Desc = struct {
-    format: Format,
-    channels: u16,
-    sample_rate: u32,
-    sample_bytes: []u8,
-};
-
-/// Caller is responsible for freeing memory allocated for returned .sample_bytes
+/// Caller is responsible for freeing memory allocated for returned samples buffer
 pub fn readFromBytes(allocator: std.mem.Allocator, bytes: []const u8) !Desc {
     var reader = std.io.fixedBufferStream(bytes).reader();
     return read(allocator, reader);
 }
 
-/// Caller is responsible for freeing memory allocated for returned .sample_bytes
+/// Caller is responsible for freeing memory allocated for returned samples buffer
 pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
     try readExpectedQuad(reader, .{ 'R', 'I', 'F', 'F' });
 
@@ -37,7 +36,7 @@ pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
     var block_align: u16 = undefined;
     var bits_per_sample: u16 = undefined;
     var bytes_per_sample: u16 = undefined;
-    var data: []u8 = undefined;
+    var samples: []f32 = undefined;
 
     var read_fmt = false;
     var read_data = false;
@@ -98,24 +97,44 @@ pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
                 return error.InvalidDataSize;
             }
 
-            data = try allocator.alloc(u8, block_size);
-            errdefer allocator.free(data);
+            const num_samples = block_size / bytes_per_sample;
 
-            try reader.readNoEof(data);
+            samples = try allocator.alloc(f32, num_samples);
+            errdefer allocator.free(samples);
+
+            switch (format) {
+                .unsigned8 => for (samples) |*sample| {
+                    const int = try reader.readByte();
+                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u8));
+                },
+                .signed16 => for (samples) |*sample| {
+                    const int = try reader.readIntLittle(i16);
+                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u16) / 2);
+                },
+                .signed24 => for (samples) |*sample| {
+                    const int = try reader.readIntLittle(i24);
+                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u24) / 2);
+                },
+                .signed32 => for (samples) |*sample| {
+                    const int = try reader.readIntLittle(i32);
+                    sample.* = @intToFloat(f32, int) / @intToFloat(f32, std.math.maxInt(u32) / 2);
+                },
+            }
 
             read_data = true;
         } else {
             // skip unrecognised block
             try reader.skipBytes(block_size, .{});
-            log.debug("block \"{s}\" skipped", .{block_id});
+            // log.debug("block \"{s}\" skipped", .{block_id});
         }
     }
 
+    log.debug("read wav: {} channels, {} Hz, {} samples", .{ channels, sample_rate, samples.len });
+
     return Desc{
-        .format = format,
         .channels = channels,
         .sample_rate = sample_rate,
-        .sample_bytes = data,
+        .samples = samples,
     };
 }
 
