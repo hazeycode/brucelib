@@ -29,8 +29,7 @@ var sine_wave = audio.SineWave{ .freq = 440.0 };
 _ = audio_mixer.play(&sine_wave, .high, 1.0);
 ```
 
-And an example usage of `BufferedSound`, which is constructed with `AudioBuffer` returned from the provided Wav file loader:
-
+And an example usage of `BufferedSound`, which is constructed with `SoundBuffer` returned from the provided Wav file loader:
 
 ```zig
 // play a wav file, looped
@@ -47,7 +46,7 @@ allocator.free(music.buffer.samples);
 
 `audio.wav` also provides a `readFromBytes` fn for convenience.
 
-Use `Mixer.setInputSourceGain` to change the gain of a playing sound. Note that it is cheaper to directly set the gain on an input channel by it's index, in certain situations where one knows the input channel index definitately.
+Use `Mixer.setInputSourceGain` to change the gain of a playing sound. Note that it is cheaper to directly set the gain on an input channel by it's index, in certain situations where one knows the input channel index definately.
 
 `Mixer.stop` and `Mixer.stopAll` to stop a single or all playing sounds respectively.
 
