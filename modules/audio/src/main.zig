@@ -25,10 +25,12 @@ pub const BufferedSound = struct {
         );
     }
 
-    pub fn sample(ptr: *anyopaque, _: u32, buffer: []f32) usize {
+    pub fn sample(ptr: *anyopaque, sample_rate: u32, buffer: []f32) usize {
         const self = @ptrCast(*BufferedSound, @alignCast(@alignOf(*BufferedSound), ptr));
 
         // TODO(hazeycode): resampling. probably not here, but in the loader
+        // see https://github.com/hazeycode/brucelib/issues/12
+        _ = sample_rate;
         //std.debug.assert(sample_rate == self.audio_buffer.sample_rate);
 
         if (self.loop and self.cursor >= self.audio_buffer.samples.len) {
@@ -73,7 +75,7 @@ pub const SineWave = struct {
 };
 
 /// Provides an interface for mixing multiple sounds together into an output buffer
-// TODO(hazeycode): support for channel configs other than stereo
+// TODO(hazeycode): support for channel configs other than stereo, see https://github.com/hazeycode/brucelib/issues/14
 pub const Mixer = struct {
     // TODO(hazeycode): comptime Mixer params
     const num_inputs = 16;
