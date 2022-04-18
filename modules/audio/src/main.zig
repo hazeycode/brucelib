@@ -3,7 +3,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"brucelib.audio");
 
 const Sound = @import("Sound.zig");
-const AudioBuffer = @import("common.zig").AudioBuffer;
+const SoundBuffer = @import("common.zig").SoundBuffer;
 
 const sin = std.math.sin;
 const pi = std.math.pi;
@@ -12,22 +12,15 @@ const tao = 2 * pi;
 pub const wav = @import("wav.zig");
 
 pub const BufferedSound = struct {
-    audio_buffer: AudioBuffer,
+    audio_buffer: SoundBuffer,
     loop: bool = false,
     cursor: usize = 0,
 
     pub fn sound(self: *@This(), priority: Sound.Priority) Sound {
-        return Sound.init(
-            @ptrCast(*anyopaque, self),
-            @This().sample,
-            self.audio_buffer.channels,
-            priority,
-        );
+        return Sound.init(self, @This().sample, self.audio_buffer.channels, priority);
     }
 
-    pub fn sample(ptr: *anyopaque, sample_rate: u32, buffer: []f32) usize {
-        const self = @ptrCast(*BufferedSound, @alignCast(@alignOf(*BufferedSound), ptr));
-
+    pub fn sample(self: *BufferedSound, sample_rate: u32, buffer: []f32) usize {
         // TODO(hazeycode): resampling. probably not here, but in the loader
         // see https://github.com/hazeycode/brucelib/issues/12
         _ = sample_rate;
@@ -58,12 +51,10 @@ pub const SineWave = struct {
     cursor: usize = 0,
 
     pub fn sound(self: *@This(), priority: Sound.Priority) Sound {
-        return Sound.init(@ptrCast(*anyopaque, self), @This().sample, 1, priority);
+        return Sound.init(self, @This().sample, 1, priority);
     }
 
-    pub fn sample(ptr: *anyopaque, sample_rate: u32, buffer: []f32) usize {
-        const self = @ptrCast(*SineWave, @alignCast(@alignOf(*SineWave), ptr));
-
+    pub fn sample(self: *SineWave, sample_rate: u32, buffer: []f32) usize {
         for (buffer) |*s, i| {
             s.* = 0.5 * sin(
                 @intToFloat(f32, self.cursor + i) * (tao * self.freq) / @intToFloat(f32, sample_rate),
@@ -107,17 +98,17 @@ pub const Mixer = struct {
         sound_source: anytype,
         priority: Sound.Priority,
         gain: f32,
-    ) bool {
+    ) ?u32 {
         std.debug.assert(@typeInfo(@TypeOf(sound_source)) == .Pointer);
 
         if (self.bindInput(sound_source, priority)) |input_channel_idx| {
             self.inputs[input_channel_idx].gain = gain;
-            return true;
+            return input_channel_idx;
         } else {
             log.warn("No free mixer channels to play sound", .{});
             std.debug.assert(priority != .high);
         }
-        return false;
+        return null;
     }
 
     /// Stop a playing sound by input channel index
@@ -231,7 +222,7 @@ pub const Mixer = struct {
             }
         }
         // If the sound is high priority, see if there is a lower priority sound
-        // that we can it swap for
+        // that we can swap it for
         if (priority == .high) {
             for (self.inputs) |*input, i| {
                 if (input.sound.?.priority == .low) {

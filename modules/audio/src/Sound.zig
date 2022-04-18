@@ -9,15 +9,15 @@ vtable: *const VTable,
 channels: u16,
 priority: Priority,
 
-pub const SampleFn = fn (*anyopaque, u32, []f32) usize;
+pub const sampleProto = fn (*anyopaque, u32, []f32) usize;
 
 pub const VTable = struct {
-    sample: SampleFn,
+    sample: sampleProto,
 };
 
 pub fn init(
     pointer: anytype,
-    comptime sample_fn: SampleFn,
+    comptime sample_fn: fn (@TypeOf(pointer), u32, []f32) usize,
     channels: u16,
     priority: Priority,
 ) Sound {
@@ -52,6 +52,6 @@ pub fn init(
     };
 }
 
-pub inline fn sample(self: *Sound, sample_rate: u32, buffer: []f32) usize {
+pub inline fn sample(self: Sound, sample_rate: u32, buffer: []f32) usize {
     return self.vtable.sample(self.ptr, sample_rate, buffer);
 }
