@@ -2,11 +2,7 @@ const std = @import("std");
 
 const log = std.log.scoped(.@"brucelib.audio.wav");
 
-pub const Desc = struct {
-    channels: u16,
-    sample_rate: u32,
-    samples: []f32,
-};
+const AudioBuffer = @import("common.zig").AudioBuffer;
 
 const Format = enum {
     unsigned8,
@@ -16,13 +12,13 @@ const Format = enum {
 };
 
 /// Caller is responsible for freeing memory allocated for returned samples buffer
-pub fn readFromBytes(allocator: std.mem.Allocator, bytes: []const u8) !Desc {
+pub fn readFromBytes(allocator: std.mem.Allocator, bytes: []const u8) !AudioBuffer {
     var reader = std.io.fixedBufferStream(bytes).reader();
     return read(allocator, reader);
 }
 
 /// Caller is responsible for freeing memory allocated for returned samples buffer
-pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
+pub fn read(allocator: std.mem.Allocator, reader: anytype) !AudioBuffer {
     try readExpectedQuad(reader, .{ 'R', 'I', 'F', 'F' });
 
     try reader.skipBytes(4, .{});
@@ -137,7 +133,7 @@ pub fn read(allocator: std.mem.Allocator, reader: anytype) !Desc {
         .{ channels, sample_rate, bits_per_sample, samples.len },
     );
 
-    return Desc{
+    return AudioBuffer{
         .channels = channels,
         .sample_rate = sample_rate,
         .samples = samples,

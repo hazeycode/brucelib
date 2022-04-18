@@ -3,6 +3,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"brucelib.audio");
 
 const Sound = @import("Sound.zig");
+const AudioBuffer = @import("common.zig").AudioBuffer;
 
 const sin = std.math.sin;
 const pi = std.math.pi;
@@ -10,30 +11,39 @@ const tao = 2 * pi;
 
 pub const wav = @import("wav.zig");
 
-pub const Wav = struct {
-    desc: wav.Desc,
+pub const BufferedSound = struct {
+    audio_buffer: AudioBuffer,
     loop: bool = false,
     cursor: usize = 0,
 
     pub fn sound(self: *@This(), priority: Sound.Priority) Sound {
-        return Sound.init(@ptrCast(*anyopaque, self), @This().sample, self.desc.channels, priority);
+        return Sound.init(
+            @ptrCast(*anyopaque, self),
+            @This().sample,
+            self.audio_buffer.channels,
+            priority,
+        );
     }
 
     pub fn sample(ptr: *anyopaque, _: u32, buffer: []f32) usize {
-        const self = @ptrCast(*Wav, @alignCast(@alignOf(*Wav), ptr));
+        const self = @ptrCast(*BufferedSound, @alignCast(@alignOf(*BufferedSound), ptr));
 
         // TODO(hazeycode): resampling. probably not here, but in the loader
-        //std.debug.assert(sample_rate == self.desc.sample_rate);
+        //std.debug.assert(sample_rate == self.audio_buffer.sample_rate);
 
-        if (self.loop and self.cursor >= self.desc.samples.len) {
+        if (self.loop and self.cursor >= self.audio_buffer.samples.len) {
             self.cursor = 0;
         }
 
-        const remaining_samples = self.desc.samples[self.cursor..];
+        const remaining_samples = self.audio_buffer.samples[self.cursor..];
 
         const num_samples = std.math.min(buffer.len, remaining_samples.len);
 
-        std.mem.copy(f32, buffer, self.desc.samples[self.cursor..(self.cursor + num_samples)]);
+        std.mem.copy(
+            f32,
+            buffer,
+            self.audio_buffer.samples[self.cursor..(self.cursor + num_samples)],
+        );
 
         self.cursor += num_samples;
 
