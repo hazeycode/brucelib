@@ -6,7 +6,7 @@ Initilise a `Mixer` with:
 var audio_mixer = audio.Mixer.init();
 ```
 
-Call `Mixer.mix` periodically, i.e. from your audio callback to get mixed sampled out.
+Periodically call `Mixer.mix` with a buffer, i.e. from your audio callback, to get mixed samples out.
 
 Currently `Mixer` is limited to 16 input channels and stereo output. But this will be configurable in future revisions.
 
