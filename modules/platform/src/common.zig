@@ -1,5 +1,10 @@
 const std = @import("std");
 
+pub const InitFn = fn (std.mem.Allocator) anyerror!void;
+pub const DeinitFn = fn (std.mem.Allocator) void;
+pub const FrameFn = fn (FrameInput) anyerror!bool;
+pub const AudioPlaybackFn = fn (AudioPlaybackStream) anyerror!u32;
+
 /// Defines the structure that is passed to the audio playback fn by the platform layer
 pub const AudioPlaybackStream = struct {
     /// The sample rate of the output stream

@@ -33,7 +33,7 @@ fn init(allocator: std.mem.Allocator) !void {
 }
 
 /// Called before the program terminates, after the `frame_fn` returns false
-fn deinit() void {
+fn deinit(_: std.mem.Allocator) void {
     graphics.deinit();
 }
 

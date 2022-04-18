@@ -69,7 +69,7 @@ pub fn main() anyerror!void {
 fn init(_: std.mem.Allocator) !void {
 }
 
-fn deinit() void {
+fn deinit(_: std.mem.Allocator) void {
 }
 
 fn frame(input: platform.Input) !bool {

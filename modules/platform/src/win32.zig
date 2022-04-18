@@ -4,6 +4,10 @@ const builtin = @import("builtin");
 const log = std.log.scoped(.@"brucelib.platform.win32");
 
 const common = @import("common.zig");
+const InitFn = common.InitFn;
+const DeinitFn = common.DeinitFn;
+const FrameFn = common.FrameFn;
+const AudioPlaybackFn = common.AudioPlaybackFn;
 const FrameInput = common.FrameInput;
 const AudioPlaybackStream = common.AudioPlaybackStream;
 const KeyEvent = common.KeyEvent;
@@ -93,10 +97,10 @@ pub fn run(args: struct {
         .width = 854,
         .height = 480,
     },
-    init_fn: fn (std.mem.Allocator) anyerror!void,
-    deinit_fn: fn () void,
-    frame_fn: fn (FrameInput) anyerror!bool,
-    audio_playback_fn: ?fn (AudioPlaybackStream) anyerror!u32 = null,
+    init_fn: InitFn,
+    deinit_fn: DeinitFn,
+    frame_fn: FrameFn,
+    audio_playback_fn: ?AudioPlaybackFn = null,
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -156,7 +160,7 @@ pub fn run(args: struct {
     }
 
     try args.init_fn(allocator);
-    defer args.deinit_fn();
+    defer args.deinit_fn(allocator);
 
     if (audio_enabled) {
         audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
