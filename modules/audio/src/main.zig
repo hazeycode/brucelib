@@ -12,32 +12,32 @@ const tao = 2 * pi;
 pub const wav = @import("wav.zig");
 
 pub const BufferedSound = struct {
-    audio_buffer: SoundBuffer,
+    buffer: SoundBuffer,
     loop: bool = false,
     cursor: usize = 0,
 
     pub fn sound(self: *@This(), priority: Sound.Priority) Sound {
-        return Sound.init(self, @This().sample, self.audio_buffer.channels, priority);
+        return Sound.init(self, @This().sample, self.buffer.channels, priority);
     }
 
     pub fn sample(self: *BufferedSound, sample_rate: u32, buffer: []f32) usize {
         // TODO(hazeycode): resampling. probably not here, but in the loader
         // see https://github.com/hazeycode/brucelib/issues/12
         _ = sample_rate;
-        //std.debug.assert(sample_rate == self.audio_buffer.sample_rate);
+        //std.debug.assert(sample_rate == self.buffer.sample_rate);
 
-        if (self.loop and self.cursor >= self.audio_buffer.samples.len) {
+        if (self.loop and self.cursor >= self.buffer.samples.len) {
             self.cursor = 0;
         }
 
-        const remaining_samples = self.audio_buffer.samples[self.cursor..];
+        const remaining_samples = self.buffer.samples[self.cursor..];
 
         const num_samples = std.math.min(buffer.len, remaining_samples.len);
 
         std.mem.copy(
             f32,
             buffer,
-            self.audio_buffer.samples[self.cursor..(self.cursor + num_samples)],
+            self.buffer.samples[self.cursor..(self.cursor + num_samples)],
         );
 
         self.cursor += num_samples;

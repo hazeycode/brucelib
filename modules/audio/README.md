@@ -31,14 +31,18 @@ _ = audio_mixer.play(&sine_wave, .high, 1.0);
 
 And an example usage of `BufferedSound`, which is constructed with `AudioBuffer` returned from the provided Wav file loader:
 
+
 ```zig
 // play a wav file, looped
 const reader = ... // a std.io.Reader
 var music = audio.BufferedSound{
-    .audio_buffer = try audio.wav.read(allocator, reader),
+    .buffer = try audio.wav.read(allocator, reader),
     .loop = true,
 };
 _ = audio_mixer.play(&music, .high, 1.0);
+
+// don't forget to free the allocated memory at some point
+allocator.free(music.buffer.samples);
 ```
 
 `audio.wav` also provides a `readFromBytes` fn for convenience.
