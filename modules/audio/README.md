@@ -8,7 +8,11 @@ var audio_mixer = audio.Mixer.init();
 
 Currently `Mixer` is limited to 16 input channels and stereo output. But this will be configurable in future revisions.
 
-A `Mixer` provides a `play` function for playing sound sources. We pass a pointer to a sound source, a priority and an initial gain. A bool is returned inidicating whether there was a free channel available. Note that high priority sounds will eject low priority sounds if there are no free channels available.
+A `Mixer` provides a `play` function for playing sound sources. We pass a pointer to a sound source, a priority and an initial gain. A bool is returned inidicating whether there was a free channel available.
+
+NOTE: high priority sounds will eject low priority sounds if there are no free channels available.
+
+NOTE: sound sources are unbound from input channels once they finish playing.
 
 A sound source can be any structure that implements a function returning a `Sound`, of the form:
 ```zig
