@@ -200,13 +200,13 @@ pub fn run(args: struct {
             .quit_requested = window_closed,
             .target_frame_dt = target_frame_dt,
             .prev_frame_elapsed = prev_frame_elapsed,
-            .input_events = .{
+            .user_input = .{
                 .key_events = key_events.items,
                 .mouse_button_events = mouse_button_events.items,
-            },
-            .mouse_position = .{
-                .x = mouse_x,
-                .y = mouse_y,
+                .mouse_position = .{
+                    .x = mouse_x,
+                    .y = mouse_y,
+                },
             },
             .window_size = .{
                 .width = window_width,

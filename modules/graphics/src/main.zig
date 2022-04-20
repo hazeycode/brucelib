@@ -40,7 +40,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         pub const VertexLayoutDesc = common.VertexLayoutDesc;
         pub const TextureFormat = common.TextureFormat;
 
-
         // Linear maths
 
         pub const zmath = @import("zmath");
@@ -48,7 +47,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         pub const Matrix = zmath.Mat;
         pub const identityMatrix = zmath.identity;
         pub const orthographic = zmath.orthographicLh;
-
 
         // Module initilisation
 
@@ -71,7 +69,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         var debugfont_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
-
             try backend.init(platform, allocator);
             errdefer backend.deinit();
 
@@ -157,7 +154,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             backend.deinit();
         }
 
-
         // Core DrawList API
 
         pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
@@ -173,43 +169,43 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         }
 
         pub fn setViewport(draw_list: *DrawList, viewport: Viewport) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .set_viewport = viewport,
             });
         }
 
         pub fn clearViewport(draw_list: *DrawList, colour: Colour) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .clear_viewport = colour,
             });
         }
 
         pub fn bindPipelineResources(draw_list: *DrawList, resources: *PipelineResources) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .bind_pipeline_resources = resources,
             });
         }
 
         pub fn setProjectionTransform(draw_list: *DrawList, transform: Matrix) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .set_projection_transform = transform,
             });
         }
 
         pub fn setViewTransform(draw_list: *DrawList, transform: Matrix) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .set_view_transform = transform,
             });
         }
 
         pub fn setModelTransform(draw_list: *DrawList, transform: Matrix) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .set_model_transform = transform,
             });
         }
 
         pub fn setColour(draw_list: *DrawList, colour: Colour) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .set_colour = colour,
             });
         }
@@ -217,14 +213,14 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         pub fn bindTexture(draw_list: *DrawList, slot: u32, texture: Texture2d) !void {
             try draw_list.entries.append(.{
                 .bind_texture = .{
-                    .slot = slot, 
+                    .slot = slot,
                     .texture = texture,
                 },
             });
         }
 
         pub fn draw(draw_list: *DrawList, vertex_offset: u32, vertex_count: u32) !void {
-            try draw_list.entries.append(.{ 
+            try draw_list.entries.append(.{
                 .draw = .{
                     .vertex_offset = vertex_offset,
                     .vertex_count = vertex_count,
@@ -291,7 +287,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                 try backend.logDebugMessages();
             }
         }
-
 
         // High-level DrawList API
 
@@ -364,7 +359,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                 &rect.texturedVertices(args.uv_rect),
             );
         }
-
 
         // Rendering Primitives
 
@@ -543,7 +537,6 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             }
         };
 
-
         ///
         pub const DebugGUI = struct {
             allocator: std.mem.Allocator,
@@ -582,15 +575,15 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                 mouse_y: f32 = undefined,
 
                 /// Optional helper fn for mapping brucelib.platform.FrameInput to DebugGUI.Input
-                /// `platform_input` can be any weakly conforming type
-                pub fn mapPlatformInput(self: *Input, platform_input: anytype) void {
-                    self.mouse_x = @intToFloat(f32, platform_input.mouse_position.x);
-                    self.mouse_y = @intToFloat(f32, platform_input.mouse_position.y);
+                /// `user_input` can be any weakly conforming type
+                pub fn mapPlatformInput(self: *Input, user_input: anytype) void {
+                    self.mouse_x = @intToFloat(f32, user_input.mouse_position.x);
+                    self.mouse_y = @intToFloat(f32, user_input.mouse_position.y);
 
                     self.mouse_btn_was_pressed = false;
                     self.mouse_btn_was_released = false;
 
-                    for (platform_input.input_events.mouse_button_events) |mouse_ev| {
+                    for (user_input.mouse_button_events) |mouse_ev| {
                         if (mouse_ev.button.index != 1) continue;
 
                         switch (mouse_ev.button.action) {

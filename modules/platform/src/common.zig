@@ -39,23 +39,15 @@ pub const FrameInput = struct {
     /// previous to that.
     prev_frame_elapsed: u64,
 
-    /// All input events that occured since the last frame
-    input_events: struct {
+    /// All user input events that happened before the current frame
+    user_input: struct {
         key_events: []KeyEvent,
         mouse_button_events: []MouseButtonEvent,
-    },
-
-    /// The current mouse pointer position relative to the window
-    mouse_position: struct {
-        x: i32,
-        y: i32,
+        mouse_position: struct { x: i32, y: i32 },
     },
 
     /// The current window size / framebuffer dimensions
-    window_size: struct {
-        width: u16,
-        height: u16,
-    },
+    window_size: struct { width: u16, height: u16 },
 
     /// Various debug stats, used for displaying debug information
     debug_stats: struct {

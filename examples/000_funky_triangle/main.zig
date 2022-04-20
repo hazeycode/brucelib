@@ -77,7 +77,7 @@ fn frame(input: platform.FrameInput) !bool {
     }
 
     { // update and draw debug overlay
-        state.debug_gui.input.mapPlatformInput(input);
+        state.debug_gui.input.mapPlatformInput(input.user_input);
 
         var debug_gui = try graphics.DebugGUI.begin(
             input.frame_arena_allocator,
@@ -104,7 +104,7 @@ fn frame(input: platform.FrameInput) !bool {
 
         try debug_gui.label(
             "Mouse pos = ({}, {})",
-            .{ input.mouse_position.x, input.mouse_position.y },
+            .{ input.user_input.mouse_position.x, input.user_input.mouse_position.y },
         );
 
         try debug_gui.end();
