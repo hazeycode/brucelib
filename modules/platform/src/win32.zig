@@ -82,6 +82,10 @@ pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
     return d3d11_render_target_view.?;
 }
 
+pub fn getSampleRate() u32 {
+    return audio_playback.interface.sample_rate;
+}
+
 pub fn timestamp() u64 {
     return timer.read();
 }
@@ -100,7 +104,10 @@ pub fn run(args: struct {
     init_fn: InitFn,
     deinit_fn: DeinitFn,
     frame_fn: FrameFn,
-    audio_playback_fn: ?AudioPlaybackFn = null,
+    audio_playback: ?struct {
+        request_sample_rate: u32,
+        callback: AudioPlaybackFn = null,
+    },
 }) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -135,11 +142,13 @@ pub fn run(args: struct {
     try createDeviceAndSwapchain(hwnd);
     try createRenderTargetView();
 
-    const audio_enabled = (args.audio_playback_fn != null);
+    const audio_enabled = (args.audio_playback != null);
 
     if (audio_enabled) {
-        audio_playback.user_cb = args.audio_playback_fn;
-        audio_playback.interface = try AudioPlaybackInterface.init();
+        audio_playback.user_cb = args.audio_playback.?.callback;
+        audio_playback.interface = try AudioPlaybackInterface.init(
+            args.audio_playback.?.request_sample_rate,
+        );
         log.info(
             \\Initilised audio playback (WASAPI):
             \\  {} channels

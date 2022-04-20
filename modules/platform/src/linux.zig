@@ -40,6 +40,10 @@ pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*c
     return X11.glXGetProcAddress(?*const anyopaque, entry_point.ptr) catch null;
 }
 
+pub fn getSampleRate() u32 {
+    return audio_playback.interface.sample_rate;
+}
+
 pub fn run(args: struct {
     graphics_api: GraphicsAPI = .opengl,
     requested_framerate: u16 = 0,
@@ -54,7 +58,10 @@ pub fn run(args: struct {
     init_fn: InitFn,
     deinit_fn: DeinitFn,
     frame_fn: FrameFn,
-    audio_playback_fn: ?AudioPlaybackFn = null,
+    audio_playback: ?struct {
+        request_sample_rate: u32,
+        callback: AudioPlaybackFn = null,
+    },
 }) !void {
     var timer = try std.time.Timer.start();
 
@@ -75,19 +82,18 @@ pub fn run(args: struct {
     });
     defer windowing.deinit();
 
-    const audio_enabled = (args.audio_playback_fn != null);
+    const audio_enabled = (args.audio_playback != null);
 
     if (audio_enabled) {
-        audio_playback.user_cb = args.audio_playback_fn;
+        audio_playback.user_cb = args.audio_playback.?.callback;
 
-        const sample_rate = 48000;
         const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
             u32,
-            3 * sample_rate / target_framerate,
+            3 * args.audio_playback.?.request_sample_rate / target_framerate,
         );
 
         audio_playback.interface = try AudioPlaybackInterface.init(
-            sample_rate,
+            args.audio_playback.?.request_sample_rate,
             buffer_size_frames,
         );
 

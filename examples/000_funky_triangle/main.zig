@@ -15,7 +15,10 @@ pub fn main() anyerror!void {
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
-        .audio_playback_fn = if (audio_on) audioPlayback else null,
+        .audio_playback = if (audio_on) .{
+            .request_sample_rate = 44100,
+            .callback = audioPlayback,
+        } else null,
     });
 }
 

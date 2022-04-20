@@ -66,7 +66,10 @@ pub fn run(args: struct {
     init_fn: InitFn,
     deinit_fn: DeinitFn,
     frame_fn: FrameFn,
-    audio_playback_fn: ?AudioPlaybackFn = null,
+    audio_playback: ?struct {
+        request_sample_rate: u32,
+        callback: AudioPlaybackFn = null,
+    },
 }) !void {
     timer = try std.time.Timer.start();
 
