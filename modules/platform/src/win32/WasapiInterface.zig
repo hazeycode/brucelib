@@ -15,7 +15,7 @@ sample_rate: u32,
 bits_per_sample: u32,
 frame_size: u32,
 
-pub fn init() !WasapiInterface {
+pub fn init(requested_sample_rate: u32) !WasapiInterface {
     var audio_device_enumerator: *wasapi.IMMDeviceEnumerator = undefined;
     try hrErrorOnFail(w.CoCreateInstance(
         &wasapi.CLSID_MMDeviceEnumerator,
@@ -43,7 +43,7 @@ pub fn init() !WasapiInterface {
     ));
 
     const channels = 2;
-    const sample_rate = 48000;
+    const sample_rate = requested_sample_rate;
     const bits_per_sample = 32;
     const block_align = channels * bits_per_sample / 8;
     const wanted_format = wasapi.WAVEFORMATEX{
