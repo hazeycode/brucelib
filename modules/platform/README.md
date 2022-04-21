@@ -1,7 +1,7 @@
 # brucelib.platform
 **WARNING: WORK IN PROGRESS**
 
-The platform module abstracts the target operating system and SDKs and provides an opaque interface. The design descisions regarding this interface are driven by the considerable differences between how platforms do things and the need for a simple interface for getting input events, creating graphics contexts, synchronising with the display refresh, piping out audio, etc.
+The platform module abstracts the target operating system and SDKs and provides an opaque interface for getting input events, create a graphics context, synchronise with the display refresh, write out audio for playback, etc.
 
 ### Supported platforms
 | Platform | Status |
@@ -13,9 +13,6 @@ The platform module abstracts the target operating system and SDKs and provides 
 | Android | planned |
 | * Nintendo Switch | planned |
 
-The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
-
-TODO: detail dependencies
 
 \* Console platform backends are not public. Registered developers will be granted access on request.
 
@@ -60,9 +57,11 @@ pub fn main() anyerror!void {
         /// other data used to produce the next frame.
         .frame_fn = frame,
 
-        /// Optional audio playback callback. If set it can be called at any time by the platform
-        /// module on a dedicated audio thread.
-        .audio_playback_fn = audioPlayback,
+        /// Optional audio playback config
+        .audio_playback = .{
+            .request_sample_rate = 44100,
+            .callback = audioPlayback,
+        },
     });
 }
 
