@@ -584,9 +584,9 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                     self.mouse_btn_was_released = false;
 
                     for (user_input.mouse_button_events) |mouse_ev| {
-                        if (mouse_ev.button.index != 1) continue;
+                        if (mouse_ev.button == .left) continue;
 
-                        switch (mouse_ev.button.action) {
+                        switch (mouse_ev.action) {
                             .press => {
                                 self.mouse_btn_was_pressed = true;
                                 self.mouse_btn_down = true;

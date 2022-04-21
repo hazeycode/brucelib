@@ -11,6 +11,7 @@ const AudioPlaybackFn = common.AudioPlaybackFn;
 const FrameInput = common.FrameInput;
 const AudioPlaybackStream = common.AudioPlaybackStream;
 const KeyEvent = common.KeyEvent;
+const MouseButton = common.MouseButton;
 const MouseButtonEvent = common.MouseButtonEvent;
 const Key = common.Key;
 

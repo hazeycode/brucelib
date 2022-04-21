@@ -10,6 +10,7 @@ const AudioPlaybackFn = common.AudioPlaybackFn;
 const FrameInput = common.FrameInput;
 const AudioPlaybackStream = common.AudioPlaybackStream;
 const KeyEvent = common.KeyEvent;
+const MouseButton = common.MouseButton;
 const MouseButtonEvent = common.MouseButtonEvent;
 const Key = common.Key;
 
@@ -582,10 +583,8 @@ const X11 = struct {
                 c.XCB_BUTTON_PRESS => {
                     const xcb_button_press_event = @ptrCast(*c.xcb_button_press_event_t, xcb_event);
                     try mouse_button_events.append(.{
-                        .button = .{
-                            .action = .press,
-                            .index = xcb_button_press_event.detail,
-                        },
+                        .action = .press,
+                        .button = @intToEnum(MouseButton, xcb_button_press_event.detail),
                         .x = xcb_button_press_event.event_x,
                         .y = xcb_button_press_event.event_y,
                     });
@@ -593,10 +592,8 @@ const X11 = struct {
                 c.XCB_BUTTON_RELEASE => {
                     const xcb_button_release_event = @ptrCast(*c.xcb_button_release_event_t, xcb_event);
                     try mouse_button_events.append(.{
-                        .button = .{
-                            .action = .release,
-                            .index = xcb_button_release_event.detail,
-                        },
+                        .action = .release,
+                        .button = @intToEnum(MouseButton, xcb_button_release_event.detail),
                         .x = xcb_button_release_event.event_x,
                         .y = xcb_button_release_event.event_y,
                     });

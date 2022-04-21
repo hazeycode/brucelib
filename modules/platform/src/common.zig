@@ -56,11 +56,11 @@ pub const FrameInput = struct {
     },
 };
 
+pub const MouseButton = enum(u8) { left = 1, middle = 2, right = 3 };
+
 pub const MouseButtonEvent = struct {
-    button: struct {
-        action: enum { press, release },
-        index: u16,
-    },
+    action: enum { press, release },
+    button: MouseButton,
     x: i32,
     y: i32,
 };
