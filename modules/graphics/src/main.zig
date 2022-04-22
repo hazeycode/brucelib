@@ -644,7 +644,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                 rect.max_y += @intToFloat(f32, inset);
 
                 // draw background
-                try self.drawColourRect(Colour.fromRGBA(0.13, 0.13, 0.13, 0.67), rect);
+                try self.drawColourRect(Colour.fromRGBA(0.13, 0.13, 0.13, 0.13), rect);
 
                 // draw all text
                 try drawTexturedVertsMono(self.draw_list, debugfont_texture, self.text_verts.items);
