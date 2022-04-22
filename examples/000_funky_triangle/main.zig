@@ -16,7 +16,6 @@ pub fn main() anyerror!void {
         .deinit_fn = deinit,
         .frame_fn = frame,
         .audio_playback = if (audio_on) .{
-            .request_sample_rate = 44100,
             .callback = audioPlayback,
         } else null,
     });

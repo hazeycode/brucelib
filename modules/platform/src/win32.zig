@@ -106,7 +106,7 @@ pub fn run(args: struct {
     deinit_fn: DeinitFn,
     frame_fn: FrameFn,
     audio_playback: ?struct {
-        request_sample_rate: u32,
+        request_sample_rate: u32 = 48000,
         callback: AudioPlaybackFn = null,
     },
 }) !void {
