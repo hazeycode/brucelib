@@ -151,7 +151,7 @@ pub fn withBackend(comptime backend: anytype) type {
                     }
 
                     inline fn isWhitespace(char: u8) bool {
-                        const whitespace_chars = "    \n\r";
+                        const whitespace_chars = " \t\n\r";
                         inline for (whitespace_chars) |wsc| if (wsc == char) return true;
                         return false;
                     }

@@ -25,8 +25,8 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             .d3d11 => @import("d3d11.zig"),
         };
 
-        pub const VertexBuffer = @import("buffer.zig").withBackend(backend).VertexBuffer;
-        pub const Texture2d = @import("texture.zig").withBackend(backend).Texture2d;
+        pub const VertexBuffer = @import("buffers.zig").withBackend(backend).VertexBuffer;
+        pub const Texture2d = @import("textures.zig").withBackend(backend).Texture2d;
 
         const common = @import("common.zig");
         pub const ShaderProgramHandle = common.ShaderProgramHandle;
