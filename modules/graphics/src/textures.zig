@@ -14,6 +14,26 @@ pub fn withBackend(comptime backend: anytype) type {
             width: u32,
             height: u32,
 
+            pub fn fromRawBytes(
+                format: TextureFormat,
+                width: u32,
+                height: u32,
+                bytes: []const u8,
+            ) !Texture2d {
+                const handle = try backend.createTexture2dWithBytes(
+                    bytes,
+                    width,
+                    height,
+                    format,
+                );
+                return Texture2d{
+                    .handle = handle,
+                    .format = format,
+                    .width = width,
+                    .height = height,
+                };
+            }
+
             pub fn fromBytes(bytes: []const u8) !Texture2d {
                 var width: u32 = undefined;
                 var height: u32 = undefined;
