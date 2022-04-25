@@ -57,14 +57,13 @@ submitDrawList(*DrawList) !void
 DrawList Render API
 
 ```zig
-drawUniformColourVerts(*DrawList, Colour, []const Vertex) !void
+drawUniformColourVerts(*DrawList, PipelineResources, Colour, []const Vertex) !void
 
-drawTexturedVertsMono(*DrawList, Texture2d, []const TexturedVertex) !void
-
-drawTexturedVerts(*DrawList, Texture2d, []const TexturedVertex) !void
+drawTexturedVerts(*DrawList, PipelineResources, Texture2d, []const TexturedVertex) !void
 
 drawTexturedQuad(
     *DrawList,
+    PipelineResources,
     args: struct {
         texture: Texture2d,
         uv_rect: Rect = .{
@@ -112,9 +111,10 @@ try graphics.setViewport(&draw_list, 0, 0, viewport_width, viewport_height);
 // clear the viewport to black
 try graphics.clearViewport(&draw_list, graphics.Colour.black);
 
-// draw a triangle with a solid uniform orange colour
+// draw a triangle with a solid uniform orange colour using the builtin pipeline
 try graphics.drawUniformColourVerts(
     &draw_list,
+    graphics.builtin_pipeline_resources.uniform_colour_verts,
     graphics.Colour.orange,
     &[_]graphics.Vertex{
         .{ .pos = .{ -0.5, -0.5, 0.0 } },

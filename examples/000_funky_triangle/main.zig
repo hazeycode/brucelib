@@ -69,6 +69,7 @@ fn frame(input: platform.FrameInput) !bool {
 
         try graphics.drawUniformColourVerts(
             &draw_list,
+            graphics.builtin_pipeline_resources.uniform_colour_verts,
             graphics.Colour.fromHSV(state.triangle_hue, 0.5, 1.0),
             &[_]graphics.Vertex{
                 .{ .pos = .{ -0.5, -0.5, 0.0 } },

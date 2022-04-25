@@ -50,23 +50,23 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
 
         // Module initilisation
 
-        var builtin_pipeline_resources: struct {
+        pub var builtin_pipeline_resources: struct {
             uniform_colour_verts: PipelineResources,
             textured_verts_mono: PipelineResources,
             textured_verts: PipelineResources,
         } = undefined;
 
-        var builtin_vertex_buffers: struct {
+        pub var builtin_vertex_buffers: struct {
             pos: VertexBuffer(Vertex),
             pos_uv: VertexBuffer(TexturedVertex),
         } = undefined;
 
-        const ShaderConstants = extern struct {
+        pub const ShaderConstants = extern struct {
             mvp: Matrix,
             colour: Colour,
         };
 
-        var debugfont_texture: Texture2d = undefined;
+        pub var debugfont_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
             try backend.init(platform, allocator);
@@ -180,7 +180,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             });
         }
 
-        pub fn bindPipelineResources(draw_list: *DrawList, resources: *PipelineResources) !void {
+        pub fn bindPipelineResources(draw_list: *DrawList, resources: PipelineResources) !void {
             try draw_list.entries.append(.{
                 .bind_pipeline_resources = resources,
             });
@@ -292,11 +292,10 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
 
         pub fn drawUniformColourVerts(
             draw_list: *DrawList,
+            resources: PipelineResources,
             colour: Colour,
             vertices: []const Vertex,
         ) !void {
-            var resources = &builtin_pipeline_resources.uniform_colour_verts;
-
             const vert_offset = builtin_vertex_buffers.pos.append(vertices);
 
             try bindPipelineResources(draw_list, resources);
@@ -304,27 +303,12 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             try draw(draw_list, vert_offset, @intCast(u32, vertices.len));
         }
 
-        pub fn drawTexturedVertsMono(
-            draw_list: *DrawList,
-            texture: Texture2d,
-            vertices: []const TexturedVertex,
-        ) !void {
-            var resources = &builtin_pipeline_resources.textured_verts_mono;
-
-            const vert_offset = builtin_vertex_buffers.pos_uv.append(vertices);
-
-            try bindPipelineResources(draw_list, resources);
-            try bindTexture(draw_list, 0, texture);
-            try draw(draw_list, vert_offset, @intCast(u32, vertices.len));
-        }
-
         pub fn drawTexturedVerts(
             draw_list: *DrawList,
+            resources: PipelineResources,
             texture: Texture2d,
             vertices: []const TexturedVertex,
         ) !void {
-            var resources = &builtin_pipeline_resources.textured_verts;
-
             const vert_offset = builtin_vertex_buffers.pos_uv.append(vertices);
 
             try bindPipelineResources(draw_list, resources);
@@ -334,6 +318,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
 
         pub fn drawTexturedQuad(
             draw_list: *DrawList,
+            resources: PipelineResources,
             args: struct {
                 texture: Texture2d,
                 uv_rect: Rect = .{
@@ -355,6 +340,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             };
             try drawTexturedVerts(
                 draw_list,
+                resources,
                 args.texture,
                 &rect.texturedVertices(args.uv_rect),
             );
@@ -367,7 +353,7 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
             pub const Entry = union(enum) {
                 set_viewport: Viewport,
                 clear_viewport: Colour,
-                bind_pipeline_resources: *PipelineResources,
+                bind_pipeline_resources: PipelineResources,
                 set_projection_transform: Matrix,
                 set_view_transform: Matrix,
                 set_model_transform: Matrix,
@@ -647,7 +633,12 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                 try self.drawColourRect(Colour.fromRGBA(0.13, 0.13, 0.13, 0.13), rect);
 
                 // draw all text
-                try drawTexturedVertsMono(self.draw_list, debugfont_texture, self.text_verts.items);
+                try drawTexturedVerts(
+                    self.draw_list,
+                    builtin_pipeline_resources.textured_verts_mono,
+                    debugfont_texture,
+                    self.text_verts.items,
+                );
 
                 // draw text cursor if there is an element with keyboard focus
                 if (self.state.keyboard_focus > 0) {
@@ -759,7 +750,12 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
 
                 std.mem.copy(Vertex, verts, &rect.vertices());
 
-                try drawUniformColourVerts(self.draw_list, colour, verts);
+                try drawUniformColourVerts(
+                    self.draw_list,
+                    builtin_pipeline_resources.uniform_colour_verts,
+                    colour,
+                    verts,
+                );
             }
 
             fn drawColourRectOutline(self: *DebugGUI, colour: Colour, rect: Rect, weight: f32) !void {
@@ -829,7 +825,12 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
                     );
                 }
 
-                try drawUniformColourVerts(self.draw_list, colour, verts);
+                try drawUniformColourVerts(
+                    self.draw_list,
+                    builtin_pipeline_resources.uniform_colour_verts,
+                    colour,
+                    verts,
+                );
             }
 
             fn drawText(
