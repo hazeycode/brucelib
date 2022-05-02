@@ -3,8 +3,8 @@ pub const wchar_t = c_int;
 
 const xlib = @import("Xlib.zig");
 
-//const xkbstr = @import("XKBstr.zig");
-//pub usingnamespace xkbstr;
+const keys = @import("keysym.zig");
+pub usingnamespace keys;
 
 pub const struct__XkbStateRec = extern struct {
     group: u8,
