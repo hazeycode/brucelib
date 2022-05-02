@@ -3,7 +3,7 @@ const std = @import("std");
 const platform = @import("brucelib.platform");
 const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
 
-const audio_on = true;
+const audio_on = false;
 
 pub fn main() anyerror!void {
     try platform.run(.{
