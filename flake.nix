@@ -10,9 +10,12 @@
       let
         pkgs = nixpkgs.legacyPackages."${system}";
       in {
-       devShell = pkgs.mkShell {
+       devShell = with pkgs; mkShell {
           nativeBuildInputs = [
             zig.packages."${system}".master.latest
+            buildPackages.xlibsWrapper
+            buildPackages.libGL
+            buildPackages.alsa-lib
           ];
         };
       });
