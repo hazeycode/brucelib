@@ -121,7 +121,7 @@ fn frame(input: platform.FrameInput) !bool {
 /// Optional audio playback callback. If set it can be called at any time by the platform module
 /// on a dedicated audio thread.
 fn audioPlayback(stream: platform.AudioPlaybackStream) !u32 {
-    const sin = std.math.sin;
+    const sin = std.math.sinh;
     const pi = std.math.pi;
     const tao = 2 * pi;
 

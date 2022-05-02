@@ -252,7 +252,6 @@ pub const XCSUCCESS = @as(c_int, 0);
 pub const XCNOMEM = @as(c_int, 1);
 pub const XCNOENT = @as(c_int, 2);
 
-
 pub extern fn XLoadQueryFont(?*Display, [*c]const u8) [*c]XFontStruct;
 pub extern fn XQueryFont(?*Display, X.XID) [*c]XFontStruct;
 pub extern fn XGetMotionEvents(?*Display, X.Window, X.Time, X.Time, [*c]c_int) [*c]XTimeCoord;
@@ -3719,4 +3718,3 @@ pub const struct__XDisplay = extern struct {
     exit_handler: XIOErrorExitHandler,
     exit_handler_data: ?*anyopaque,
 };
-

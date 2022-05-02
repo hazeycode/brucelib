@@ -3086,7 +3086,7 @@ pub extern fn glXGetCurrentContext() GLXContext;
 pub extern fn glXGetCurrentDrawable() GLXDrawable;
 pub extern fn glXWaitGL() void;
 pub extern fn glXWaitX() void;
-pub extern fn glXUseXFont(font: xlib. Font, first: c_int, count: c_int, list: c_int) void;
+pub extern fn glXUseXFont(font: xlib.Font, first: c_int, count: c_int, list: c_int) void;
 pub extern fn glXQueryExtensionsString(dpy: [*c]xlib.Display, screen: c_int) [*c]const u8;
 pub extern fn glXQueryServerString(dpy: [*c]xlib.Display, screen: c_int, name: c_int) [*c]const u8;
 pub extern fn glXGetClientString(dpy: [*c]xlib.Display, name: c_int) [*c]const u8;
