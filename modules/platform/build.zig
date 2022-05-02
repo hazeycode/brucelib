@@ -6,7 +6,7 @@ pub const pkg = std.build.Pkg{
     .dependencies = &.{
         std.build.Pkg{
             .name = "zwin32",
-            .path = .{ .path = thisDir() ++ "/vendored/zwin32/zwin32.zig" },
+            .path = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
         },
         std.build.Pkg{
             .name = "zig-objcrt",
