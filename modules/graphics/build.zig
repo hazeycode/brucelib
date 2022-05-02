@@ -55,7 +55,6 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
     lib.linkLibC();
 
     if (lib.target.isLinux()) {
-        lib.addIncludeDir("/usr/include");
         lib.linkSystemLibrary("GL");
     } else if (lib.target.isDarwin()) {
         lib.linkFramework("OpenGL");

@@ -257,13 +257,13 @@ fn audioThread(allocator: std.mem.Allocator) !void {
 }
 
 const X11 = struct {
-    // TODO(chris): remove system header imports, create bindings
-    const c = @cImport({
-        @cInclude("X11/Xlib-xcb.h");
-        @cInclude("X11/XKBlib.h");
-        @cInclude("GL/glx.h");
-        @cInclude("GL/glext.h");
-    });
+
+    // TODO(hazeycode): ziggified x11 wrapper + cleanup following usage
+    const c = struct {
+        pub usingnamespace @import("linux/X11/Xlib-xcb.zig");
+        pub usingnamespace @import("linux/X11/XKBlib.zig");
+        pub usingnamespace @import("linux/X11/glx.zig");
+    };
 
     graphics_api: GraphicsAPI,
     display: *c.Display,
@@ -288,7 +288,7 @@ const X11 = struct {
         const connection = c.XGetXCBConnection(display) orelse return error.XGetXCBConnectionFailed;
         errdefer c.xcb_disconnect(connection);
 
-        c.XSetEventQueueOwner(display, c.XCBOwnsEventQueue);
+        c.XSetEventQueueOwner(display, c.XEventQueueOwner.XCBOwnsEventQueue);
 
         const default_screen_num = c.XDefaultScreen(display);
 

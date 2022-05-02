@@ -50,7 +50,6 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
     lib.linkLibC();
 
     if (lib.target.isLinux()) {
-        lib.addIncludeDir("/usr/include");
         lib.linkSystemLibrary("X11");
         lib.linkSystemLibrary("xcb");
         lib.linkSystemLibrary("X11-xcb");
