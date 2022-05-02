@@ -214,3 +214,7 @@ pub fn errorToHRESULT(err: HResultError) HRESULT {
         base.MiscError.S_FALSE => base.S_FALSE,
     };
 }
+
+fn thisDir() []const u8 {
+    return std.fs.path.dirname(@src().file) orelse ".";
+}
