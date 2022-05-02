@@ -1,16 +1,14 @@
 const xcb = @import("xcb/xcb.zig");
-usingnamespace xcb;
 pub usingnamespace xcb;
 
 const xlib = @import("Xlib.zig");
-usingnamespace xlib;
 pub usingnamespace xlib;
 
-pub extern fn XGetXCBConnection(?*Display) callconv(.C) ?*xcb_connection_t;
+pub extern fn XGetXCBConnection(?*xlib.Display) callconv(.C) ?*xcb.xcb_connection_t;
 
-pub const XEventQueueOwner = extern enum {
+pub const XEventQueueOwner = enum(c_int) {
     XlibOwnsEventQueue,
     XCBOwnsEventQueue,
 };
 
-pub extern fn XSetEventQueueOwner(?*Display, XEventQueueOwner) callconv(.C) void;
+pub extern fn XSetEventQueueOwner(?*xlib.Display, XEventQueueOwner) callconv(.C) void;

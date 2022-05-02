@@ -1,72 +1,8 @@
-pub const __builtin_bswap16 = @import("std").zig.c_builtins.__builtin_bswap16;
-pub const __builtin_bswap32 = @import("std").zig.c_builtins.__builtin_bswap32;
-pub const __builtin_bswap64 = @import("std").zig.c_builtins.__builtin_bswap64;
-pub const __builtin_signbit = @import("std").zig.c_builtins.__builtin_signbit;
-pub const __builtin_signbitf = @import("std").zig.c_builtins.__builtin_signbitf;
-pub const __builtin_popcount = @import("std").zig.c_builtins.__builtin_popcount;
-pub const __builtin_ctz = @import("std").zig.c_builtins.__builtin_ctz;
-pub const __builtin_clz = @import("std").zig.c_builtins.__builtin_clz;
-pub const __builtin_sqrt = @import("std").zig.c_builtins.__builtin_sqrt;
-pub const __builtin_sqrtf = @import("std").zig.c_builtins.__builtin_sqrtf;
-pub const __builtin_sin = @import("std").zig.c_builtins.__builtin_sin;
-pub const __builtin_sinf = @import("std").zig.c_builtins.__builtin_sinf;
-pub const __builtin_cos = @import("std").zig.c_builtins.__builtin_cos;
-pub const __builtin_cosf = @import("std").zig.c_builtins.__builtin_cosf;
-pub const __builtin_exp = @import("std").zig.c_builtins.__builtin_exp;
-pub const __builtin_expf = @import("std").zig.c_builtins.__builtin_expf;
-pub const __builtin_exp2 = @import("std").zig.c_builtins.__builtin_exp2;
-pub const __builtin_exp2f = @import("std").zig.c_builtins.__builtin_exp2f;
-pub const __builtin_log = @import("std").zig.c_builtins.__builtin_log;
-pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
-pub const __builtin_log2 = @import("std").zig.c_builtins.__builtin_log2;
-pub const __builtin_log2f = @import("std").zig.c_builtins.__builtin_log2f;
-pub const __builtin_log10 = @import("std").zig.c_builtins.__builtin_log10;
-pub const __builtin_log10f = @import("std").zig.c_builtins.__builtin_log10f;
-pub const __builtin_abs = @import("std").zig.c_builtins.__builtin_abs;
-pub const __builtin_fabs = @import("std").zig.c_builtins.__builtin_fabs;
-pub const __builtin_fabsf = @import("std").zig.c_builtins.__builtin_fabsf;
-pub const __builtin_floor = @import("std").zig.c_builtins.__builtin_floor;
-pub const __builtin_floorf = @import("std").zig.c_builtins.__builtin_floorf;
-pub const __builtin_ceil = @import("std").zig.c_builtins.__builtin_ceil;
-pub const __builtin_ceilf = @import("std").zig.c_builtins.__builtin_ceilf;
-pub const __builtin_trunc = @import("std").zig.c_builtins.__builtin_trunc;
-pub const __builtin_truncf = @import("std").zig.c_builtins.__builtin_truncf;
-pub const __builtin_round = @import("std").zig.c_builtins.__builtin_round;
-pub const __builtin_roundf = @import("std").zig.c_builtins.__builtin_roundf;
-pub const __builtin_strlen = @import("std").zig.c_builtins.__builtin_strlen;
-pub const __builtin_strcmp = @import("std").zig.c_builtins.__builtin_strcmp;
-pub const __builtin_object_size = @import("std").zig.c_builtins.__builtin_object_size;
-pub const __builtin___memset_chk = @import("std").zig.c_builtins.__builtin___memset_chk;
-pub const __builtin_memset = @import("std").zig.c_builtins.__builtin_memset;
-pub const __builtin___memcpy_chk = @import("std").zig.c_builtins.__builtin___memcpy_chk;
-pub const __builtin_memcpy = @import("std").zig.c_builtins.__builtin_memcpy;
-pub const __builtin_expect = @import("std").zig.c_builtins.__builtin_expect;
-pub const __builtin_nanf = @import("std").zig.c_builtins.__builtin_nanf;
-pub const __builtin_huge_valf = @import("std").zig.c_builtins.__builtin_huge_valf;
-pub const __builtin_inff = @import("std").zig.c_builtins.__builtin_inff;
-pub const __builtin_isnan = @import("std").zig.c_builtins.__builtin_isnan;
-pub const __builtin_isinf = @import("std").zig.c_builtins.__builtin_isinf;
-pub const __builtin_isinf_sign = @import("std").zig.c_builtins.__builtin_isinf_sign;
-pub const ptrdiff_t = c_long;
-pub const wchar_t = c_int;
-pub const max_align_t = extern struct {
-    __max_align_ll: c_longlong align(8),
-    __max_align_ld: c_longdouble align(16),
-};
-pub const XID = c_ulong;
-pub const Mask = c_ulong;
-pub const Atom = c_ulong;
-pub const VisualID = c_ulong;
-pub const Time = c_ulong;
-pub const Window = XID;
-pub const Drawable = XID;
-pub const Font = XID;
-pub const Pixmap = XID;
-pub const Cursor = XID;
-pub const Colormap = XID;
-pub const GContext = XID;
-pub const KeySym = XID;
-pub const KeyCode = u8;
+const X = @import("X.zig");
+pub usingnamespace X;
+
+const wchar_t = c_short;
+
 pub extern fn _Xmblen(str: [*c]u8, len: c_int) c_int;
 pub const XPointer = [*c]u8;
 pub const struct__XExtData = extern struct {
@@ -99,16 +35,16 @@ pub const XGCValues = extern struct {
     fill_style: c_int,
     fill_rule: c_int,
     arc_mode: c_int,
-    tile: Pixmap,
-    stipple: Pixmap,
+    tile: X.Pixmap,
+    stipple: X.Pixmap,
     ts_x_origin: c_int,
     ts_y_origin: c_int,
-    font: Font,
+    font: X.Font,
     subwindow_mode: c_int,
     graphics_exposures: c_int,
     clip_x_origin: c_int,
     clip_y_origin: c_int,
-    clip_mask: Pixmap,
+    clip_mask: X.Pixmap,
     dash_offset: c_int,
     dashes: u8,
 };
@@ -116,7 +52,7 @@ pub const struct__XGC = opaque {};
 pub const GC = ?*struct__XGC;
 pub const Visual = extern struct {
     ext_data: [*c]XExtData,
-    visualid: VisualID,
+    visualid: X.VisualID,
     class: c_int,
     red_mask: c_ulong,
     green_mask: c_ulong,
@@ -133,7 +69,7 @@ pub const struct__XDisplay = opaque {};
 pub const Screen = extern struct {
     ext_data: [*c]XExtData,
     display: ?*struct__XDisplay,
-    root: Window,
+    root: X.Window,
     width: c_int,
     height: c_int,
     mwidth: c_int,
@@ -143,7 +79,7 @@ pub const Screen = extern struct {
     root_depth: c_int,
     root_visual: [*c]Visual,
     default_gc: GC,
-    cmap: Colormap,
+    cmap: X.Colormap,
     white_pixel: c_ulong,
     black_pixel: c_ulong,
     max_maps: c_int,
@@ -159,9 +95,9 @@ pub const ScreenFormat = extern struct {
     scanline_pad: c_int,
 };
 pub const XSetWindowAttributes = extern struct {
-    background_pixmap: Pixmap,
+    background_pixmap: X.Pixmap,
     background_pixel: c_ulong,
-    border_pixmap: Pixmap,
+    border_pixmap: X.Pixmap,
     border_pixel: c_ulong,
     bit_gravity: c_int,
     win_gravity: c_int,
@@ -172,8 +108,8 @@ pub const XSetWindowAttributes = extern struct {
     event_mask: c_long,
     do_not_propagate_mask: c_long,
     override_redirect: c_int,
-    colormap: Colormap,
-    cursor: Cursor,
+    colormap: X.Colormap,
+    cursor: X.Cursor,
 };
 pub const XWindowAttributes = extern struct {
     x: c_int,
@@ -183,7 +119,7 @@ pub const XWindowAttributes = extern struct {
     border_width: c_int,
     depth: c_int,
     visual: [*c]Visual,
-    root: Window,
+    root: X.Window,
     class: c_int,
     bit_gravity: c_int,
     win_gravity: c_int,
@@ -191,7 +127,7 @@ pub const XWindowAttributes = extern struct {
     backing_planes: c_ulong,
     backing_pixel: c_ulong,
     save_under: c_int,
-    colormap: Colormap,
+    colormap: X.Colormap,
     map_installed: c_int,
     map_state: c_int,
     all_event_masks: c_long,
@@ -245,7 +181,7 @@ pub const XWindowChanges = extern struct {
     width: c_int,
     height: c_int,
     border_width: c_int,
-    sibling: Window,
+    sibling: X.Window,
     stack_mode: c_int,
 };
 pub const XColor = extern struct {
@@ -300,13 +236,13 @@ pub const XKeyboardState = extern struct {
     auto_repeats: [32]u8,
 };
 pub const XTimeCoord = extern struct {
-    time: Time,
+    time: X.Time,
     x: c_short,
     y: c_short,
 };
 pub const XModifierKeymap = extern struct {
     max_keypermod: c_int,
-    modifiermap: [*c]KeyCode,
+    modifiermap: [*c]X.KeyCode,
 };
 pub const Display = struct__XDisplay;
 pub const struct__XPrivate = opaque {};
@@ -319,11 +255,11 @@ const struct_unnamed_1 = extern struct {
     proto_major_version: c_int,
     proto_minor_version: c_int,
     vendor: [*c]u8,
-    private3: XID,
-    private4: XID,
-    private5: XID,
+    private3: X.XID,
+    private4: X.XID,
+    private5: X.XID,
     private6: c_int,
-    resource_alloc: ?fn (?*struct__XDisplay) callconv(.C) XID,
+    resource_alloc: ?fn (?*struct__XDisplay) callconv(.C) X.XID,
     byte_order: c_int,
     bitmap_unit: c_int,
     bitmap_pad: c_int,
@@ -363,10 +299,10 @@ pub const XKeyEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    root: Window,
-    subwindow: Window,
-    time: Time,
+    window: X.Window,
+    root: X.Window,
+    subwindow: X.Window,
+    time: X.Time,
     x: c_int,
     y: c_int,
     x_root: c_int,
@@ -382,10 +318,10 @@ pub const XButtonEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    root: Window,
-    subwindow: Window,
-    time: Time,
+    window: X.Window,
+    root: X.Window,
+    subwindow: X.Window,
+    time: X.Time,
     x: c_int,
     y: c_int,
     x_root: c_int,
@@ -401,10 +337,10 @@ pub const XMotionEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    root: Window,
-    subwindow: Window,
-    time: Time,
+    window: X.Window,
+    root: X.Window,
+    subwindow: X.Window,
+    time: X.Time,
     x: c_int,
     y: c_int,
     x_root: c_int,
@@ -419,10 +355,10 @@ pub const XCrossingEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    root: Window,
-    subwindow: Window,
-    time: Time,
+    window: X.Window,
+    root: X.Window,
+    subwindow: X.Window,
+    time: X.Time,
     x: c_int,
     y: c_int,
     x_root: c_int,
@@ -440,7 +376,7 @@ pub const XFocusChangeEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     mode: c_int,
     detail: c_int,
 };
@@ -451,7 +387,7 @@ pub const XKeymapEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     key_vector: [32]u8,
 };
 pub const XExposeEvent = extern struct {
@@ -459,7 +395,7 @@ pub const XExposeEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     x: c_int,
     y: c_int,
     width: c_int,
@@ -471,7 +407,7 @@ pub const XGraphicsExposeEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    drawable: Drawable,
+    drawable: X.Drawable,
     x: c_int,
     y: c_int,
     width: c_int,
@@ -485,7 +421,7 @@ pub const XNoExposeEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    drawable: Drawable,
+    drawable: X.Drawable,
     major_code: c_int,
     minor_code: c_int,
 };
@@ -494,7 +430,7 @@ pub const XVisibilityEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     state: c_int,
 };
 pub const XCreateWindowEvent = extern struct {
@@ -502,8 +438,8 @@ pub const XCreateWindowEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    parent: Window,
-    window: Window,
+    parent: X.Window,
+    window: X.Window,
     x: c_int,
     y: c_int,
     width: c_int,
@@ -516,16 +452,16 @@ pub const XDestroyWindowEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
 };
 pub const XUnmapEvent = extern struct {
     type: c_int,
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
     from_configure: c_int,
 };
 pub const XMapEvent = extern struct {
@@ -533,8 +469,8 @@ pub const XMapEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
     override_redirect: c_int,
 };
 pub const XMapRequestEvent = extern struct {
@@ -542,17 +478,17 @@ pub const XMapRequestEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    parent: Window,
-    window: Window,
+    parent: X.Window,
+    window: X.Window,
 };
 pub const XReparentEvent = extern struct {
     type: c_int,
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
-    parent: Window,
+    event: X.Window,
+    window: X.Window,
+    parent: X.Window,
     x: c_int,
     y: c_int,
     override_redirect: c_int,
@@ -562,14 +498,14 @@ pub const XConfigureEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
     x: c_int,
     y: c_int,
     width: c_int,
     height: c_int,
     border_width: c_int,
-    above: Window,
+    above: X.Window,
     override_redirect: c_int,
 };
 pub const XGravityEvent = extern struct {
@@ -577,8 +513,8 @@ pub const XGravityEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
     x: c_int,
     y: c_int,
 };
@@ -587,7 +523,7 @@ pub const XResizeRequestEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     width: c_int,
     height: c_int,
 };
@@ -596,14 +532,14 @@ pub const XConfigureRequestEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    parent: Window,
-    window: Window,
+    parent: X.Window,
+    window: X.Window,
     x: c_int,
     y: c_int,
     width: c_int,
     height: c_int,
     border_width: c_int,
-    above: Window,
+    above: X.Window,
     detail: c_int,
     value_mask: c_ulong,
 };
@@ -612,8 +548,8 @@ pub const XCirculateEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    event: Window,
-    window: Window,
+    event: X.Window,
+    window: X.Window,
     place: c_int,
 };
 pub const XCirculateRequestEvent = extern struct {
@@ -621,8 +557,8 @@ pub const XCirculateRequestEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    parent: Window,
-    window: Window,
+    parent: X.Window,
+    window: X.Window,
     place: c_int,
 };
 pub const XPropertyEvent = extern struct {
@@ -630,9 +566,9 @@ pub const XPropertyEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    atom: Atom,
-    time: Time,
+    window: X.Window,
+    atom: X.Atom,
+    time: X.Time,
     state: c_int,
 };
 pub const XSelectionClearEvent = extern struct {
@@ -640,40 +576,40 @@ pub const XSelectionClearEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    selection: Atom,
-    time: Time,
+    window: X.Window,
+    selection: X.Atom,
+    time: X.Time,
 };
 pub const XSelectionRequestEvent = extern struct {
     type: c_int,
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    owner: Window,
-    requestor: Window,
-    selection: Atom,
-    target: Atom,
-    property: Atom,
-    time: Time,
+    owner: X.Window,
+    requestor: X.Window,
+    selection: X.Atom,
+    target: X.Atom,
+    property: X.Atom,
+    time: X.Time,
 };
 pub const XSelectionEvent = extern struct {
     type: c_int,
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    requestor: Window,
-    selection: Atom,
-    target: Atom,
-    property: Atom,
-    time: Time,
+    requestor: X.Window,
+    selection: X.Atom,
+    target: X.Atom,
+    property: X.Atom,
+    time: X.Time,
 };
 pub const XColormapEvent = extern struct {
     type: c_int,
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    colormap: Colormap,
+    window: X.Window,
+    colormap: X.Colormap,
     new: c_int,
     state: c_int,
 };
@@ -687,8 +623,8 @@ pub const XClientMessageEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
-    message_type: Atom,
+    window: X.Window,
+    message_type: X.Atom,
     format: c_int,
     data: union_unnamed_2,
 };
@@ -697,7 +633,7 @@ pub const XMappingEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
     request: c_int,
     first_keycode: c_int,
     count: c_int,
@@ -705,7 +641,7 @@ pub const XMappingEvent = extern struct {
 pub const XErrorEvent = extern struct {
     type: c_int,
     display: ?*Display,
-    resourceid: XID,
+    resourceid: X.XID,
     serial: c_ulong,
     error_code: u8,
     request_code: u8,
@@ -716,7 +652,7 @@ pub const XAnyEvent = extern struct {
     serial: c_ulong,
     send_event: c_int,
     display: ?*Display,
-    window: Window,
+    window: X.Window,
 };
 pub const XGenericEvent = extern struct {
     type: c_int,
@@ -783,12 +719,12 @@ pub const XCharStruct = extern struct {
     attributes: c_ushort,
 };
 pub const XFontProp = extern struct {
-    name: Atom,
+    name: X.Atom,
     card32: c_ulong,
 };
 pub const XFontStruct = extern struct {
     ext_data: [*c]XExtData,
-    fid: Font,
+    fid: X.Font,
     direction: c_uint,
     min_char_or_byte2: c_uint,
     max_char_or_byte2: c_uint,
@@ -808,7 +744,7 @@ pub const XTextItem = extern struct {
     chars: [*c]u8,
     nchars: c_int,
     delta: c_int,
-    font: Font,
+    font: X.Font,
 };
 pub const XChar2b = extern struct {
     byte1: u8,
@@ -818,7 +754,7 @@ pub const XTextItem16 = extern struct {
     chars: [*c]XChar2b,
     nchars: c_int,
     delta: c_int,
-    font: Font,
+    font: X.Font,
 };
 pub const XEDataObject = extern union {
     display: ?*Display,
@@ -965,7 +901,7 @@ pub const XIMBitmapType: c_int = 1;
 pub const XIMStatusDataType = c_uint;
 const union_unnamed_5 = extern union {
     text: [*c]XIMText,
-    bitmap: Pixmap,
+    bitmap: X.Pixmap,
 };
 pub const struct__XIMStatusDrawCallbackStruct = extern struct {
     type: XIMStatusDataType,
@@ -973,7 +909,7 @@ pub const struct__XIMStatusDrawCallbackStruct = extern struct {
 };
 pub const XIMStatusDrawCallbackStruct = struct__XIMStatusDrawCallbackStruct;
 pub const struct__XIMHotKeyTrigger = extern struct {
-    keysym: KeySym,
+    keysym: X.KeySym,
     modifier: c_int,
     modifier_mask: c_int,
 };
@@ -990,61 +926,61 @@ pub const XIMValuesList = extern struct {
 };
 pub extern var _Xdebug: c_int;
 pub extern fn XLoadQueryFont(?*Display, [*c]const u8) [*c]XFontStruct;
-pub extern fn XQueryFont(?*Display, XID) [*c]XFontStruct;
-pub extern fn XGetMotionEvents(?*Display, Window, Time, Time, [*c]c_int) [*c]XTimeCoord;
-pub extern fn XDeleteModifiermapEntry([*c]XModifierKeymap, KeyCode, c_int) [*c]XModifierKeymap;
+pub extern fn XQueryFont(?*Display, X.XID) [*c]XFontStruct;
+pub extern fn XGetMotionEvents(?*Display, X.Window, X.Time, X.Time, [*c]c_int) [*c]XTimeCoord;
+pub extern fn XDeleteModifiermapEntry([*c]XModifierKeymap, X.KeyCode, c_int) [*c]XModifierKeymap;
 pub extern fn XGetModifierMapping(?*Display) [*c]XModifierKeymap;
-pub extern fn XInsertModifiermapEntry([*c]XModifierKeymap, KeyCode, c_int) [*c]XModifierKeymap;
+pub extern fn XInsertModifiermapEntry([*c]XModifierKeymap, X.KeyCode, c_int) [*c]XModifierKeymap;
 pub extern fn XNewModifiermap(c_int) [*c]XModifierKeymap;
 pub extern fn XCreateImage(?*Display, [*c]Visual, c_uint, c_int, c_int, [*c]u8, c_uint, c_uint, c_int, c_int) [*c]XImage;
 pub extern fn XInitImage([*c]XImage) c_int;
-pub extern fn XGetImage(?*Display, Drawable, c_int, c_int, c_uint, c_uint, c_ulong, c_int) [*c]XImage;
-pub extern fn XGetSubImage(?*Display, Drawable, c_int, c_int, c_uint, c_uint, c_ulong, c_int, [*c]XImage, c_int, c_int) [*c]XImage;
+pub extern fn XGetImage(?*Display, X.Drawable, c_int, c_int, c_uint, c_uint, c_ulong, c_int) [*c]XImage;
+pub extern fn XGetSubImage(?*Display, X.Drawable, c_int, c_int, c_uint, c_uint, c_ulong, c_int, [*c]XImage, c_int, c_int) [*c]XImage;
 pub extern fn XOpenDisplay([*c]const u8) ?*Display;
 pub extern fn XrmInitialize() void;
 pub extern fn XFetchBytes(?*Display, [*c]c_int) [*c]u8;
 pub extern fn XFetchBuffer(?*Display, [*c]c_int, c_int) [*c]u8;
-pub extern fn XGetAtomName(?*Display, Atom) [*c]u8;
-pub extern fn XGetAtomNames(?*Display, [*c]Atom, c_int, [*c][*c]u8) c_int;
+pub extern fn XGetAtomName(?*Display, X.Atom) [*c]u8;
+pub extern fn XGetAtomNames(?*Display, [*c]X.Atom, c_int, [*c][*c]u8) c_int;
 pub extern fn XGetDefault(?*Display, [*c]const u8, [*c]const u8) [*c]u8;
 pub extern fn XDisplayName([*c]const u8) [*c]u8;
-pub extern fn XKeysymToString(KeySym) [*c]u8;
+pub extern fn XKeysymToString(X.KeySym) [*c]u8;
 pub extern fn XSynchronize(?*Display, c_int) ?fn (?*Display) callconv(.C) c_int;
 pub extern fn XSetAfterFunction(?*Display, ?fn (?*Display) callconv(.C) c_int) ?fn (?*Display) callconv(.C) c_int;
-pub extern fn XInternAtom(?*Display, [*c]const u8, c_int) Atom;
-pub extern fn XInternAtoms(?*Display, [*c][*c]u8, c_int, c_int, [*c]Atom) c_int;
-pub extern fn XCopyColormapAndFree(?*Display, Colormap) Colormap;
-pub extern fn XCreateColormap(?*Display, Window, [*c]Visual, c_int) Colormap;
-pub extern fn XCreatePixmapCursor(?*Display, Pixmap, Pixmap, [*c]XColor, [*c]XColor, c_uint, c_uint) Cursor;
-pub extern fn XCreateGlyphCursor(?*Display, Font, Font, c_uint, c_uint, [*c]const XColor, [*c]const XColor) Cursor;
-pub extern fn XCreateFontCursor(?*Display, c_uint) Cursor;
-pub extern fn XLoadFont(?*Display, [*c]const u8) Font;
-pub extern fn XCreateGC(?*Display, Drawable, c_ulong, [*c]XGCValues) GC;
-pub extern fn XGContextFromGC(GC) GContext;
+pub extern fn XInternAtom(?*Display, [*c]const u8, c_int) X.Atom;
+pub extern fn XInternAtoms(?*Display, [*c][*c]u8, c_int, c_int, [*c]X.Atom) c_int;
+pub extern fn XCopyColormapAndFree(?*Display, X.Colormap) X.Colormap;
+pub extern fn XCreateColormap(?*Display, X.Window, [*c]Visual, c_int) X.Colormap;
+pub extern fn XCreatePixmapCursor(?*Display, X.Pixmap, X.Pixmap, [*c]XColor, [*c]XColor, c_uint, c_uint) X.Cursor;
+pub extern fn XCreateGlyphCursor(?*Display, X.Font, X.Font, c_uint, c_uint, [*c]const XColor, [*c]const XColor) X.Cursor;
+pub extern fn XCreateFontCursor(?*Display, c_uint) X.Cursor;
+pub extern fn XLoadFont(?*Display, [*c]const u8) X.Font;
+pub extern fn XCreateGC(?*Display, X.Drawable, c_ulong, [*c]XGCValues) GC;
+pub extern fn XGContextFromGC(GC) X.GContext;
 pub extern fn XFlushGC(?*Display, GC) void;
-pub extern fn XCreatePixmap(?*Display, Drawable, c_uint, c_uint, c_uint) Pixmap;
-pub extern fn XCreateBitmapFromData(?*Display, Drawable, [*c]const u8, c_uint, c_uint) Pixmap;
-pub extern fn XCreatePixmapFromBitmapData(?*Display, Drawable, [*c]u8, c_uint, c_uint, c_ulong, c_ulong, c_uint) Pixmap;
-pub extern fn XCreateSimpleWindow(?*Display, Window, c_int, c_int, c_uint, c_uint, c_uint, c_ulong, c_ulong) Window;
-pub extern fn XGetSelectionOwner(?*Display, Atom) Window;
-pub extern fn XCreateWindow(?*Display, Window, c_int, c_int, c_uint, c_uint, c_uint, c_int, c_uint, [*c]Visual, c_ulong, [*c]XSetWindowAttributes) Window;
-pub extern fn XListInstalledColormaps(?*Display, Window, [*c]c_int) [*c]Colormap;
+pub extern fn XCreatePixmap(?*Display, X.Drawable, c_uint, c_uint, c_uint) X.Pixmap;
+pub extern fn XCreateBitmapFromData(?*Display, X.Drawable, [*c]const u8, c_uint, c_uint) X.Pixmap;
+pub extern fn XCreatePixmapFromBitmapData(?*Display, X.Drawable, [*c]u8, c_uint, c_uint, c_ulong, c_ulong, c_uint) X.Pixmap;
+pub extern fn XCreateSimpleWindow(?*Display, X.Window, c_int, c_int, c_uint, c_uint, c_uint, c_ulong, c_ulong) X.Window;
+pub extern fn XGetSelectionOwner(?*Display, X.Atom) X.Window;
+pub extern fn XCreateWindow(?*Display, X.Window, c_int, c_int, c_uint, c_uint, c_uint, c_int, c_uint, [*c]Visual, c_ulong, [*c]XSetWindowAttributes) X.Window;
+pub extern fn XListInstalledColormaps(?*Display, X.Window, [*c]c_int) [*c]X.Colormap;
 pub extern fn XListFonts(?*Display, [*c]const u8, c_int, [*c]c_int) [*c][*c]u8;
 pub extern fn XListFontsWithInfo(?*Display, [*c]const u8, c_int, [*c]c_int, [*c][*c]XFontStruct) [*c][*c]u8;
 pub extern fn XGetFontPath(?*Display, [*c]c_int) [*c][*c]u8;
 pub extern fn XListExtensions(?*Display, [*c]c_int) [*c][*c]u8;
-pub extern fn XListProperties(?*Display, Window, [*c]c_int) [*c]Atom;
+pub extern fn XListProperties(?*Display, X.Window, [*c]c_int) [*c]X.Atom;
 pub extern fn XListHosts(?*Display, [*c]c_int, [*c]c_int) [*c]XHostAddress;
-pub extern fn XKeycodeToKeysym(?*Display, KeyCode, c_int) KeySym;
-pub extern fn XLookupKeysym([*c]XKeyEvent, c_int) KeySym;
-pub extern fn XGetKeyboardMapping(?*Display, KeyCode, c_int, [*c]c_int) [*c]KeySym;
-pub extern fn XStringToKeysym([*c]const u8) KeySym;
+pub extern fn XKeycodeToKeysym(?*Display, X.KeyCode, c_int) X.KeySym;
+pub extern fn XLookupKeysym([*c]XKeyEvent, c_int) X.KeySym;
+pub extern fn XGetKeyboardMapping(?*Display, X.KeyCode, c_int, [*c]c_int) [*c]X.KeySym;
+pub extern fn XStringToKeysym([*c]const u8) X.KeySym;
 pub extern fn XMaxRequestSize(?*Display) c_long;
 pub extern fn XExtendedMaxRequestSize(?*Display) c_long;
 pub extern fn XResourceManagerString(?*Display) [*c]u8;
 pub extern fn XScreenResourceString([*c]Screen) [*c]u8;
 pub extern fn XDisplayMotionBufferSize(?*Display) c_ulong;
-pub extern fn XVisualIDFromVisual([*c]Visual) VisualID;
+pub extern fn XVisualIDFromVisual([*c]Visual) X.VisualID;
 pub extern fn XInitThreads() c_int;
 pub extern fn XLockDisplay(?*Display) void;
 pub extern fn XUnlockDisplay(?*Display) void;
@@ -1052,9 +988,9 @@ pub extern fn XInitExtension(?*Display, [*c]const u8) [*c]XExtCodes;
 pub extern fn XAddExtension(?*Display) [*c]XExtCodes;
 pub extern fn XFindOnExtensionList([*c][*c]XExtData, c_int) [*c]XExtData;
 pub extern fn XEHeadOfExtensionList(XEDataObject) [*c][*c]XExtData;
-pub extern fn XRootWindow(?*Display, c_int) Window;
-pub extern fn XDefaultRootWindow(?*Display) Window;
-pub extern fn XRootWindowOfScreen([*c]Screen) Window;
+pub extern fn XRootWindow(?*Display, c_int) X.Window;
+pub extern fn XDefaultRootWindow(?*Display) X.Window;
+pub extern fn XRootWindowOfScreen([*c]Screen) X.Window;
 pub extern fn XDefaultVisual(?*Display, c_int) [*c]Visual;
 pub extern fn XDefaultVisualOfScreen([*c]Screen) [*c]Visual;
 pub extern fn XDefaultGC(?*Display, c_int) GC;
@@ -1068,8 +1004,8 @@ pub extern fn XNextRequest(?*Display) c_ulong;
 pub extern fn XLastKnownRequestProcessed(?*Display) c_ulong;
 pub extern fn XServerVendor(?*Display) [*c]u8;
 pub extern fn XDisplayString(?*Display) [*c]u8;
-pub extern fn XDefaultColormap(?*Display, c_int) Colormap;
-pub extern fn XDefaultColormapOfScreen([*c]Screen) Colormap;
+pub extern fn XDefaultColormap(?*Display, c_int) X.Colormap;
+pub extern fn XDefaultColormapOfScreen([*c]Screen) X.Colormap;
 pub extern fn XDisplayOfScreen([*c]Screen) ?*Display;
 pub extern fn XScreenOfDisplay(?*Display, c_int) [*c]Screen;
 pub extern fn XDefaultScreenOfDisplay(?*Display) [*c]Screen;
@@ -1083,26 +1019,26 @@ pub const XIOErrorExitHandler = ?fn (?*Display, ?*anyopaque) callconv(.C) void;
 pub extern fn XSetIOErrorExitHandler(?*Display, XIOErrorExitHandler, ?*anyopaque) void;
 pub extern fn XListPixmapFormats(?*Display, [*c]c_int) [*c]XPixmapFormatValues;
 pub extern fn XListDepths(?*Display, c_int, [*c]c_int) [*c]c_int;
-pub extern fn XReconfigureWMWindow(?*Display, Window, c_int, c_uint, [*c]XWindowChanges) c_int;
-pub extern fn XGetWMProtocols(?*Display, Window, [*c][*c]Atom, [*c]c_int) c_int;
-pub extern fn XSetWMProtocols(?*Display, Window, [*c]Atom, c_int) c_int;
-pub extern fn XIconifyWindow(?*Display, Window, c_int) c_int;
-pub extern fn XWithdrawWindow(?*Display, Window, c_int) c_int;
-pub extern fn XGetCommand(?*Display, Window, [*c][*c][*c]u8, [*c]c_int) c_int;
-pub extern fn XGetWMColormapWindows(?*Display, Window, [*c][*c]Window, [*c]c_int) c_int;
-pub extern fn XSetWMColormapWindows(?*Display, Window, [*c]Window, c_int) c_int;
+pub extern fn XReconfigureWMWindow(?*Display, X.Window, c_int, c_uint, [*c]XWindowChanges) c_int;
+pub extern fn XGetWMProtocols(?*Display, X.Window, [*c][*c]X.Atom, [*c]c_int) c_int;
+pub extern fn XSetWMProtocols(?*Display, X.Window, [*c]X.Atom, c_int) c_int;
+pub extern fn XIconifyWindow(?*Display, X.Window, c_int) c_int;
+pub extern fn XWithdrawWindow(?*Display, X.Window, c_int) c_int;
+pub extern fn XGetCommand(?*Display, X.Window, [*c][*c][*c]u8, [*c]c_int) c_int;
+pub extern fn XGetWMColormapWindows(?*Display, X.Window, [*c][*c]X.Window, [*c]c_int) c_int;
+pub extern fn XSetWMColormapWindows(?*Display, X.Window, [*c]X.Window, c_int) c_int;
 pub extern fn XFreeStringList([*c][*c]u8) void;
-pub extern fn XSetTransientForHint(?*Display, Window, Window) c_int;
+pub extern fn XSetTransientForHint(?*Display, X.Window, X.Window) c_int;
 pub extern fn XActivateScreenSaver(?*Display) c_int;
 pub extern fn XAddHost(?*Display, [*c]XHostAddress) c_int;
 pub extern fn XAddHosts(?*Display, [*c]XHostAddress, c_int) c_int;
 pub extern fn XAddToExtensionList([*c][*c]struct__XExtData, [*c]XExtData) c_int;
-pub extern fn XAddToSaveSet(?*Display, Window) c_int;
-pub extern fn XAllocColor(?*Display, Colormap, [*c]XColor) c_int;
-pub extern fn XAllocColorCells(?*Display, Colormap, c_int, [*c]c_ulong, c_uint, [*c]c_ulong, c_uint) c_int;
-pub extern fn XAllocColorPlanes(?*Display, Colormap, c_int, [*c]c_ulong, c_int, c_int, c_int, c_int, [*c]c_ulong, [*c]c_ulong, [*c]c_ulong) c_int;
-pub extern fn XAllocNamedColor(?*Display, Colormap, [*c]const u8, [*c]XColor, [*c]XColor) c_int;
-pub extern fn XAllowEvents(?*Display, c_int, Time) c_int;
+pub extern fn XAddToSaveSet(?*Display, X.Window) c_int;
+pub extern fn XAllocColor(?*Display, X.Colormap, [*c]XColor) c_int;
+pub extern fn XAllocColorCells(?*Display, X.Colormap, c_int, [*c]c_ulong, c_uint, [*c]c_ulong, c_uint) c_int;
+pub extern fn XAllocColorPlanes(?*Display, X.Colormap, c_int, [*c]c_ulong, c_int, c_int, c_int, c_int, [*c]c_ulong, [*c]c_ulong, [*c]c_ulong) c_int;
+pub extern fn XAllocNamedColor(?*Display, X.Colormap, [*c]const u8, [*c]XColor, [*c]XColor) c_int;
+pub extern fn XAllowEvents(?*Display, c_int, X.Time) c_int;
 pub extern fn XAutoRepeatOff(?*Display) c_int;
 pub extern fn XAutoRepeatOn(?*Display) c_int;
 pub extern fn XBell(?*Display, c_int) c_int;
@@ -1110,38 +1046,38 @@ pub extern fn XBitmapBitOrder(?*Display) c_int;
 pub extern fn XBitmapPad(?*Display) c_int;
 pub extern fn XBitmapUnit(?*Display) c_int;
 pub extern fn XCellsOfScreen([*c]Screen) c_int;
-pub extern fn XChangeActivePointerGrab(?*Display, c_uint, Cursor, Time) c_int;
+pub extern fn XChangeActivePointerGrab(?*Display, c_uint, X.Cursor, X.Time) c_int;
 pub extern fn XChangeGC(?*Display, GC, c_ulong, [*c]XGCValues) c_int;
 pub extern fn XChangeKeyboardControl(?*Display, c_ulong, [*c]XKeyboardControl) c_int;
-pub extern fn XChangeKeyboardMapping(?*Display, c_int, c_int, [*c]KeySym, c_int) c_int;
+pub extern fn XChangeKeyboardMapping(?*Display, c_int, c_int, [*c]X.KeySym, c_int) c_int;
 pub extern fn XChangePointerControl(?*Display, c_int, c_int, c_int, c_int, c_int) c_int;
-pub extern fn XChangeProperty(?*Display, Window, Atom, Atom, c_int, c_int, [*c]const u8, c_int) c_int;
-pub extern fn XChangeSaveSet(?*Display, Window, c_int) c_int;
-pub extern fn XChangeWindowAttributes(?*Display, Window, c_ulong, [*c]XSetWindowAttributes) c_int;
+pub extern fn XChangeProperty(?*Display, X.Window, X.Atom, X.Atom, c_int, c_int, [*c]const u8, c_int) c_int;
+pub extern fn XChangeSaveSet(?*Display, X.Window, c_int) c_int;
+pub extern fn XChangeWindowAttributes(?*Display, X.Window, c_ulong, [*c]XSetWindowAttributes) c_int;
 pub extern fn XCheckIfEvent(?*Display, [*c]XEvent, ?fn (?*Display, [*c]XEvent, XPointer) callconv(.C) c_int, XPointer) c_int;
 pub extern fn XCheckMaskEvent(?*Display, c_long, [*c]XEvent) c_int;
 pub extern fn XCheckTypedEvent(?*Display, c_int, [*c]XEvent) c_int;
-pub extern fn XCheckTypedWindowEvent(?*Display, Window, c_int, [*c]XEvent) c_int;
-pub extern fn XCheckWindowEvent(?*Display, Window, c_long, [*c]XEvent) c_int;
-pub extern fn XCirculateSubwindows(?*Display, Window, c_int) c_int;
-pub extern fn XCirculateSubwindowsDown(?*Display, Window) c_int;
-pub extern fn XCirculateSubwindowsUp(?*Display, Window) c_int;
-pub extern fn XClearArea(?*Display, Window, c_int, c_int, c_uint, c_uint, c_int) c_int;
-pub extern fn XClearWindow(?*Display, Window) c_int;
+pub extern fn XCheckTypedWindowEvent(?*Display, X.Window, c_int, [*c]XEvent) c_int;
+pub extern fn XCheckWindowEvent(?*Display, X.Window, c_long, [*c]XEvent) c_int;
+pub extern fn XCirculateSubwindows(?*Display, X.Window, c_int) c_int;
+pub extern fn XCirculateSubwindowsDown(?*Display, X.Window) c_int;
+pub extern fn XCirculateSubwindowsUp(?*Display, X.Window) c_int;
+pub extern fn XClearArea(?*Display, X.Window, c_int, c_int, c_uint, c_uint, c_int) c_int;
+pub extern fn XClearWindow(?*Display, X.Window) c_int;
 pub extern fn XCloseDisplay(?*Display) c_int;
-pub extern fn XConfigureWindow(?*Display, Window, c_uint, [*c]XWindowChanges) c_int;
+pub extern fn XConfigureWindow(?*Display, X.Window, c_uint, [*c]XWindowChanges) c_int;
 pub extern fn XConnectionNumber(?*Display) c_int;
-pub extern fn XConvertSelection(?*Display, Atom, Atom, Atom, Window, Time) c_int;
-pub extern fn XCopyArea(?*Display, Drawable, Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
+pub extern fn XConvertSelection(?*Display, X.Atom, X.Atom, X.Atom, X.Window, X.Time) c_int;
+pub extern fn XCopyArea(?*Display, X.Drawable, X.Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
 pub extern fn XCopyGC(?*Display, GC, c_ulong, GC) c_int;
-pub extern fn XCopyPlane(?*Display, Drawable, Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int, c_ulong) c_int;
+pub extern fn XCopyPlane(?*Display, X.Drawable, X.Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int, c_ulong) c_int;
 pub extern fn XDefaultDepth(?*Display, c_int) c_int;
 pub extern fn XDefaultDepthOfScreen([*c]Screen) c_int;
 pub extern fn XDefaultScreen(?*Display) c_int;
-pub extern fn XDefineCursor(?*Display, Window, Cursor) c_int;
-pub extern fn XDeleteProperty(?*Display, Window, Atom) c_int;
-pub extern fn XDestroyWindow(?*Display, Window) c_int;
-pub extern fn XDestroySubwindows(?*Display, Window) c_int;
+pub extern fn XDefineCursor(?*Display, X.Window, X.Cursor) c_int;
+pub extern fn XDeleteProperty(?*Display, X.Window, X.Atom) c_int;
+pub extern fn XDestroyWindow(?*Display, X.Window) c_int;
+pub extern fn XDestroySubwindows(?*Display, X.Window) c_int;
 pub extern fn XDoesBackingStore([*c]Screen) c_int;
 pub extern fn XDoesSaveUnders([*c]Screen) c_int;
 pub extern fn XDisableAccessControl(?*Display) c_int;
@@ -1152,35 +1088,35 @@ pub extern fn XDisplayKeycodes(?*Display, [*c]c_int, [*c]c_int) c_int;
 pub extern fn XDisplayPlanes(?*Display, c_int) c_int;
 pub extern fn XDisplayWidth(?*Display, c_int) c_int;
 pub extern fn XDisplayWidthMM(?*Display, c_int) c_int;
-pub extern fn XDrawArc(?*Display, Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
-pub extern fn XDrawArcs(?*Display, Drawable, GC, [*c]XArc, c_int) c_int;
-pub extern fn XDrawImageString(?*Display, Drawable, GC, c_int, c_int, [*c]const u8, c_int) c_int;
-pub extern fn XDrawImageString16(?*Display, Drawable, GC, c_int, c_int, [*c]const XChar2b, c_int) c_int;
-pub extern fn XDrawLine(?*Display, Drawable, GC, c_int, c_int, c_int, c_int) c_int;
-pub extern fn XDrawLines(?*Display, Drawable, GC, [*c]XPoint, c_int, c_int) c_int;
-pub extern fn XDrawPoint(?*Display, Drawable, GC, c_int, c_int) c_int;
-pub extern fn XDrawPoints(?*Display, Drawable, GC, [*c]XPoint, c_int, c_int) c_int;
-pub extern fn XDrawRectangle(?*Display, Drawable, GC, c_int, c_int, c_uint, c_uint) c_int;
-pub extern fn XDrawRectangles(?*Display, Drawable, GC, [*c]XRectangle, c_int) c_int;
-pub extern fn XDrawSegments(?*Display, Drawable, GC, [*c]XSegment, c_int) c_int;
-pub extern fn XDrawString(?*Display, Drawable, GC, c_int, c_int, [*c]const u8, c_int) c_int;
-pub extern fn XDrawString16(?*Display, Drawable, GC, c_int, c_int, [*c]const XChar2b, c_int) c_int;
-pub extern fn XDrawText(?*Display, Drawable, GC, c_int, c_int, [*c]XTextItem, c_int) c_int;
-pub extern fn XDrawText16(?*Display, Drawable, GC, c_int, c_int, [*c]XTextItem16, c_int) c_int;
+pub extern fn XDrawArc(?*Display, X.Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
+pub extern fn XDrawArcs(?*Display, X.Drawable, GC, [*c]XArc, c_int) c_int;
+pub extern fn XDrawImageString(?*Display, X.Drawable, GC, c_int, c_int, [*c]const u8, c_int) c_int;
+pub extern fn XDrawImageString16(?*Display, X.Drawable, GC, c_int, c_int, [*c]const XChar2b, c_int) c_int;
+pub extern fn XDrawLine(?*Display, X.Drawable, GC, c_int, c_int, c_int, c_int) c_int;
+pub extern fn XDrawLines(?*Display, X.Drawable, GC, [*c]XPoint, c_int, c_int) c_int;
+pub extern fn XDrawPoint(?*Display, X.Drawable, GC, c_int, c_int) c_int;
+pub extern fn XDrawPoints(?*Display, X.Drawable, GC, [*c]XPoint, c_int, c_int) c_int;
+pub extern fn XDrawRectangle(?*Display, X.Drawable, GC, c_int, c_int, c_uint, c_uint) c_int;
+pub extern fn XDrawRectangles(?*Display, X.Drawable, GC, [*c]XRectangle, c_int) c_int;
+pub extern fn XDrawSegments(?*Display, X.Drawable, GC, [*c]XSegment, c_int) c_int;
+pub extern fn XDrawString(?*Display, X.Drawable, GC, c_int, c_int, [*c]const u8, c_int) c_int;
+pub extern fn XDrawString16(?*Display, X.Drawable, GC, c_int, c_int, [*c]const XChar2b, c_int) c_int;
+pub extern fn XDrawText(?*Display, X.Drawable, GC, c_int, c_int, [*c]XTextItem, c_int) c_int;
+pub extern fn XDrawText16(?*Display, X.Drawable, GC, c_int, c_int, [*c]XTextItem16, c_int) c_int;
 pub extern fn XEnableAccessControl(?*Display) c_int;
 pub extern fn XEventsQueued(?*Display, c_int) c_int;
-pub extern fn XFetchName(?*Display, Window, [*c][*c]u8) c_int;
-pub extern fn XFillArc(?*Display, Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
-pub extern fn XFillArcs(?*Display, Drawable, GC, [*c]XArc, c_int) c_int;
-pub extern fn XFillPolygon(?*Display, Drawable, GC, [*c]XPoint, c_int, c_int, c_int) c_int;
-pub extern fn XFillRectangle(?*Display, Drawable, GC, c_int, c_int, c_uint, c_uint) c_int;
-pub extern fn XFillRectangles(?*Display, Drawable, GC, [*c]XRectangle, c_int) c_int;
+pub extern fn XFetchName(?*Display, X.Window, [*c][*c]u8) c_int;
+pub extern fn XFillArc(?*Display, X.Drawable, GC, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
+pub extern fn XFillArcs(?*Display, X.Drawable, GC, [*c]XArc, c_int) c_int;
+pub extern fn XFillPolygon(?*Display, X.Drawable, GC, [*c]XPoint, c_int, c_int, c_int) c_int;
+pub extern fn XFillRectangle(?*Display, X.Drawable, GC, c_int, c_int, c_uint, c_uint) c_int;
+pub extern fn XFillRectangles(?*Display, X.Drawable, GC, [*c]XRectangle, c_int) c_int;
 pub extern fn XFlush(?*Display) c_int;
 pub extern fn XForceScreenSaver(?*Display, c_int) c_int;
 pub extern fn XFree(?*anyopaque) c_int;
-pub extern fn XFreeColormap(?*Display, Colormap) c_int;
-pub extern fn XFreeColors(?*Display, Colormap, [*c]c_ulong, c_int, c_ulong) c_int;
-pub extern fn XFreeCursor(?*Display, Cursor) c_int;
+pub extern fn XFreeColormap(?*Display, X.Colormap) c_int;
+pub extern fn XFreeColors(?*Display, X.Colormap, [*c]c_ulong, c_int, c_ulong) c_int;
+pub extern fn XFreeCursor(?*Display, X.Cursor) c_int;
 pub extern fn XFreeExtensionList([*c][*c]u8) c_int;
 pub extern fn XFreeFont(?*Display, [*c]XFontStruct) c_int;
 pub extern fn XFreeFontInfo([*c][*c]u8, [*c]XFontStruct, c_int) c_int;
@@ -1188,47 +1124,47 @@ pub extern fn XFreeFontNames([*c][*c]u8) c_int;
 pub extern fn XFreeFontPath([*c][*c]u8) c_int;
 pub extern fn XFreeGC(?*Display, GC) c_int;
 pub extern fn XFreeModifiermap([*c]XModifierKeymap) c_int;
-pub extern fn XFreePixmap(?*Display, Pixmap) c_int;
+pub extern fn XFreePixmap(?*Display, X.Pixmap) c_int;
 pub extern fn XGeometry(?*Display, c_int, [*c]const u8, [*c]const u8, c_uint, c_uint, c_uint, c_int, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_int) c_int;
 pub extern fn XGetErrorDatabaseText(?*Display, [*c]const u8, [*c]const u8, [*c]const u8, [*c]u8, c_int) c_int;
 pub extern fn XGetErrorText(?*Display, c_int, [*c]u8, c_int) c_int;
-pub extern fn XGetFontProperty([*c]XFontStruct, Atom, [*c]c_ulong) c_int;
+pub extern fn XGetFontProperty([*c]XFontStruct, X.Atom, [*c]c_ulong) c_int;
 pub extern fn XGetGCValues(?*Display, GC, c_ulong, [*c]XGCValues) c_int;
-pub extern fn XGetGeometry(?*Display, Drawable, [*c]Window, [*c]c_int, [*c]c_int, [*c]c_uint, [*c]c_uint, [*c]c_uint, [*c]c_uint) c_int;
-pub extern fn XGetIconName(?*Display, Window, [*c][*c]u8) c_int;
-pub extern fn XGetInputFocus(?*Display, [*c]Window, [*c]c_int) c_int;
+pub extern fn XGetGeometry(?*Display, X.Drawable, [*c]X.Window, [*c]c_int, [*c]c_int, [*c]c_uint, [*c]c_uint, [*c]c_uint, [*c]c_uint) c_int;
+pub extern fn XGetIconName(?*Display, X.Window, [*c][*c]u8) c_int;
+pub extern fn XGetInputFocus(?*Display, [*c]X.Window, [*c]c_int) c_int;
 pub extern fn XGetKeyboardControl(?*Display, [*c]XKeyboardState) c_int;
 pub extern fn XGetPointerControl(?*Display, [*c]c_int, [*c]c_int, [*c]c_int) c_int;
 pub extern fn XGetPointerMapping(?*Display, [*c]u8, c_int) c_int;
 pub extern fn XGetScreenSaver(?*Display, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_int) c_int;
-pub extern fn XGetTransientForHint(?*Display, Window, [*c]Window) c_int;
-pub extern fn XGetWindowProperty(?*Display, Window, Atom, c_long, c_long, c_int, Atom, [*c]Atom, [*c]c_int, [*c]c_ulong, [*c]c_ulong, [*c][*c]u8) c_int;
-pub extern fn XGetWindowAttributes(?*Display, Window, [*c]XWindowAttributes) c_int;
-pub extern fn XGrabButton(?*Display, c_uint, c_uint, Window, c_int, c_uint, c_int, c_int, Window, Cursor) c_int;
-pub extern fn XGrabKey(?*Display, c_int, c_uint, Window, c_int, c_int, c_int) c_int;
-pub extern fn XGrabKeyboard(?*Display, Window, c_int, c_int, c_int, Time) c_int;
-pub extern fn XGrabPointer(?*Display, Window, c_int, c_uint, c_int, c_int, Window, Cursor, Time) c_int;
+pub extern fn XGetTransientForHint(?*Display, X.Window, [*c]X.Window) c_int;
+pub extern fn XGetWindowProperty(?*Display, X.Window, X.Atom, c_long, c_long, c_int, X.Atom, [*c]X.Atom, [*c]c_int, [*c]c_ulong, [*c]c_ulong, [*c][*c]u8) c_int;
+pub extern fn XGetWindowAttributes(?*Display, X.Window, [*c]XWindowAttributes) c_int;
+pub extern fn XGrabButton(?*Display, c_uint, c_uint, X.Window, c_int, c_uint, c_int, c_int, X.Window, X.Cursor) c_int;
+pub extern fn XGrabKey(?*Display, c_int, c_uint, X.Window, c_int, c_int, c_int) c_int;
+pub extern fn XGrabKeyboard(?*Display, X.Window, c_int, c_int, c_int, X.Time) c_int;
+pub extern fn XGrabPointer(?*Display, X.Window, c_int, c_uint, c_int, c_int, .XWindow, X.Cursor, X.Time) c_int;
 pub extern fn XGrabServer(?*Display) c_int;
 pub extern fn XHeightMMOfScreen([*c]Screen) c_int;
 pub extern fn XHeightOfScreen([*c]Screen) c_int;
 pub extern fn XIfEvent(?*Display, [*c]XEvent, ?fn (?*Display, [*c]XEvent, XPointer) callconv(.C) c_int, XPointer) c_int;
 pub extern fn XImageByteOrder(?*Display) c_int;
-pub extern fn XInstallColormap(?*Display, Colormap) c_int;
-pub extern fn XKeysymToKeycode(?*Display, KeySym) KeyCode;
-pub extern fn XKillClient(?*Display, XID) c_int;
-pub extern fn XLookupColor(?*Display, Colormap, [*c]const u8, [*c]XColor, [*c]XColor) c_int;
-pub extern fn XLowerWindow(?*Display, Window) c_int;
-pub extern fn XMapRaised(?*Display, Window) c_int;
-pub extern fn XMapSubwindows(?*Display, Window) c_int;
-pub extern fn XMapWindow(?*Display, Window) c_int;
+pub extern fn XInstallColormap(?*Display, X.Colormap) c_int;
+pub extern fn XKeysymToKeycode(?*Display, X.KeySym) X.KeyCode;
+pub extern fn XKillClient(?*Display, X.XID) c_int;
+pub extern fn XLookupColor(?*Display, X.Colormap, [*c]const u8, [*c]XColor, [*c]XColor) c_int;
+pub extern fn XLowerWindow(?*Display, X.Window) c_int;
+pub extern fn XMapRaised(?*Display, X.Window) c_int;
+pub extern fn XMapSubwindows(?*Display, X.Window) c_int;
+pub extern fn XMapWindow(?*Display, X.Window) c_int;
 pub extern fn XMaskEvent(?*Display, c_long, [*c]XEvent) c_int;
 pub extern fn XMaxCmapsOfScreen([*c]Screen) c_int;
 pub extern fn XMinCmapsOfScreen([*c]Screen) c_int;
-pub extern fn XMoveResizeWindow(?*Display, Window, c_int, c_int, c_uint, c_uint) c_int;
-pub extern fn XMoveWindow(?*Display, Window, c_int, c_int) c_int;
+pub extern fn XMoveResizeWindow(?*Display, X.Window, c_int, c_int, c_uint, c_uint) c_int;
+pub extern fn XMoveWindow(?*Display, X.Window, c_int, c_int) c_int;
 pub extern fn XNextEvent(?*Display, [*c]XEvent) c_int;
 pub extern fn XNoOp(?*Display) c_int;
-pub extern fn XParseColor(?*Display, Colormap, [*c]const u8, [*c]XColor) c_int;
+pub extern fn XParseColor(?*Display, X.Colormap, [*c]const u8, [*c]XColor) c_int;
 pub extern fn XParseGeometry([*c]const u8, [*c]c_int, [*c]c_int, [*c]c_uint, [*c]c_uint) c_int;
 pub extern fn XPeekEvent(?*Display, [*c]XEvent) c_int;
 pub extern fn XPeekIfEvent(?*Display, [*c]XEvent, ?fn (?*Display, [*c]XEvent, XPointer) callconv(.C) c_int, XPointer) c_int;
@@ -1237,101 +1173,101 @@ pub extern fn XPlanesOfScreen([*c]Screen) c_int;
 pub extern fn XProtocolRevision(?*Display) c_int;
 pub extern fn XProtocolVersion(?*Display) c_int;
 pub extern fn XPutBackEvent(?*Display, [*c]XEvent) c_int;
-pub extern fn XPutImage(?*Display, Drawable, GC, [*c]XImage, c_int, c_int, c_int, c_int, c_uint, c_uint) c_int;
+pub extern fn XPutImage(?*Display, X.Drawable, GC, [*c]XImage, c_int, c_int, c_int, c_int, c_uint, c_uint) c_int;
 pub extern fn XQLength(?*Display) c_int;
-pub extern fn XQueryBestCursor(?*Display, Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
-pub extern fn XQueryBestSize(?*Display, c_int, Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
-pub extern fn XQueryBestStipple(?*Display, Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
-pub extern fn XQueryBestTile(?*Display, Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
-pub extern fn XQueryColor(?*Display, Colormap, [*c]XColor) c_int;
-pub extern fn XQueryColors(?*Display, Colormap, [*c]XColor, c_int) c_int;
+pub extern fn XQueryBestCursor(?*Display, X.Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
+pub extern fn XQueryBestSize(?*Display, c_int, X.Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
+pub extern fn XQueryBestStipple(?*Display, X.Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
+pub extern fn XQueryBestTile(?*Display, X.Drawable, c_uint, c_uint, [*c]c_uint, [*c]c_uint) c_int;
+pub extern fn XQueryColor(?*Display, X.Colormap, [*c]XColor) c_int;
+pub extern fn XQueryColors(?*Display, X.Colormap, [*c]XColor, c_int) c_int;
 pub extern fn XQueryExtension(?*Display, [*c]const u8, [*c]c_int, [*c]c_int, [*c]c_int) c_int;
 pub extern fn XQueryKeymap(?*Display, [*c]u8) c_int;
-pub extern fn XQueryPointer(?*Display, Window, [*c]Window, [*c]Window, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_uint) c_int;
-pub extern fn XQueryTextExtents(?*Display, XID, [*c]const u8, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
-pub extern fn XQueryTextExtents16(?*Display, XID, [*c]const XChar2b, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
-pub extern fn XQueryTree(?*Display, Window, [*c]Window, [*c]Window, [*c][*c]Window, [*c]c_uint) c_int;
-pub extern fn XRaiseWindow(?*Display, Window) c_int;
-pub extern fn XReadBitmapFile(?*Display, Drawable, [*c]const u8, [*c]c_uint, [*c]c_uint, [*c]Pixmap, [*c]c_int, [*c]c_int) c_int;
+pub extern fn XQueryPointer(?*Display, X.Window, [*c]X.Window, [*c]X.Window, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]c_uint) c_int;
+pub extern fn XQueryTextExtents(?*Display, X.XID, [*c]const u8, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
+pub extern fn XQueryTextExtents16(?*Display, X.XID, [*c]const XChar2b, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
+pub extern fn XQueryTree(?*Display, X.Window, [*c]X.Window, [*c]X.Window, [*c][*c]X.Window, [*c]c_uint) c_int;
+pub extern fn XRaiseWindow(?*Display, X.Window) c_int;
+pub extern fn XReadBitmapFile(?*Display, X.Drawable, [*c]const u8, [*c]c_uint, [*c]c_uint, [*c]X.Pixmap, [*c]c_int, [*c]c_int) c_int;
 pub extern fn XReadBitmapFileData([*c]const u8, [*c]c_uint, [*c]c_uint, [*c][*c]u8, [*c]c_int, [*c]c_int) c_int;
-pub extern fn XRebindKeysym(?*Display, KeySym, [*c]KeySym, c_int, [*c]const u8, c_int) c_int;
-pub extern fn XRecolorCursor(?*Display, Cursor, [*c]XColor, [*c]XColor) c_int;
+pub extern fn XRebindKeysym(?*Display, X.KeySym, [*c]X.KeySym, c_int, [*c]const u8, c_int) c_int;
+pub extern fn XRecolorCursor(?*Display, X.Cursor, [*c]XColor, [*c]XColor) c_int;
 pub extern fn XRefreshKeyboardMapping([*c]XMappingEvent) c_int;
-pub extern fn XRemoveFromSaveSet(?*Display, Window) c_int;
+pub extern fn XRemoveFromSaveSet(?*Display, X.Window) c_int;
 pub extern fn XRemoveHost(?*Display, [*c]XHostAddress) c_int;
 pub extern fn XRemoveHosts(?*Display, [*c]XHostAddress, c_int) c_int;
-pub extern fn XReparentWindow(?*Display, Window, Window, c_int, c_int) c_int;
+pub extern fn XReparentWindow(?*Display, X.Window, X.Window, c_int, c_int) c_int;
 pub extern fn XResetScreenSaver(?*Display) c_int;
-pub extern fn XResizeWindow(?*Display, Window, c_uint, c_uint) c_int;
-pub extern fn XRestackWindows(?*Display, [*c]Window, c_int) c_int;
+pub extern fn XResizeWindow(?*Display, X.Window, c_uint, c_uint) c_int;
+pub extern fn XRestackWindows(?*Display, [*c]X.Window, c_int) c_int;
 pub extern fn XRotateBuffers(?*Display, c_int) c_int;
-pub extern fn XRotateWindowProperties(?*Display, Window, [*c]Atom, c_int, c_int) c_int;
+pub extern fn XRotateWindowProperties(?*Display, X.Window, [*c]X.Atom, c_int, c_int) c_int;
 pub extern fn XScreenCount(?*Display) c_int;
-pub extern fn XSelectInput(?*Display, Window, c_long) c_int;
-pub extern fn XSendEvent(?*Display, Window, c_int, c_long, [*c]XEvent) c_int;
+pub extern fn XSelectInput(?*Display, X.Window, c_long) c_int;
+pub extern fn XSendEvent(?*Display, X.Window, c_int, c_long, [*c]XEvent) c_int;
 pub extern fn XSetAccessControl(?*Display, c_int) c_int;
 pub extern fn XSetArcMode(?*Display, GC, c_int) c_int;
 pub extern fn XSetBackground(?*Display, GC, c_ulong) c_int;
-pub extern fn XSetClipMask(?*Display, GC, Pixmap) c_int;
+pub extern fn XSetClipMask(?*Display, GC, X.Pixmap) c_int;
 pub extern fn XSetClipOrigin(?*Display, GC, c_int, c_int) c_int;
 pub extern fn XSetClipRectangles(?*Display, GC, c_int, c_int, [*c]XRectangle, c_int, c_int) c_int;
 pub extern fn XSetCloseDownMode(?*Display, c_int) c_int;
-pub extern fn XSetCommand(?*Display, Window, [*c][*c]u8, c_int) c_int;
+pub extern fn XSetCommand(?*Display, X.Window, [*c][*c]u8, c_int) c_int;
 pub extern fn XSetDashes(?*Display, GC, c_int, [*c]const u8, c_int) c_int;
 pub extern fn XSetFillRule(?*Display, GC, c_int) c_int;
 pub extern fn XSetFillStyle(?*Display, GC, c_int) c_int;
-pub extern fn XSetFont(?*Display, GC, Font) c_int;
+pub extern fn XSetFont(?*Display, GC, X.Font) c_int;
 pub extern fn XSetFontPath(?*Display, [*c][*c]u8, c_int) c_int;
 pub extern fn XSetForeground(?*Display, GC, c_ulong) c_int;
 pub extern fn XSetFunction(?*Display, GC, c_int) c_int;
 pub extern fn XSetGraphicsExposures(?*Display, GC, c_int) c_int;
-pub extern fn XSetIconName(?*Display, Window, [*c]const u8) c_int;
-pub extern fn XSetInputFocus(?*Display, Window, c_int, Time) c_int;
+pub extern fn XSetIconName(?*Display, X.Window, [*c]const u8) c_int;
+pub extern fn XSetInputFocus(?*Display, X.Window, c_int, X.Time) c_int;
 pub extern fn XSetLineAttributes(?*Display, GC, c_uint, c_int, c_int, c_int) c_int;
 pub extern fn XSetModifierMapping(?*Display, [*c]XModifierKeymap) c_int;
 pub extern fn XSetPlaneMask(?*Display, GC, c_ulong) c_int;
 pub extern fn XSetPointerMapping(?*Display, [*c]const u8, c_int) c_int;
 pub extern fn XSetScreenSaver(?*Display, c_int, c_int, c_int, c_int) c_int;
-pub extern fn XSetSelectionOwner(?*Display, Atom, Window, Time) c_int;
+pub extern fn XSetSelectionOwner(?*Display, X.Atom, X.Window, X.Time) c_int;
 pub extern fn XSetState(?*Display, GC, c_ulong, c_ulong, c_int, c_ulong) c_int;
-pub extern fn XSetStipple(?*Display, GC, Pixmap) c_int;
+pub extern fn XSetStipple(?*Display, GC, X.Pixmap) c_int;
 pub extern fn XSetSubwindowMode(?*Display, GC, c_int) c_int;
 pub extern fn XSetTSOrigin(?*Display, GC, c_int, c_int) c_int;
-pub extern fn XSetTile(?*Display, GC, Pixmap) c_int;
-pub extern fn XSetWindowBackground(?*Display, Window, c_ulong) c_int;
-pub extern fn XSetWindowBackgroundPixmap(?*Display, Window, Pixmap) c_int;
-pub extern fn XSetWindowBorder(?*Display, Window, c_ulong) c_int;
-pub extern fn XSetWindowBorderPixmap(?*Display, Window, Pixmap) c_int;
-pub extern fn XSetWindowBorderWidth(?*Display, Window, c_uint) c_int;
-pub extern fn XSetWindowColormap(?*Display, Window, Colormap) c_int;
+pub extern fn XSetTile(?*Display, GC, X.Pixmap) c_int;
+pub extern fn XSetWindowBackground(?*Display, X.Window, c_ulong) c_int;
+pub extern fn XSetWindowBackgroundPixmap(?*Display, X.Window, X.Pixmap) c_int;
+pub extern fn XSetWindowBorder(?*Display, X.Window, c_ulong) c_int;
+pub extern fn XSetWindowBorderPixmap(?*Display, X.Window, X.Pixmap) c_int;
+pub extern fn XSetWindowBorderWidth(?*Display, X.Window, c_uint) c_int;
+pub extern fn XSetWindowColormap(?*Display, X.Window, X.Colormap) c_int;
 pub extern fn XStoreBuffer(?*Display, [*c]const u8, c_int, c_int) c_int;
 pub extern fn XStoreBytes(?*Display, [*c]const u8, c_int) c_int;
-pub extern fn XStoreColor(?*Display, Colormap, [*c]XColor) c_int;
-pub extern fn XStoreColors(?*Display, Colormap, [*c]XColor, c_int) c_int;
-pub extern fn XStoreName(?*Display, Window, [*c]const u8) c_int;
-pub extern fn XStoreNamedColor(?*Display, Colormap, [*c]const u8, c_ulong, c_int) c_int;
+pub extern fn XStoreColor(?*Display, X.Colormap, [*c]XColor) c_int;
+pub extern fn XStoreColors(?*Display, X.Colormap, [*c]XColor, c_int) c_int;
+pub extern fn XStoreName(?*Display, X.Window, [*c]const u8) c_int;
+pub extern fn XStoreNamedColor(?*Display, X.Colormap, [*c]const u8, c_ulong, c_int) c_int;
 pub extern fn XSync(?*Display, c_int) c_int;
 pub extern fn XTextExtents([*c]XFontStruct, [*c]const u8, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
 pub extern fn XTextExtents16([*c]XFontStruct, [*c]const XChar2b, c_int, [*c]c_int, [*c]c_int, [*c]c_int, [*c]XCharStruct) c_int;
 pub extern fn XTextWidth([*c]XFontStruct, [*c]const u8, c_int) c_int;
 pub extern fn XTextWidth16([*c]XFontStruct, [*c]const XChar2b, c_int) c_int;
-pub extern fn XTranslateCoordinates(?*Display, Window, Window, c_int, c_int, [*c]c_int, [*c]c_int, [*c]Window) c_int;
-pub extern fn XUndefineCursor(?*Display, Window) c_int;
-pub extern fn XUngrabButton(?*Display, c_uint, c_uint, Window) c_int;
-pub extern fn XUngrabKey(?*Display, c_int, c_uint, Window) c_int;
-pub extern fn XUngrabKeyboard(?*Display, Time) c_int;
-pub extern fn XUngrabPointer(?*Display, Time) c_int;
+pub extern fn XTranslateCoordinates(?*Display, X.Window, X.Window, c_int, c_int, [*c]c_int, [*c]c_int, [*c]X.Window) c_int;
+pub extern fn XUndefineCursor(?*Display, X.Window) c_int;
+pub extern fn XUngrabButton(?*Display, c_uint, c_uint, X.Window) c_int;
+pub extern fn XUngrabKey(?*Display, c_int, c_uint, X.Window) c_int;
+pub extern fn XUngrabKeyboard(?*Display, X.Time) c_int;
+pub extern fn XUngrabPointer(?*Display, X.Time) c_int;
 pub extern fn XUngrabServer(?*Display) c_int;
-pub extern fn XUninstallColormap(?*Display, Colormap) c_int;
-pub extern fn XUnloadFont(?*Display, Font) c_int;
-pub extern fn XUnmapSubwindows(?*Display, Window) c_int;
-pub extern fn XUnmapWindow(?*Display, Window) c_int;
+pub extern fn XUninstallColormap(?*Display, X.Colormap) c_int;
+pub extern fn XUnloadFont(?*Display, X.Font) c_int;
+pub extern fn XUnmapSubwindows(?*Display, X.Window) c_int;
+pub extern fn XUnmapWindow(?*Display, X.Window) c_int;
 pub extern fn XVendorRelease(?*Display) c_int;
-pub extern fn XWarpPointer(?*Display, Window, Window, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
+pub extern fn XWarpPointer(?*Display, X.Window, X.Window, c_int, c_int, c_uint, c_uint, c_int, c_int) c_int;
 pub extern fn XWidthMMOfScreen([*c]Screen) c_int;
 pub extern fn XWidthOfScreen([*c]Screen) c_int;
-pub extern fn XWindowEvent(?*Display, Window, c_long, [*c]XEvent) c_int;
-pub extern fn XWriteBitmapFile(?*Display, [*c]const u8, Pixmap, c_uint, c_uint, c_int, c_int) c_int;
+pub extern fn XWindowEvent(?*Display, X.Window, c_long, [*c]XEvent) c_int;
+pub extern fn XWriteBitmapFile(?*Display, [*c]const u8, X.Pixmap, c_uint, c_uint, c_int, c_int) c_int;
 pub extern fn XSupportsLocale() c_int;
 pub extern fn XSetLocaleModifiers([*c]const u8) [*c]u8;
 pub extern fn XOpenOM(?*Display, ?*struct__XrmHashBucketRec, [*c]const u8, [*c]const u8) XOM;
@@ -1363,15 +1299,15 @@ pub extern fn Xutf8TextExtents(XFontSet, [*c]const u8, c_int, [*c]XRectangle, [*
 pub extern fn XmbTextPerCharExtents(XFontSet, [*c]const u8, c_int, [*c]XRectangle, [*c]XRectangle, c_int, [*c]c_int, [*c]XRectangle, [*c]XRectangle) c_int;
 pub extern fn XwcTextPerCharExtents(XFontSet, [*c]const wchar_t, c_int, [*c]XRectangle, [*c]XRectangle, c_int, [*c]c_int, [*c]XRectangle, [*c]XRectangle) c_int;
 pub extern fn Xutf8TextPerCharExtents(XFontSet, [*c]const u8, c_int, [*c]XRectangle, [*c]XRectangle, c_int, [*c]c_int, [*c]XRectangle, [*c]XRectangle) c_int;
-pub extern fn XmbDrawText(?*Display, Drawable, GC, c_int, c_int, [*c]XmbTextItem, c_int) void;
-pub extern fn XwcDrawText(?*Display, Drawable, GC, c_int, c_int, [*c]XwcTextItem, c_int) void;
-pub extern fn Xutf8DrawText(?*Display, Drawable, GC, c_int, c_int, [*c]XmbTextItem, c_int) void;
-pub extern fn XmbDrawString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
-pub extern fn XwcDrawString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const wchar_t, c_int) void;
-pub extern fn Xutf8DrawString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
-pub extern fn XmbDrawImageString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
-pub extern fn XwcDrawImageString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const wchar_t, c_int) void;
-pub extern fn Xutf8DrawImageString(?*Display, Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
+pub extern fn XmbDrawText(?*Display, X.Drawable, GC, c_int, c_int, [*c]XmbTextItem, c_int) void;
+pub extern fn XwcDrawText(?*Display, X.Drawable, GC, c_int, c_int, [*c]XwcTextItem, c_int) void;
+pub extern fn Xutf8DrawText(?*Display, X.Drawable, GC, c_int, c_int, [*c]XmbTextItem, c_int) void;
+pub extern fn XmbDrawString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
+pub extern fn XwcDrawString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const wchar_t, c_int) void;
+pub extern fn Xutf8DrawString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
+pub extern fn XmbDrawImageString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
+pub extern fn XwcDrawImageString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const wchar_t, c_int) void;
+pub extern fn Xutf8DrawImageString(?*Display, X.Drawable, XFontSet, GC, c_int, c_int, [*c]const u8, c_int) void;
 pub extern fn XOpenIM(?*Display, ?*struct__XrmHashBucketRec, [*c]u8, [*c]u8) XIM;
 pub extern fn XCloseIM(XIM) c_int;
 pub extern fn XGetIMValues(XIM, ...) [*c]u8;
@@ -1388,13 +1324,13 @@ pub extern fn Xutf8ResetIC(XIC) [*c]u8;
 pub extern fn XSetICValues(XIC, ...) [*c]u8;
 pub extern fn XGetICValues(XIC, ...) [*c]u8;
 pub extern fn XIMOfIC(XIC) XIM;
-pub extern fn XFilterEvent([*c]XEvent, Window) c_int;
-pub extern fn XmbLookupString(XIC, [*c]XKeyPressedEvent, [*c]u8, c_int, [*c]KeySym, [*c]c_int) c_int;
-pub extern fn XwcLookupString(XIC, [*c]XKeyPressedEvent, [*c]wchar_t, c_int, [*c]KeySym, [*c]c_int) c_int;
-pub extern fn Xutf8LookupString(XIC, [*c]XKeyPressedEvent, [*c]u8, c_int, [*c]KeySym, [*c]c_int) c_int;
+pub extern fn XFilterEvent([*c]XEvent, X.Window) c_int;
+pub extern fn XmbLookupString(XIC, [*c]XKeyPressedEvent, [*c]u8, c_int, [*c]X.KeySym, [*c]c_int) c_int;
+pub extern fn XwcLookupString(XIC, [*c]XKeyPressedEvent, [*c]wchar_t, c_int, [*c]X.KeySym, [*c]c_int) c_int;
+pub extern fn Xutf8LookupString(XIC, [*c]XKeyPressedEvent, [*c]u8, c_int, [*c]X.KeySym, [*c]c_int) c_int;
 pub extern fn XVaCreateNestedList(c_int, ...) XVaNestedList;
-pub extern fn XRegisterIMInstantiateCallback(?*Display, ?*struct__XrmHashBucketRec, [*c]u8, [*c]u8, XIDProc, XPointer) c_int;
-pub extern fn XUnregisterIMInstantiateCallback(?*Display, ?*struct__XrmHashBucketRec, [*c]u8, [*c]u8, XIDProc, XPointer) c_int;
+pub extern fn XRegisterIMInstantiateCallback(?*Display, ?*struct__XrmHashBucketRec, [*c]u8, [*c]u8, X.XIDProc, XPointer) c_int;
+pub extern fn XUnregisterIMInstantiateCallback(?*Display, ?*struct__XrmHashBucketRec, [*c]u8, [*c]u8, X.XIDProc, XPointer) c_int;
 pub const XConnectionWatchProc = ?fn (?*Display, XPointer, c_int, c_int, [*c]XPointer) callconv(.C) void;
 pub extern fn XInternalConnectionNumbers(?*Display, [*c][*c]c_int, [*c]c_int) c_int;
 pub extern fn XProcessInternalConnection(?*Display, c_int) void;
@@ -1405,823 +1341,6 @@ pub extern fn _Xmbtowc([*c]wchar_t, [*c]u8, c_int) c_int;
 pub extern fn _Xwctomb([*c]u8, wchar_t) c_int;
 pub extern fn XGetEventData(?*Display, [*c]XGenericEventCookie) c_int;
 pub extern fn XFreeEventData(?*Display, [*c]XGenericEventCookie) void;
-pub const __INTMAX_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `L`"); // (no file):67:9
-pub const __UINTMAX_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `UL`"); // (no file):73:9
-pub const __INT64_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `L`"); // (no file):164:9
-pub const __UINT32_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `U`"); // (no file):186:9
-pub const __UINT64_C_SUFFIX__ = @compileError("unable to translate macro: undefined identifier `UL`"); // (no file):194:9
-pub const __seg_gs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):312:9
-pub const __seg_fs = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // (no file):313:9
-pub const offsetof = @compileError("unable to translate macro: undefined identifier `__builtin_offsetof`"); // Xlib.h:415:9
-pub const _Xconst = @compileError("unable to translate C expr: unexpected token .Keyword_const"); // Xlib.h:498:9
-pub const _X_SENTINEL = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:543:10
-pub const _X_EXPORT = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:551:10
-pub const _X_HIDDEN = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:552:10
-pub const _X_INTERNAL = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:553:10
-pub const _X_COLD = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:578:10
-pub const _X_DEPRECATED = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:587:10
-pub const _X_DEPRECATED_MSG = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:595:10
-pub const _X_NORETURN = @compileError("unable to translate macro: undefined identifier `__attribute`"); // Xlib.h:604:10
-pub const _X_ATTRIBUTE_PRINTF = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:612:10
-pub const _X_NONNULL = @compileError("unable to translate C expr: expected ')'"); // Xlib.h:622:9
-pub const _X_UNUSED = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:633:9
-pub const _X_INLINE = @compileError("unable to translate C expr: unexpected token .Keyword_inline"); // Xlib.h:644:10
-pub const _X_RESTRICT_KYWD = @compileError("unable to translate C expr: unexpected token .Keyword_restrict"); // Xlib.h:657:11
-pub const _X_NOTSAN = @compileError("unable to translate macro: undefined identifier `__attribute__`"); // Xlib.h:667:10
-pub const __llvm__ = @as(c_int, 1);
-pub const __clang__ = @as(c_int, 1);
-pub const __clang_major__ = @as(c_int, 13);
-pub const __clang_minor__ = @as(c_int, 0);
-pub const __clang_patchlevel__ = @as(c_int, 1);
-pub const __clang_version__ = "13.0.1 ";
-pub const __GNUC__ = @as(c_int, 4);
-pub const __GNUC_MINOR__ = @as(c_int, 2);
-pub const __GNUC_PATCHLEVEL__ = @as(c_int, 1);
-pub const __GXX_ABI_VERSION = @as(c_int, 1002);
-pub const __ATOMIC_RELAXED = @as(c_int, 0);
-pub const __ATOMIC_CONSUME = @as(c_int, 1);
-pub const __ATOMIC_ACQUIRE = @as(c_int, 2);
-pub const __ATOMIC_RELEASE = @as(c_int, 3);
-pub const __ATOMIC_ACQ_REL = @as(c_int, 4);
-pub const __ATOMIC_SEQ_CST = @as(c_int, 5);
-pub const __OPENCL_MEMORY_SCOPE_WORK_ITEM = @as(c_int, 0);
-pub const __OPENCL_MEMORY_SCOPE_WORK_GROUP = @as(c_int, 1);
-pub const __OPENCL_MEMORY_SCOPE_DEVICE = @as(c_int, 2);
-pub const __OPENCL_MEMORY_SCOPE_ALL_SVM_DEVICES = @as(c_int, 3);
-pub const __OPENCL_MEMORY_SCOPE_SUB_GROUP = @as(c_int, 4);
-pub const __PRAGMA_REDEFINE_EXTNAME = @as(c_int, 1);
-pub const __VERSION__ = "Clang 13.0.1";
-pub const __OBJC_BOOL_IS_BOOL = @as(c_int, 0);
-pub const __CONSTANT_CFSTRINGS__ = @as(c_int, 1);
-pub const __clang_literal_encoding__ = "UTF-8";
-pub const __clang_wide_literal_encoding__ = "UTF-32";
-pub const __OPTIMIZE__ = @as(c_int, 1);
-pub const __ORDER_LITTLE_ENDIAN__ = @as(c_int, 1234);
-pub const __ORDER_BIG_ENDIAN__ = @as(c_int, 4321);
-pub const __ORDER_PDP_ENDIAN__ = @as(c_int, 3412);
-pub const __BYTE_ORDER__ = __ORDER_LITTLE_ENDIAN__;
-pub const __LITTLE_ENDIAN__ = @as(c_int, 1);
-pub const _LP64 = @as(c_int, 1);
-pub const __LP64__ = @as(c_int, 1);
-pub const __CHAR_BIT__ = @as(c_int, 8);
-pub const __SCHAR_MAX__ = @as(c_int, 127);
-pub const __SHRT_MAX__ = @as(c_int, 32767);
-pub const __INT_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __LONG_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __LONG_LONG_MAX__ = @as(c_longlong, 9223372036854775807);
-pub const __WCHAR_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __WINT_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_uint, 4294967295, .decimal);
-pub const __INTMAX_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __SIZE_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __UINTMAX_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __PTRDIFF_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __INTPTR_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __UINTPTR_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __SIZEOF_DOUBLE__ = @as(c_int, 8);
-pub const __SIZEOF_FLOAT__ = @as(c_int, 4);
-pub const __SIZEOF_INT__ = @as(c_int, 4);
-pub const __SIZEOF_LONG__ = @as(c_int, 8);
-pub const __SIZEOF_LONG_DOUBLE__ = @as(c_int, 16);
-pub const __SIZEOF_LONG_LONG__ = @as(c_int, 8);
-pub const __SIZEOF_POINTER__ = @as(c_int, 8);
-pub const __SIZEOF_SHORT__ = @as(c_int, 2);
-pub const __SIZEOF_PTRDIFF_T__ = @as(c_int, 8);
-pub const __SIZEOF_SIZE_T__ = @as(c_int, 8);
-pub const __SIZEOF_WCHAR_T__ = @as(c_int, 4);
-pub const __SIZEOF_WINT_T__ = @as(c_int, 4);
-pub const __SIZEOF_INT128__ = @as(c_int, 16);
-pub const __INTMAX_TYPE__ = c_long;
-pub const __INTMAX_FMTd__ = "ld";
-pub const __INTMAX_FMTi__ = "li";
-pub const __UINTMAX_TYPE__ = c_ulong;
-pub const __UINTMAX_FMTo__ = "lo";
-pub const __UINTMAX_FMTu__ = "lu";
-pub const __UINTMAX_FMTx__ = "lx";
-pub const __UINTMAX_FMTX__ = "lX";
-pub const __INTMAX_WIDTH__ = @as(c_int, 64);
-pub const __PTRDIFF_TYPE__ = c_long;
-pub const __PTRDIFF_FMTd__ = "ld";
-pub const __PTRDIFF_FMTi__ = "li";
-pub const __PTRDIFF_WIDTH__ = @as(c_int, 64);
-pub const __INTPTR_TYPE__ = c_long;
-pub const __INTPTR_FMTd__ = "ld";
-pub const __INTPTR_FMTi__ = "li";
-pub const __INTPTR_WIDTH__ = @as(c_int, 64);
-pub const __SIZE_TYPE__ = c_ulong;
-pub const __SIZE_FMTo__ = "lo";
-pub const __SIZE_FMTu__ = "lu";
-pub const __SIZE_FMTx__ = "lx";
-pub const __SIZE_FMTX__ = "lX";
-pub const __SIZE_WIDTH__ = @as(c_int, 64);
-pub const __WCHAR_TYPE__ = c_int;
-pub const __WCHAR_WIDTH__ = @as(c_int, 32);
-pub const __WINT_TYPE__ = c_uint;
-pub const __WINT_WIDTH__ = @as(c_int, 32);
-pub const __SIG_ATOMIC_WIDTH__ = @as(c_int, 32);
-pub const __SIG_ATOMIC_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __CHAR16_TYPE__ = c_ushort;
-pub const __CHAR32_TYPE__ = c_uint;
-pub const __UINTMAX_WIDTH__ = @as(c_int, 64);
-pub const __UINTPTR_TYPE__ = c_ulong;
-pub const __UINTPTR_FMTo__ = "lo";
-pub const __UINTPTR_FMTu__ = "lu";
-pub const __UINTPTR_FMTx__ = "lx";
-pub const __UINTPTR_FMTX__ = "lX";
-pub const __UINTPTR_WIDTH__ = @as(c_int, 64);
-pub const __FLT_DENORM_MIN__ = @as(f32, 1.40129846e-45);
-pub const __FLT_HAS_DENORM__ = @as(c_int, 1);
-pub const __FLT_DIG__ = @as(c_int, 6);
-pub const __FLT_DECIMAL_DIG__ = @as(c_int, 9);
-pub const __FLT_EPSILON__ = @as(f32, 1.19209290e-7);
-pub const __FLT_HAS_INFINITY__ = @as(c_int, 1);
-pub const __FLT_HAS_QUIET_NAN__ = @as(c_int, 1);
-pub const __FLT_MANT_DIG__ = @as(c_int, 24);
-pub const __FLT_MAX_10_EXP__ = @as(c_int, 38);
-pub const __FLT_MAX_EXP__ = @as(c_int, 128);
-pub const __FLT_MAX__ = @as(f32, 3.40282347e+38);
-pub const __FLT_MIN_10_EXP__ = -@as(c_int, 37);
-pub const __FLT_MIN_EXP__ = -@as(c_int, 125);
-pub const __FLT_MIN__ = @as(f32, 1.17549435e-38);
-pub const __DBL_DENORM_MIN__ = 4.9406564584124654e-324;
-pub const __DBL_HAS_DENORM__ = @as(c_int, 1);
-pub const __DBL_DIG__ = @as(c_int, 15);
-pub const __DBL_DECIMAL_DIG__ = @as(c_int, 17);
-pub const __DBL_EPSILON__ = 2.2204460492503131e-16;
-pub const __DBL_HAS_INFINITY__ = @as(c_int, 1);
-pub const __DBL_HAS_QUIET_NAN__ = @as(c_int, 1);
-pub const __DBL_MANT_DIG__ = @as(c_int, 53);
-pub const __DBL_MAX_10_EXP__ = @as(c_int, 308);
-pub const __DBL_MAX_EXP__ = @as(c_int, 1024);
-pub const __DBL_MAX__ = 1.7976931348623157e+308;
-pub const __DBL_MIN_10_EXP__ = -@as(c_int, 307);
-pub const __DBL_MIN_EXP__ = -@as(c_int, 1021);
-pub const __DBL_MIN__ = 2.2250738585072014e-308;
-pub const __LDBL_DENORM_MIN__ = @as(c_longdouble, 3.64519953188247460253e-4951);
-pub const __LDBL_HAS_DENORM__ = @as(c_int, 1);
-pub const __LDBL_DIG__ = @as(c_int, 18);
-pub const __LDBL_DECIMAL_DIG__ = @as(c_int, 21);
-pub const __LDBL_EPSILON__ = @as(c_longdouble, 1.08420217248550443401e-19);
-pub const __LDBL_HAS_INFINITY__ = @as(c_int, 1);
-pub const __LDBL_HAS_QUIET_NAN__ = @as(c_int, 1);
-pub const __LDBL_MANT_DIG__ = @as(c_int, 64);
-pub const __LDBL_MAX_10_EXP__ = @as(c_int, 4932);
-pub const __LDBL_MAX_EXP__ = @as(c_int, 16384);
-pub const __LDBL_MAX__ = @as(c_longdouble, 1.18973149535723176502e+4932);
-pub const __LDBL_MIN_10_EXP__ = -@as(c_int, 4931);
-pub const __LDBL_MIN_EXP__ = -@as(c_int, 16381);
-pub const __LDBL_MIN__ = @as(c_longdouble, 3.36210314311209350626e-4932);
-pub const __POINTER_WIDTH__ = @as(c_int, 64);
-pub const __BIGGEST_ALIGNMENT__ = @as(c_int, 16);
-pub const __WINT_UNSIGNED__ = @as(c_int, 1);
-pub const __INT8_TYPE__ = i8;
-pub const __INT8_FMTd__ = "hhd";
-pub const __INT8_FMTi__ = "hhi";
-pub const __INT8_C_SUFFIX__ = "";
-pub const __INT16_TYPE__ = c_short;
-pub const __INT16_FMTd__ = "hd";
-pub const __INT16_FMTi__ = "hi";
-pub const __INT16_C_SUFFIX__ = "";
-pub const __INT32_TYPE__ = c_int;
-pub const __INT32_FMTd__ = "d";
-pub const __INT32_FMTi__ = "i";
-pub const __INT32_C_SUFFIX__ = "";
-pub const __INT64_TYPE__ = c_long;
-pub const __INT64_FMTd__ = "ld";
-pub const __INT64_FMTi__ = "li";
-pub const __UINT8_TYPE__ = u8;
-pub const __UINT8_FMTo__ = "hho";
-pub const __UINT8_FMTu__ = "hhu";
-pub const __UINT8_FMTx__ = "hhx";
-pub const __UINT8_FMTX__ = "hhX";
-pub const __UINT8_C_SUFFIX__ = "";
-pub const __UINT8_MAX__ = @as(c_int, 255);
-pub const __INT8_MAX__ = @as(c_int, 127);
-pub const __UINT16_TYPE__ = c_ushort;
-pub const __UINT16_FMTo__ = "ho";
-pub const __UINT16_FMTu__ = "hu";
-pub const __UINT16_FMTx__ = "hx";
-pub const __UINT16_FMTX__ = "hX";
-pub const __UINT16_C_SUFFIX__ = "";
-pub const __UINT16_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 65535, .decimal);
-pub const __INT16_MAX__ = @as(c_int, 32767);
-pub const __UINT32_TYPE__ = c_uint;
-pub const __UINT32_FMTo__ = "o";
-pub const __UINT32_FMTu__ = "u";
-pub const __UINT32_FMTx__ = "x";
-pub const __UINT32_FMTX__ = "X";
-pub const __UINT32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_uint, 4294967295, .decimal);
-pub const __INT32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __UINT64_TYPE__ = c_ulong;
-pub const __UINT64_FMTo__ = "lo";
-pub const __UINT64_FMTu__ = "lu";
-pub const __UINT64_FMTx__ = "lx";
-pub const __UINT64_FMTX__ = "lX";
-pub const __UINT64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __INT64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __INT_LEAST8_TYPE__ = i8;
-pub const __INT_LEAST8_MAX__ = @as(c_int, 127);
-pub const __INT_LEAST8_FMTd__ = "hhd";
-pub const __INT_LEAST8_FMTi__ = "hhi";
-pub const __UINT_LEAST8_TYPE__ = u8;
-pub const __UINT_LEAST8_MAX__ = @as(c_int, 255);
-pub const __UINT_LEAST8_FMTo__ = "hho";
-pub const __UINT_LEAST8_FMTu__ = "hhu";
-pub const __UINT_LEAST8_FMTx__ = "hhx";
-pub const __UINT_LEAST8_FMTX__ = "hhX";
-pub const __INT_LEAST16_TYPE__ = c_short;
-pub const __INT_LEAST16_MAX__ = @as(c_int, 32767);
-pub const __INT_LEAST16_FMTd__ = "hd";
-pub const __INT_LEAST16_FMTi__ = "hi";
-pub const __UINT_LEAST16_TYPE__ = c_ushort;
-pub const __UINT_LEAST16_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 65535, .decimal);
-pub const __UINT_LEAST16_FMTo__ = "ho";
-pub const __UINT_LEAST16_FMTu__ = "hu";
-pub const __UINT_LEAST16_FMTx__ = "hx";
-pub const __UINT_LEAST16_FMTX__ = "hX";
-pub const __INT_LEAST32_TYPE__ = c_int;
-pub const __INT_LEAST32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __INT_LEAST32_FMTd__ = "d";
-pub const __INT_LEAST32_FMTi__ = "i";
-pub const __UINT_LEAST32_TYPE__ = c_uint;
-pub const __UINT_LEAST32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_uint, 4294967295, .decimal);
-pub const __UINT_LEAST32_FMTo__ = "o";
-pub const __UINT_LEAST32_FMTu__ = "u";
-pub const __UINT_LEAST32_FMTx__ = "x";
-pub const __UINT_LEAST32_FMTX__ = "X";
-pub const __INT_LEAST64_TYPE__ = c_long;
-pub const __INT_LEAST64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __INT_LEAST64_FMTd__ = "ld";
-pub const __INT_LEAST64_FMTi__ = "li";
-pub const __UINT_LEAST64_TYPE__ = c_ulong;
-pub const __UINT_LEAST64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __UINT_LEAST64_FMTo__ = "lo";
-pub const __UINT_LEAST64_FMTu__ = "lu";
-pub const __UINT_LEAST64_FMTx__ = "lx";
-pub const __UINT_LEAST64_FMTX__ = "lX";
-pub const __INT_FAST8_TYPE__ = i8;
-pub const __INT_FAST8_MAX__ = @as(c_int, 127);
-pub const __INT_FAST8_FMTd__ = "hhd";
-pub const __INT_FAST8_FMTi__ = "hhi";
-pub const __UINT_FAST8_TYPE__ = u8;
-pub const __UINT_FAST8_MAX__ = @as(c_int, 255);
-pub const __UINT_FAST8_FMTo__ = "hho";
-pub const __UINT_FAST8_FMTu__ = "hhu";
-pub const __UINT_FAST8_FMTx__ = "hhx";
-pub const __UINT_FAST8_FMTX__ = "hhX";
-pub const __INT_FAST16_TYPE__ = c_short;
-pub const __INT_FAST16_MAX__ = @as(c_int, 32767);
-pub const __INT_FAST16_FMTd__ = "hd";
-pub const __INT_FAST16_FMTi__ = "hi";
-pub const __UINT_FAST16_TYPE__ = c_ushort;
-pub const __UINT_FAST16_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 65535, .decimal);
-pub const __UINT_FAST16_FMTo__ = "ho";
-pub const __UINT_FAST16_FMTu__ = "hu";
-pub const __UINT_FAST16_FMTx__ = "hx";
-pub const __UINT_FAST16_FMTX__ = "hX";
-pub const __INT_FAST32_TYPE__ = c_int;
-pub const __INT_FAST32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal);
-pub const __INT_FAST32_FMTd__ = "d";
-pub const __INT_FAST32_FMTi__ = "i";
-pub const __UINT_FAST32_TYPE__ = c_uint;
-pub const __UINT_FAST32_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_uint, 4294967295, .decimal);
-pub const __UINT_FAST32_FMTo__ = "o";
-pub const __UINT_FAST32_FMTu__ = "u";
-pub const __UINT_FAST32_FMTx__ = "x";
-pub const __UINT_FAST32_FMTX__ = "X";
-pub const __INT_FAST64_TYPE__ = c_long;
-pub const __INT_FAST64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_long, 9223372036854775807, .decimal);
-pub const __INT_FAST64_FMTd__ = "ld";
-pub const __INT_FAST64_FMTi__ = "li";
-pub const __UINT_FAST64_TYPE__ = c_ulong;
-pub const __UINT_FAST64_MAX__ = @import("std").zig.c_translation.promoteIntLiteral(c_ulong, 18446744073709551615, .decimal);
-pub const __UINT_FAST64_FMTo__ = "lo";
-pub const __UINT_FAST64_FMTu__ = "lu";
-pub const __UINT_FAST64_FMTx__ = "lx";
-pub const __UINT_FAST64_FMTX__ = "lX";
-pub const __USER_LABEL_PREFIX__ = "";
-pub const __FINITE_MATH_ONLY__ = @as(c_int, 0);
-pub const __GNUC_STDC_INLINE__ = @as(c_int, 1);
-pub const __GCC_ATOMIC_TEST_AND_SET_TRUEVAL = @as(c_int, 1);
-pub const __CLANG_ATOMIC_BOOL_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_CHAR_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_CHAR16_T_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_CHAR32_T_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_WCHAR_T_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_SHORT_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_INT_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_LONG_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_LLONG_LOCK_FREE = @as(c_int, 2);
-pub const __CLANG_ATOMIC_POINTER_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_BOOL_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_CHAR_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_CHAR16_T_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_CHAR32_T_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_WCHAR_T_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_SHORT_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_INT_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_LONG_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_LLONG_LOCK_FREE = @as(c_int, 2);
-pub const __GCC_ATOMIC_POINTER_LOCK_FREE = @as(c_int, 2);
-pub const __FLT_EVAL_METHOD__ = @as(c_int, 0);
-pub const __FLT_RADIX__ = @as(c_int, 2);
-pub const __DECIMAL_DIG__ = __LDBL_DECIMAL_DIG__;
-pub const __GCC_ASM_FLAG_OUTPUTS__ = @as(c_int, 1);
-pub const __code_model_small__ = @as(c_int, 1);
-pub const __amd64__ = @as(c_int, 1);
-pub const __amd64 = @as(c_int, 1);
-pub const __x86_64 = @as(c_int, 1);
-pub const __x86_64__ = @as(c_int, 1);
-pub const __SEG_GS = @as(c_int, 1);
-pub const __SEG_FS = @as(c_int, 1);
-pub const __znver3 = @as(c_int, 1);
-pub const __znver3__ = @as(c_int, 1);
-pub const __tune_znver3__ = @as(c_int, 1);
-pub const __REGISTER_PREFIX__ = "";
-pub const __NO_MATH_INLINES = @as(c_int, 1);
-pub const __AES__ = @as(c_int, 1);
-pub const __VAES__ = @as(c_int, 1);
-pub const __PCLMUL__ = @as(c_int, 1);
-pub const __VPCLMULQDQ__ = @as(c_int, 1);
-pub const __LAHF_SAHF__ = @as(c_int, 1);
-pub const __LZCNT__ = @as(c_int, 1);
-pub const __RDRND__ = @as(c_int, 1);
-pub const __FSGSBASE__ = @as(c_int, 1);
-pub const __BMI__ = @as(c_int, 1);
-pub const __BMI2__ = @as(c_int, 1);
-pub const __POPCNT__ = @as(c_int, 1);
-pub const __PRFCHW__ = @as(c_int, 1);
-pub const __RDSEED__ = @as(c_int, 1);
-pub const __ADX__ = @as(c_int, 1);
-pub const __MWAITX__ = @as(c_int, 1);
-pub const __MOVBE__ = @as(c_int, 1);
-pub const __SSE4A__ = @as(c_int, 1);
-pub const __FMA__ = @as(c_int, 1);
-pub const __F16C__ = @as(c_int, 1);
-pub const __SHA__ = @as(c_int, 1);
-pub const __FXSR__ = @as(c_int, 1);
-pub const __XSAVE__ = @as(c_int, 1);
-pub const __XSAVEOPT__ = @as(c_int, 1);
-pub const __XSAVEC__ = @as(c_int, 1);
-pub const __XSAVES__ = @as(c_int, 1);
-pub const __PKU__ = @as(c_int, 1);
-pub const __CLFLUSHOPT__ = @as(c_int, 1);
-pub const __CLWB__ = @as(c_int, 1);
-pub const __WBNOINVD__ = @as(c_int, 1);
-pub const __SHSTK__ = @as(c_int, 1);
-pub const __CLZERO__ = @as(c_int, 1);
-pub const __RDPID__ = @as(c_int, 1);
-pub const __INVPCID__ = @as(c_int, 1);
-pub const __AVX2__ = @as(c_int, 1);
-pub const __AVX__ = @as(c_int, 1);
-pub const __SSE4_2__ = @as(c_int, 1);
-pub const __SSE4_1__ = @as(c_int, 1);
-pub const __SSSE3__ = @as(c_int, 1);
-pub const __SSE3__ = @as(c_int, 1);
-pub const __SSE2__ = @as(c_int, 1);
-pub const __SSE2_MATH__ = @as(c_int, 1);
-pub const __SSE__ = @as(c_int, 1);
-pub const __SSE_MATH__ = @as(c_int, 1);
-pub const __MMX__ = @as(c_int, 1);
-pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 = @as(c_int, 1);
-pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 = @as(c_int, 1);
-pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 = @as(c_int, 1);
-pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8 = @as(c_int, 1);
-pub const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16 = @as(c_int, 1);
-pub const __SIZEOF_FLOAT128__ = @as(c_int, 16);
-pub const unix = @as(c_int, 1);
-pub const __unix = @as(c_int, 1);
-pub const __unix__ = @as(c_int, 1);
-pub const linux = @as(c_int, 1);
-pub const __linux = @as(c_int, 1);
-pub const __linux__ = @as(c_int, 1);
-pub const __ELF__ = @as(c_int, 1);
-pub const __gnu_linux__ = @as(c_int, 1);
-pub const __FLOAT128__ = @as(c_int, 1);
-pub const __STDC__ = @as(c_int, 1);
-pub const __STDC_HOSTED__ = @as(c_int, 1);
-pub const __STDC_VERSION__ = @as(c_long, 201710);
-pub const __STDC_UTF_16__ = @as(c_int, 1);
-pub const __STDC_UTF_32__ = @as(c_int, 1);
-pub const _DEBUG = @as(c_int, 1);
-pub const __GCC_HAVE_DWARF2_CFI_ASM = @as(c_int, 1);
-pub const _STDDEF_H = "";
-pub const _STDDEF_H_ = "";
-pub const _ANSI_STDDEF_H = "";
-pub const _PTRDIFF_T = "";
-pub const _T_PTRDIFF_ = "";
-pub const _T_PTRDIFF = "";
-pub const __PTRDIFF_T = "";
-pub const _PTRDIFF_T_ = "";
-pub const _BSD_PTRDIFF_T_ = "";
-pub const ___int_ptrdiff_t_h = "";
-pub const _GCC_PTRDIFF_T = "";
-pub const _PTRDIFF_T_DECLARED = "";
-pub const __DEFINED_ptrdiff_t = "";
-pub const __size_t__ = "";
-pub const __SIZE_T__ = "";
-pub const _SIZE_T = "";
-pub const _SYS_SIZE_T_H = "";
-pub const _T_SIZE_ = "";
-pub const _T_SIZE = "";
-pub const __SIZE_T = "";
-pub const _SIZE_T_ = "";
-pub const _BSD_SIZE_T_ = "";
-pub const _SIZE_T_DEFINED_ = "";
-pub const _SIZE_T_DEFINED = "";
-pub const _BSD_SIZE_T_DEFINED_ = "";
-pub const _SIZE_T_DECLARED = "";
-pub const __DEFINED_size_t = "";
-pub const ___int_size_t_h = "";
-pub const _GCC_SIZE_T = "";
-pub const _SIZET_ = "";
-pub const __size_t = "";
-pub const __wchar_t__ = "";
-pub const __WCHAR_T__ = "";
-pub const _WCHAR_T = "";
-pub const _T_WCHAR_ = "";
-pub const _T_WCHAR = "";
-pub const __WCHAR_T = "";
-pub const _WCHAR_T_ = "";
-pub const _BSD_WCHAR_T_ = "";
-pub const _WCHAR_T_DEFINED_ = "";
-pub const _WCHAR_T_DEFINED = "";
-pub const _WCHAR_T_H = "";
-pub const ___int_wchar_t_h = "";
-pub const __INT_WCHAR_T_H = "";
-pub const _GCC_WCHAR_T = "";
-pub const _WCHAR_T_DECLARED = "";
-pub const __DEFINED_wchar_t = "";
-pub const NULL = @import("std").zig.c_translation.cast(?*anyopaque, @as(c_int, 0));
-pub const _GCC_MAX_ALIGN_T = "";
-pub const _XFUNCPROTO_H_ = "";
-pub const NeedFunctionPrototypes = @as(c_int, 1);
-pub const NeedVarargsPrototypes = @as(c_int, 1);
-pub const NeedNestedPrototypes = @as(c_int, 1);
-pub const NARROWPROTO = "";
-pub const FUNCPROTO = @as(c_int, 15);
-pub const NeedWidePrototypes = @as(c_int, 0);
-pub const _XFUNCPROTOBEGIN = "";
-pub const _XFUNCPROTOEND = "";
-pub inline fn _X_LIKELY(x: anytype) @TypeOf(__builtin_expect(!!(x != 0), @as(c_int, 1))) {
-    return __builtin_expect(!!(x != 0), @as(c_int, 1));
-}
-pub inline fn _X_UNLIKELY(x: anytype) @TypeOf(__builtin_expect(!!(x != 0), @as(c_int, 0))) {
-    return __builtin_expect(!!(x != 0), @as(c_int, 0));
-}
-pub const _X_NONSTRING = "";
-pub const X_H = "";
-pub const X_PROTOCOL = @as(c_int, 11);
-pub const X_PROTOCOL_REVISION = @as(c_int, 0);
-pub const _XTYPEDEF_XID = "";
-pub const _XTYPEDEF_MASK = "";
-pub const _XTYPEDEF_ATOM = "";
-pub const _XTYPEDEF_FONT = "";
-pub const None = @as(c_long, 0);
-pub const ParentRelative = @as(c_long, 1);
-pub const CopyFromParent = @as(c_long, 0);
-pub const PointerWindow = @as(c_long, 0);
-pub const InputFocus = @as(c_long, 1);
-pub const PointerRoot = @as(c_long, 1);
-pub const AnyPropertyType = @as(c_long, 0);
-pub const AnyKey = @as(c_long, 0);
-pub const AnyButton = @as(c_long, 0);
-pub const AllTemporary = @as(c_long, 0);
-pub const CurrentTime = @as(c_long, 0);
-pub const NoSymbol = @as(c_long, 0);
-pub const NoEventMask = @as(c_long, 0);
-pub const KeyPressMask = @as(c_long, 1) << @as(c_int, 0);
-pub const KeyReleaseMask = @as(c_long, 1) << @as(c_int, 1);
-pub const ButtonPressMask = @as(c_long, 1) << @as(c_int, 2);
-pub const ButtonReleaseMask = @as(c_long, 1) << @as(c_int, 3);
-pub const EnterWindowMask = @as(c_long, 1) << @as(c_int, 4);
-pub const LeaveWindowMask = @as(c_long, 1) << @as(c_int, 5);
-pub const PointerMotionMask = @as(c_long, 1) << @as(c_int, 6);
-pub const PointerMotionHintMask = @as(c_long, 1) << @as(c_int, 7);
-pub const Button1MotionMask = @as(c_long, 1) << @as(c_int, 8);
-pub const Button2MotionMask = @as(c_long, 1) << @as(c_int, 9);
-pub const Button3MotionMask = @as(c_long, 1) << @as(c_int, 10);
-pub const Button4MotionMask = @as(c_long, 1) << @as(c_int, 11);
-pub const Button5MotionMask = @as(c_long, 1) << @as(c_int, 12);
-pub const ButtonMotionMask = @as(c_long, 1) << @as(c_int, 13);
-pub const KeymapStateMask = @as(c_long, 1) << @as(c_int, 14);
-pub const ExposureMask = @as(c_long, 1) << @as(c_int, 15);
-pub const VisibilityChangeMask = @as(c_long, 1) << @as(c_int, 16);
-pub const StructureNotifyMask = @as(c_long, 1) << @as(c_int, 17);
-pub const ResizeRedirectMask = @as(c_long, 1) << @as(c_int, 18);
-pub const SubstructureNotifyMask = @as(c_long, 1) << @as(c_int, 19);
-pub const SubstructureRedirectMask = @as(c_long, 1) << @as(c_int, 20);
-pub const FocusChangeMask = @as(c_long, 1) << @as(c_int, 21);
-pub const PropertyChangeMask = @as(c_long, 1) << @as(c_int, 22);
-pub const ColormapChangeMask = @as(c_long, 1) << @as(c_int, 23);
-pub const OwnerGrabButtonMask = @as(c_long, 1) << @as(c_int, 24);
-pub const KeyPress = @as(c_int, 2);
-pub const KeyRelease = @as(c_int, 3);
-pub const ButtonPress = @as(c_int, 4);
-pub const ButtonRelease = @as(c_int, 5);
-pub const MotionNotify = @as(c_int, 6);
-pub const EnterNotify = @as(c_int, 7);
-pub const LeaveNotify = @as(c_int, 8);
-pub const FocusIn = @as(c_int, 9);
-pub const FocusOut = @as(c_int, 10);
-pub const KeymapNotify = @as(c_int, 11);
-pub const Expose = @as(c_int, 12);
-pub const GraphicsExpose = @as(c_int, 13);
-pub const NoExpose = @as(c_int, 14);
-pub const VisibilityNotify = @as(c_int, 15);
-pub const CreateNotify = @as(c_int, 16);
-pub const DestroyNotify = @as(c_int, 17);
-pub const UnmapNotify = @as(c_int, 18);
-pub const MapNotify = @as(c_int, 19);
-pub const MapRequest = @as(c_int, 20);
-pub const ReparentNotify = @as(c_int, 21);
-pub const ConfigureNotify = @as(c_int, 22);
-pub const ConfigureRequest = @as(c_int, 23);
-pub const GravityNotify = @as(c_int, 24);
-pub const ResizeRequest = @as(c_int, 25);
-pub const CirculateNotify = @as(c_int, 26);
-pub const CirculateRequest = @as(c_int, 27);
-pub const PropertyNotify = @as(c_int, 28);
-pub const SelectionClear = @as(c_int, 29);
-pub const SelectionRequest = @as(c_int, 30);
-pub const SelectionNotify = @as(c_int, 31);
-pub const ColormapNotify = @as(c_int, 32);
-pub const ClientMessage = @as(c_int, 33);
-pub const MappingNotify = @as(c_int, 34);
-pub const GenericEvent = @as(c_int, 35);
-pub const LASTEvent = @as(c_int, 36);
-pub const ShiftMask = @as(c_int, 1) << @as(c_int, 0);
-pub const LockMask = @as(c_int, 1) << @as(c_int, 1);
-pub const ControlMask = @as(c_int, 1) << @as(c_int, 2);
-pub const Mod1Mask = @as(c_int, 1) << @as(c_int, 3);
-pub const Mod2Mask = @as(c_int, 1) << @as(c_int, 4);
-pub const Mod3Mask = @as(c_int, 1) << @as(c_int, 5);
-pub const Mod4Mask = @as(c_int, 1) << @as(c_int, 6);
-pub const Mod5Mask = @as(c_int, 1) << @as(c_int, 7);
-pub const ShiftMapIndex = @as(c_int, 0);
-pub const LockMapIndex = @as(c_int, 1);
-pub const ControlMapIndex = @as(c_int, 2);
-pub const Mod1MapIndex = @as(c_int, 3);
-pub const Mod2MapIndex = @as(c_int, 4);
-pub const Mod3MapIndex = @as(c_int, 5);
-pub const Mod4MapIndex = @as(c_int, 6);
-pub const Mod5MapIndex = @as(c_int, 7);
-pub const Button1Mask = @as(c_int, 1) << @as(c_int, 8);
-pub const Button2Mask = @as(c_int, 1) << @as(c_int, 9);
-pub const Button3Mask = @as(c_int, 1) << @as(c_int, 10);
-pub const Button4Mask = @as(c_int, 1) << @as(c_int, 11);
-pub const Button5Mask = @as(c_int, 1) << @as(c_int, 12);
-pub const AnyModifier = @as(c_int, 1) << @as(c_int, 15);
-pub const Button1 = @as(c_int, 1);
-pub const Button2 = @as(c_int, 2);
-pub const Button3 = @as(c_int, 3);
-pub const Button4 = @as(c_int, 4);
-pub const Button5 = @as(c_int, 5);
-pub const NotifyNormal = @as(c_int, 0);
-pub const NotifyGrab = @as(c_int, 1);
-pub const NotifyUngrab = @as(c_int, 2);
-pub const NotifyWhileGrabbed = @as(c_int, 3);
-pub const NotifyHint = @as(c_int, 1);
-pub const NotifyAncestor = @as(c_int, 0);
-pub const NotifyVirtual = @as(c_int, 1);
-pub const NotifyInferior = @as(c_int, 2);
-pub const NotifyNonlinear = @as(c_int, 3);
-pub const NotifyNonlinearVirtual = @as(c_int, 4);
-pub const NotifyPointer = @as(c_int, 5);
-pub const NotifyPointerRoot = @as(c_int, 6);
-pub const NotifyDetailNone = @as(c_int, 7);
-pub const VisibilityUnobscured = @as(c_int, 0);
-pub const VisibilityPartiallyObscured = @as(c_int, 1);
-pub const VisibilityFullyObscured = @as(c_int, 2);
-pub const PlaceOnTop = @as(c_int, 0);
-pub const PlaceOnBottom = @as(c_int, 1);
-pub const FamilyInternet = @as(c_int, 0);
-pub const FamilyDECnet = @as(c_int, 1);
-pub const FamilyChaos = @as(c_int, 2);
-pub const FamilyInternet6 = @as(c_int, 6);
-pub const FamilyServerInterpreted = @as(c_int, 5);
-pub const PropertyNewValue = @as(c_int, 0);
-pub const PropertyDelete = @as(c_int, 1);
-pub const ColormapUninstalled = @as(c_int, 0);
-pub const ColormapInstalled = @as(c_int, 1);
-pub const GrabModeSync = @as(c_int, 0);
-pub const GrabModeAsync = @as(c_int, 1);
-pub const GrabSuccess = @as(c_int, 0);
-pub const AlreadyGrabbed = @as(c_int, 1);
-pub const GrabInvalidTime = @as(c_int, 2);
-pub const GrabNotViewable = @as(c_int, 3);
-pub const GrabFrozen = @as(c_int, 4);
-pub const AsyncPointer = @as(c_int, 0);
-pub const SyncPointer = @as(c_int, 1);
-pub const ReplayPointer = @as(c_int, 2);
-pub const AsyncKeyboard = @as(c_int, 3);
-pub const SyncKeyboard = @as(c_int, 4);
-pub const ReplayKeyboard = @as(c_int, 5);
-pub const AsyncBoth = @as(c_int, 6);
-pub const SyncBoth = @as(c_int, 7);
-pub const RevertToNone = @import("std").zig.c_translation.cast(c_int, None);
-pub const RevertToPointerRoot = @import("std").zig.c_translation.cast(c_int, PointerRoot);
-pub const RevertToParent = @as(c_int, 2);
-pub const Success = @as(c_int, 0);
-pub const BadRequest = @as(c_int, 1);
-pub const BadValue = @as(c_int, 2);
-pub const BadWindow = @as(c_int, 3);
-pub const BadPixmap = @as(c_int, 4);
-pub const BadAtom = @as(c_int, 5);
-pub const BadCursor = @as(c_int, 6);
-pub const BadFont = @as(c_int, 7);
-pub const BadMatch = @as(c_int, 8);
-pub const BadDrawable = @as(c_int, 9);
-pub const BadAccess = @as(c_int, 10);
-pub const BadAlloc = @as(c_int, 11);
-pub const BadColor = @as(c_int, 12);
-pub const BadGC = @as(c_int, 13);
-pub const BadIDChoice = @as(c_int, 14);
-pub const BadName = @as(c_int, 15);
-pub const BadLength = @as(c_int, 16);
-pub const BadImplementation = @as(c_int, 17);
-pub const FirstExtensionError = @as(c_int, 128);
-pub const LastExtensionError = @as(c_int, 255);
-pub const InputOutput = @as(c_int, 1);
-pub const InputOnly = @as(c_int, 2);
-pub const CWBackPixmap = @as(c_long, 1) << @as(c_int, 0);
-pub const CWBackPixel = @as(c_long, 1) << @as(c_int, 1);
-pub const CWBorderPixmap = @as(c_long, 1) << @as(c_int, 2);
-pub const CWBorderPixel = @as(c_long, 1) << @as(c_int, 3);
-pub const CWBitGravity = @as(c_long, 1) << @as(c_int, 4);
-pub const CWWinGravity = @as(c_long, 1) << @as(c_int, 5);
-pub const CWBackingStore = @as(c_long, 1) << @as(c_int, 6);
-pub const CWBackingPlanes = @as(c_long, 1) << @as(c_int, 7);
-pub const CWBackingPixel = @as(c_long, 1) << @as(c_int, 8);
-pub const CWOverrideRedirect = @as(c_long, 1) << @as(c_int, 9);
-pub const CWSaveUnder = @as(c_long, 1) << @as(c_int, 10);
-pub const CWEventMask = @as(c_long, 1) << @as(c_int, 11);
-pub const CWDontPropagate = @as(c_long, 1) << @as(c_int, 12);
-pub const CWColormap = @as(c_long, 1) << @as(c_int, 13);
-pub const CWCursor = @as(c_long, 1) << @as(c_int, 14);
-pub const CWX = @as(c_int, 1) << @as(c_int, 0);
-pub const CWY = @as(c_int, 1) << @as(c_int, 1);
-pub const CWWidth = @as(c_int, 1) << @as(c_int, 2);
-pub const CWHeight = @as(c_int, 1) << @as(c_int, 3);
-pub const CWBorderWidth = @as(c_int, 1) << @as(c_int, 4);
-pub const CWSibling = @as(c_int, 1) << @as(c_int, 5);
-pub const CWStackMode = @as(c_int, 1) << @as(c_int, 6);
-pub const ForgetGravity = @as(c_int, 0);
-pub const NorthWestGravity = @as(c_int, 1);
-pub const NorthGravity = @as(c_int, 2);
-pub const NorthEastGravity = @as(c_int, 3);
-pub const WestGravity = @as(c_int, 4);
-pub const CenterGravity = @as(c_int, 5);
-pub const EastGravity = @as(c_int, 6);
-pub const SouthWestGravity = @as(c_int, 7);
-pub const SouthGravity = @as(c_int, 8);
-pub const SouthEastGravity = @as(c_int, 9);
-pub const StaticGravity = @as(c_int, 10);
-pub const UnmapGravity = @as(c_int, 0);
-pub const NotUseful = @as(c_int, 0);
-pub const WhenMapped = @as(c_int, 1);
-pub const Always = @as(c_int, 2);
-pub const IsUnmapped = @as(c_int, 0);
-pub const IsUnviewable = @as(c_int, 1);
-pub const IsViewable = @as(c_int, 2);
-pub const SetModeInsert = @as(c_int, 0);
-pub const SetModeDelete = @as(c_int, 1);
-pub const DestroyAll = @as(c_int, 0);
-pub const RetainPermanent = @as(c_int, 1);
-pub const RetainTemporary = @as(c_int, 2);
-pub const Above = @as(c_int, 0);
-pub const Below = @as(c_int, 1);
-pub const TopIf = @as(c_int, 2);
-pub const BottomIf = @as(c_int, 3);
-pub const Opposite = @as(c_int, 4);
-pub const RaiseLowest = @as(c_int, 0);
-pub const LowerHighest = @as(c_int, 1);
-pub const PropModeReplace = @as(c_int, 0);
-pub const PropModePrepend = @as(c_int, 1);
-pub const PropModeAppend = @as(c_int, 2);
-pub const GXclear = @as(c_int, 0x0);
-pub const GXand = @as(c_int, 0x1);
-pub const GXandReverse = @as(c_int, 0x2);
-pub const GXcopy = @as(c_int, 0x3);
-pub const GXandInverted = @as(c_int, 0x4);
-pub const GXnoop = @as(c_int, 0x5);
-pub const GXxor = @as(c_int, 0x6);
-pub const GXor = @as(c_int, 0x7);
-pub const GXnor = @as(c_int, 0x8);
-pub const GXequiv = @as(c_int, 0x9);
-pub const GXinvert = @as(c_int, 0xa);
-pub const GXorReverse = @as(c_int, 0xb);
-pub const GXcopyInverted = @as(c_int, 0xc);
-pub const GXorInverted = @as(c_int, 0xd);
-pub const GXnand = @as(c_int, 0xe);
-pub const GXset = @as(c_int, 0xf);
-pub const LineSolid = @as(c_int, 0);
-pub const LineOnOffDash = @as(c_int, 1);
-pub const LineDoubleDash = @as(c_int, 2);
-pub const CapNotLast = @as(c_int, 0);
-pub const CapButt = @as(c_int, 1);
-pub const CapRound = @as(c_int, 2);
-pub const CapProjecting = @as(c_int, 3);
-pub const JoinMiter = @as(c_int, 0);
-pub const JoinRound = @as(c_int, 1);
-pub const JoinBevel = @as(c_int, 2);
-pub const FillSolid = @as(c_int, 0);
-pub const FillTiled = @as(c_int, 1);
-pub const FillStippled = @as(c_int, 2);
-pub const FillOpaqueStippled = @as(c_int, 3);
-pub const EvenOddRule = @as(c_int, 0);
-pub const WindingRule = @as(c_int, 1);
-pub const ClipByChildren = @as(c_int, 0);
-pub const IncludeInferiors = @as(c_int, 1);
-pub const Unsorted = @as(c_int, 0);
-pub const YSorted = @as(c_int, 1);
-pub const YXSorted = @as(c_int, 2);
-pub const YXBanded = @as(c_int, 3);
-pub const CoordModeOrigin = @as(c_int, 0);
-pub const CoordModePrevious = @as(c_int, 1);
-pub const Complex = @as(c_int, 0);
-pub const Nonconvex = @as(c_int, 1);
-pub const Convex = @as(c_int, 2);
-pub const ArcChord = @as(c_int, 0);
-pub const ArcPieSlice = @as(c_int, 1);
-pub const GCFunction = @as(c_long, 1) << @as(c_int, 0);
-pub const GCPlaneMask = @as(c_long, 1) << @as(c_int, 1);
-pub const GCForeground = @as(c_long, 1) << @as(c_int, 2);
-pub const GCBackground = @as(c_long, 1) << @as(c_int, 3);
-pub const GCLineWidth = @as(c_long, 1) << @as(c_int, 4);
-pub const GCLineStyle = @as(c_long, 1) << @as(c_int, 5);
-pub const GCCapStyle = @as(c_long, 1) << @as(c_int, 6);
-pub const GCJoinStyle = @as(c_long, 1) << @as(c_int, 7);
-pub const GCFillStyle = @as(c_long, 1) << @as(c_int, 8);
-pub const GCFillRule = @as(c_long, 1) << @as(c_int, 9);
-pub const GCTile = @as(c_long, 1) << @as(c_int, 10);
-pub const GCStipple = @as(c_long, 1) << @as(c_int, 11);
-pub const GCTileStipXOrigin = @as(c_long, 1) << @as(c_int, 12);
-pub const GCTileStipYOrigin = @as(c_long, 1) << @as(c_int, 13);
-pub const GCFont = @as(c_long, 1) << @as(c_int, 14);
-pub const GCSubwindowMode = @as(c_long, 1) << @as(c_int, 15);
-pub const GCGraphicsExposures = @as(c_long, 1) << @as(c_int, 16);
-pub const GCClipXOrigin = @as(c_long, 1) << @as(c_int, 17);
-pub const GCClipYOrigin = @as(c_long, 1) << @as(c_int, 18);
-pub const GCClipMask = @as(c_long, 1) << @as(c_int, 19);
-pub const GCDashOffset = @as(c_long, 1) << @as(c_int, 20);
-pub const GCDashList = @as(c_long, 1) << @as(c_int, 21);
-pub const GCArcMode = @as(c_long, 1) << @as(c_int, 22);
-pub const GCLastBit = @as(c_int, 22);
-pub const FontLeftToRight = @as(c_int, 0);
-pub const FontRightToLeft = @as(c_int, 1);
-pub const FontChange = @as(c_int, 255);
-pub const XYBitmap = @as(c_int, 0);
-pub const XYPixmap = @as(c_int, 1);
-pub const ZPixmap = @as(c_int, 2);
-pub const AllocNone = @as(c_int, 0);
-pub const AllocAll = @as(c_int, 1);
-pub const DoRed = @as(c_int, 1) << @as(c_int, 0);
-pub const DoGreen = @as(c_int, 1) << @as(c_int, 1);
-pub const DoBlue = @as(c_int, 1) << @as(c_int, 2);
-pub const CursorShape = @as(c_int, 0);
-pub const TileShape = @as(c_int, 1);
-pub const StippleShape = @as(c_int, 2);
-pub const AutoRepeatModeOff = @as(c_int, 0);
-pub const AutoRepeatModeOn = @as(c_int, 1);
-pub const AutoRepeatModeDefault = @as(c_int, 2);
-pub const LedModeOff = @as(c_int, 0);
-pub const LedModeOn = @as(c_int, 1);
-pub const KBKeyClickPercent = @as(c_long, 1) << @as(c_int, 0);
-pub const KBBellPercent = @as(c_long, 1) << @as(c_int, 1);
-pub const KBBellPitch = @as(c_long, 1) << @as(c_int, 2);
-pub const KBBellDuration = @as(c_long, 1) << @as(c_int, 3);
-pub const KBLed = @as(c_long, 1) << @as(c_int, 4);
-pub const KBLedMode = @as(c_long, 1) << @as(c_int, 5);
-pub const KBKey = @as(c_long, 1) << @as(c_int, 6);
-pub const KBAutoRepeatMode = @as(c_long, 1) << @as(c_int, 7);
-pub const MappingSuccess = @as(c_int, 0);
-pub const MappingBusy = @as(c_int, 1);
-pub const MappingFailed = @as(c_int, 2);
-pub const MappingModifier = @as(c_int, 0);
-pub const MappingKeyboard = @as(c_int, 1);
-pub const MappingPointer = @as(c_int, 2);
-pub const DontPreferBlanking = @as(c_int, 0);
-pub const PreferBlanking = @as(c_int, 1);
-pub const DefaultBlanking = @as(c_int, 2);
-pub const DisableScreenSaver = @as(c_int, 0);
-pub const DisableScreenInterval = @as(c_int, 0);
-pub const DontAllowExposures = @as(c_int, 0);
-pub const AllowExposures = @as(c_int, 1);
-pub const DefaultExposures = @as(c_int, 2);
-pub const ScreenSaverReset = @as(c_int, 0);
-pub const ScreenSaverActive = @as(c_int, 1);
-pub const HostInsert = @as(c_int, 0);
-pub const HostDelete = @as(c_int, 1);
-pub const EnableAccess = @as(c_int, 1);
-pub const DisableAccess = @as(c_int, 0);
-pub const StaticGray = @as(c_int, 0);
-pub const GrayScale = @as(c_int, 1);
-pub const StaticColor = @as(c_int, 2);
-pub const PseudoColor = @as(c_int, 3);
-pub const TrueColor = @as(c_int, 4);
-pub const DirectColor = @as(c_int, 5);
-pub const LSBFirst = @as(c_int, 0);
-pub const MSBFirst = @as(c_int, 1);
 pub const X_HAVE_UTF8_STRING = @as(c_int, 1);
 pub const Bool = c_int;
 pub const Status = c_int;
