@@ -1,7 +1,9 @@
+const wchar_t = c_short;
+
 const X = @import("X.zig");
 pub usingnamespace X;
 
-const wchar_t = c_short;
+pub usingnamespace @import("Xutil.zig");
 
 pub extern fn _Xmblen(str: [*c]u8, len: c_int) c_int;
 pub const XPointer = [*c]u8;

@@ -1598,8 +1598,8 @@ pub inline fn Xkb2CharsToInt(h: anytype, l: anytype) c_short {
     return @import("std").zig.c_translation.cast(c_short, (h << @as(c_int, 8)) | l);
 }
 pub inline fn XkbIntTo2Chars(i: anytype, h: anytype, l: anytype) c_short {
-    h.*=((i>>8) & @as(c_int, 0xff));
-    l.*=((i) & @as(c_int, 0xff));
+    h.* = ((i >> 8) & @as(c_int, 0xff));
+    l.* = ((i) & @as(c_int, 0xff));
     return h | l;
 }
 pub inline fn XkbModLocks(s: anytype) @TypeOf(s.*.locked_mods) {
