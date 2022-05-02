@@ -51,6 +51,8 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
 
     if (lib.target.isLinux()) {
         lib.addIncludeDir("/usr/include");
+        lib.linkSystemLibrary("X11");
+        lib.linkSystemLibrary("xcb");
         lib.linkSystemLibrary("X11-xcb");
         lib.linkSystemLibrary("GL");
     } else if (lib.target.isDarwin()) {
