@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
     utils.url = "github:numtide/flake-utils";
     zig.url = "github:arqv/zig-overlay";
   };
