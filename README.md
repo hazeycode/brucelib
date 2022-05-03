@@ -9,7 +9,9 @@ A monorepo of [modules](#modules) for programming cross-platform, interactive, r
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Each module is designed to provide simple abstractions that are easy to adopt and easy to drop. [The examples](#examples) demonstrate how one can use modules in combination with each other.
+Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. All you need is [Zig 0.10.x](https://github.com/ziglang/zig).
+
+[The examples](#examples) demonstrate how one can use modules in combination with each other.
 
 | Name | Description | Status |
 | :--- | :---------- | :----- |
