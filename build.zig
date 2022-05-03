@@ -3,6 +3,7 @@ const std = @import("std");
 pub const platform = @import("modules/platform/build.zig");
 pub const graphics = @import("modules/graphics/build.zig");
 pub const audio = @import("modules/audio/build.zig");
+pub const algo = @import("modules/algo/build.zig");
 
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
@@ -12,14 +13,16 @@ pub fn build(b: *std.build.Builder) !void {
     const target_opts = b.standardTargetOptions(.{});
 
     { // tests
-        const platform_tests = platform.buildTests(b, mode, target_opts);
-        const graphics_tests = graphics.buildTests(b, mode, target_opts);
-        const audio_tests = audio.buildTests(b, mode, target_opts);
-
         const test_step = b.step("test", "Run all tests");
-        test_step.dependOn(&platform_tests.step);
-        test_step.dependOn(&graphics_tests.step);
-        test_step.dependOn(&audio_tests.step);
+        var all_tests = [_]*std.build.LibExeObjStep{
+            platform.buildTests(b, mode, target_opts),
+            graphics.buildTests(b, mode, target_opts),
+            audio.buildTests(b, mode, target_opts),
+            algo.buildTests(b, mode, target_opts),
+        };
+        for (all_tests) |t| {
+            test_step.dependOn(&t.step);
+        }
     }
 
     { // examples

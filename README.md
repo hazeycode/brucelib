@@ -16,9 +16,9 @@ Modules are designed to be used standalone or in combination with each other. 3r
 | [platform](modules/platform/) | Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures | in-progress |
 | [graphics](modules/graphics/) | Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives | in-progress |
 | [audio](modules/audio/) | Mixing, synthesis, signal processsing and file loaders | in-progress |
+| [algo](modules/algo/) | Various algorithms used in games and simulations | in-progress |
 | gui | A flexible gui library with an immediate-mode interface | planned |
 | asset | Data-agnostic, graph-based asset system | planned |
-| algo | Implementations of commonly used algorithms in games and simulations | planned |
 | build | Useful build and distribution packaging procedures to import into your build.zig | planned |
 
 
