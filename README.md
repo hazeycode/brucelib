@@ -2,18 +2,16 @@
 
 **WARNING: WORK IN PROGRESS**
 
-A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products.
+A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products. [The examples](#examples) demonstrate how one can use modules in combination with each other.
 
 "Absorb what is useful, discard what is useless and add what is specifically your own” - Bruce Lee
 
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. All you need is [Zig 0.10.x](https://github.com/ziglang/zig).
+Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. The planned scope of this project is to target all the popular desktop, mobile and console platforms. However, current support is limited to Windows and Linux. All you need is [Zig 0.10.x](https://github.com/ziglang/zig).
 
-[The examples](#examples) demonstrate how one can use modules in combination with each other.
-
-| Name | Description | Status |
+| Module name | Description | Status |
 | :--- | :---------- | :----- |
 | [platform](modules/platform/) | Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures | in-progress |
 | [graphics](modules/graphics/) | Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives | in-progress |
@@ -22,10 +20,6 @@ Modules are designed to be used standalone or in combination with each other. 3r
 | asset | Data-agnostic, graph-based asset system | planned |
 | algo | Implementations of commonly used algorithms in games and simulations | planned |
 | build | Useful build and distribution packaging procedures to import into your build.zig | planned |
-
-
-### Supported targets
-Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. The planned scope of this project is to target all the popular desktop, mobile and console platforms. However, current support is limited to Windows and Linux.
 
 
 ## Getting Started
@@ -47,7 +41,7 @@ Except for [platform](modules/platform/) and [graphics](modules/graphics/), modu
 
 Feature requests, bug reports and pull requests are most welcome. Please note however, that this project is in early stages of development.
 
-To contribute code, you must have sole ownership or have permission from an employer or client where applicable and agree to license the contributed code under the license of this project as described in the [LICENSE](LICENSE) file.
+To contribute code, you must have sole ownership or have permission from an employer, client or partner where applicable and agree to license the contributed code under the license of this project as described in the [LICENSE](LICENSE) file.
 
 TODO: CLA
 
