@@ -5,6 +5,13 @@ pub const graphics = @import("modules/graphics/build.zig");
 pub const audio = @import("modules/audio/build.zig");
 pub const algo = @import("modules/algo/build.zig");
 
+const all_modules = .{
+    platform,
+    graphics,
+    audio,
+    algo,  
+};
+
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
@@ -12,19 +19,11 @@ pub fn build(b: *std.build.Builder) !void {
 
     const target_opts = b.standardTargetOptions(.{});
 
-    { // tests
-        const test_step = b.step("test", "Run all tests");
-        var all_tests = [_]*std.build.LibExeObjStep{
-            platform.buildTests(b, mode, target_opts),
-            graphics.buildTests(b, mode, target_opts),
-            audio.buildTests(b, mode, target_opts),
-            algo.buildTests(b, mode, target_opts),
-        };
-        for (all_tests) |t| {
-            test_step.dependOn(&t.step);
-        }
+    const test_step = b.step("test", "Run all tests");
+    inline for (all_modules) |module| {
+        test_step.dependOn(&module.buildTests(b, mode, target_opts).step);
     }
-
+    
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
         const dir = try build_root_dir.openDir("examples", .{ .iterate = true });
@@ -38,17 +37,14 @@ pub fn build(b: *std.build.Builder) !void {
                         entry.name,
                         try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
                     );
+                    
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
 
-                    example.addPackage(platform.pkg);
-                    platform.buildAndLink(example);
-
-                    example.addPackage(graphics.pkg);
-                    graphics.buildAndLink(example);
-
-                    example.addPackage(audio.pkg);
-                    audio.buildAndLink(example);
+                    inline for (all_modules) |module| {
+                        example.addPackage(module.pkg);
+                        module.buildAndLink(example);
+                    }
 
                     example.install();
 
