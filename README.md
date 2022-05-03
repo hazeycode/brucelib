@@ -9,7 +9,7 @@ A monorepo of [modules](#modules) for programming cross-platform, interactive, r
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. The planned scope of this project is to target all the popular desktop, mobile and console platforms. However, current support is limited to Windows and Linux. All you need is [Zig 0.10.x](https://github.com/ziglang/zig).
+Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. All you need is [Zig 0.10.x](https://github.com/ziglang/zig). The planned scope of this project is to target all the popular desktop, mobile and console platforms.
 
 | Module name | Description | Status |
 | :--- | :---------- | :----- |
