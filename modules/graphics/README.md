@@ -10,9 +10,10 @@ A backend graphics API is selected at comptime with `usingBackendAPI(backend_api
 ```zig
 .opengl, // 4.4 core profile or greater
 .d3d11,
-.metal, // not implemented
 .default // use the target platform default
 ```
+
+* Support for other backend APIs is planned.
 
 
 ```zig

@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 
 const backend = switch (builtin.os.tag) {
     .linux => @import("linux.zig"),
-    .macos => @import("macos.zig"),
     .windows => @import("win32.zig"),
     else => @compileError("Unsupported target"),
 };

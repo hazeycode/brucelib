@@ -9,10 +9,6 @@ pub const pkg = std.build.Pkg{
             .path = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
         },
         std.build.Pkg{
-            .name = "zig-objcrt",
-            .path = .{ .path = thisDir() ++ "/vendored/zig-objcrt/src/main.zig" },
-        },
-        std.build.Pkg{
             .name = "zig-alsa",
             .path = .{ .path = thisDir() ++ "/vendored/zig-alsa/src/main.zig" },
         },
@@ -54,10 +50,6 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
         lib.linkSystemLibrary("xcb");
         lib.linkSystemLibrary("X11-xcb");
         lib.linkSystemLibrary("GL");
-    } else if (lib.target.isDarwin()) {
-        lib.linkFramework("AppKit");
-        lib.linkFramework("MetalKit");
-        lib.addCSourceFile("modules/platform/macos/macos.m", &[_][]const u8{"-ObjC"});
     } else if (lib.target.isWindows()) {
         lib.linkSystemLibrary("Kernel32");
         lib.linkSystemLibrary("User32");
