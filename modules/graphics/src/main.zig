@@ -4,7 +4,6 @@ const std = @import("std");
 pub const BackendAPI = enum {
     default,
     opengl,
-    metal,
     d3d11,
 };
 
@@ -16,12 +15,10 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         pub const backend = switch (backend_api) {
             .default => switch (builtin.os.tag) {
                 .linux => @import("opengl.zig"),
-                .macos => @import("metal.zig"),
                 .windows => @import("d3d11.zig"),
                 else => @compileError("Unsupported target"),
             },
             .opengl => @import("opengl.zig"),
-            .metal => @import("metal.zig"),
             .d3d11 => @import("d3d11.zig"),
         };
 
