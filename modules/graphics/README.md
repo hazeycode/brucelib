@@ -152,5 +152,5 @@ Each vendored library is listed below with the license it is under; also see the
 | [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
 | [zmath](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) | SIMD math library from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
 | [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h) | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | MIT |
-| [zmesh](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) | Zig bindings for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h) from the Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) | both MIT |
+| [zmesh](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) | Zig bindings for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h), [meshoptimizer](https://github.com/zeux/meshoptimizer) and [cgltf](https://github.com/jkuhlmann/cgltf) from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) | both MIT |
 
