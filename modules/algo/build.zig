@@ -1,8 +1,16 @@
 const std = @import("std");
 
+const bench = std.build.Pkg{
+    .name = "bench",
+    .path = .{ .path = thisDir() ++ "/vendored/zig-bench/bench.zig" },
+};
+
 pub const pkg = std.build.Pkg{
     .name = "brucelib.algorithms",
     .path = .{ .path = thisDir() ++ "/src/main.zig" },
+    .dependencies = &.{
+        bench,
+    },
 };
 
 pub fn build(b: *std.build.Builder) void {
@@ -22,6 +30,7 @@ pub fn buildTests(
     const tests = b.addTest(pkg.path.path);
     tests.setBuildMode(build_mode);
     tests.setTarget(target);
+    for (pkg.dependencies.?) |dep| tests.addPackage(dep);
     buildAndLink(tests);
     return tests;
 }
@@ -31,6 +40,10 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
 
     lib.setBuildMode(obj.build_mode);
     lib.setTarget(obj.target);
+    
+    for (pkg.dependencies.?) |dep| {
+        lib.addPackage(dep);
+    }
 
     lib.install();
 
