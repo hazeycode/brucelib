@@ -2,6 +2,10 @@
 
 **WARNING: WORK IN PROGRESS**
 
+### Testing & Benchmarking
+
+Run all tests and benchmarks with `zig build test`
+
 ### Vendored libs
 
 Each vendored library is listed below with the license it is under; also see the [NOTICE](NOTICE) file.
