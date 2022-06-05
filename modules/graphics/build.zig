@@ -13,7 +13,7 @@ pub const pkg = std.build.Pkg{
         },
         std.build.Pkg{
             .name = "zmath",
-            .path = .{ .path = thisDir() ++ "/vendored/zmath/zmath.zig" },
+            .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
         },
         std.build.Pkg{
             .name = "zig-opengl",
