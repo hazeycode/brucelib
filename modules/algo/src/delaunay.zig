@@ -10,30 +10,26 @@ const determinant = zmath.determinant;
 
 const benchmark = @import("bench").benchmark;
 
-
 pub const Point = [2]f32;
 pub const Triangle = [3]Point;
 pub const Edge = [2]Point;
 
-
 /// Returns an array of random Points
-pub fn randomPoints(comptime count: comptime_int) [count]Point {
+pub fn random_points(comptime count: comptime_int) [count]Point {
     @setEvalBranchQuota(1000000);
-    
+
     comptime var points: [count]Point = undefined;
-    
+
     comptime var rng = std.rand.DefaultPrng.init(0);
     inline for (points) |*p| p.* = .{
         comptime rng.random().float(f32),
         comptime rng.random().float(f32),
     };
-    
+
     return points;
 }
 
-
 // TODO(hazyecode): BowyerWatson3d
-
 
 /// Calculates the Delaunay triangulation of a set of points using the bowyer-watson algorithm
 /// Points must be in the range (0.0, 0.0)...(1.0, 1.0) and in counter-clockwise winding order
@@ -42,10 +38,10 @@ pub fn randomPoints(comptime count: comptime_int) [count]Point {
 pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]Triangle {
     const TriangleList = std.TailQueue(Triangle);
     var triangle_list = TriangleList{};
-    
+
     var bad_triangles = std.ArrayList(Triangle).init(allocator);
     defer bad_triangles.deinit();
-    
+
     var polygon = std.ArrayList(Edge).init(allocator);
     defer polygon.deinit();
 
@@ -53,8 +49,8 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
     defer allocator.destroy(super_tri);
     super_tri.data = Triangle{
         Point{ -10, -10 },
-        Point{ 0, 10},
-        Point{ 10, -10},
+        Point{ 0, 10 },
+        Point{ 10, -10 },
     };
     triangle_list.append(super_tri);
 
@@ -67,10 +63,10 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 const b = tri.data[1];
                 const c = tri.data[2];
                 const det = determinant(Matrix{
-                    .{a[0], a[1], a[0]*a[0] + a[1]*a[1], 1},
-                    .{b[0], b[1], b[0]*b[0] + b[1]*b[1], 1},
-                    .{c[0], c[1], c[0]*c[0] + c[1]*c[1], 1},
-                    .{point[0], point[1], point[0]*point[0] + point[1]*point[1], 1},
+                    .{ a[0], a[1], a[0] * a[0] + a[1] * a[1], 1 },
+                    .{ b[0], b[1], b[0] * b[0] + b[1] * b[1], 1 },
+                    .{ c[0], c[1], c[0] * c[0] + c[1] * c[1], 1 },
+                    .{ point[0], point[1], point[0] * point[0] + point[1] * point[1], 1 },
                 });
                 const point_in_circ = det[0] > 0;
                 if (point_in_circ) {
@@ -85,10 +81,11 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 test_edges: for (bad_triangles.items) |bad_tri_2| {
                     for (tri_edges(bad_tri_2)) |bad_edge_2| {
                         if ( // edges match?
-                            // TODO(hazeycode): vectorise:
-                            points_eq(bad_edge[0], bad_edge_2[0])
-                            and points_eq(bad_edge[1], bad_edge_2[1],
-                        )) {                    
+                        // TODO(hazeycode): vectorise:
+                        points_eq(bad_edge[0], bad_edge_2[0]) and points_eq(
+                            bad_edge[1],
+                            bad_edge_2[1],
+                        )) {
                             try polygon.append(bad_edge);
                             break :test_edges;
                         }
@@ -122,7 +119,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
             tri_node.data = .{ point, edge[0], edge[1] };
             triangle_list.append(tri_node);
         }
-        
+
         bad_triangles.clearRetainingCapacity();
         polygon.clearRetainingCapacity();
     }
@@ -178,26 +175,24 @@ fn tri_edges(triangle: Triangle) [3]Edge {
     };
 }
 
-
 // Benchmarks ///////////////////////////////////////////////////////////////////////////////////////////////
 
-
-test "bowyer-watson triangulate" {  
+test "bowyer-watson triangulate" {
     try benchmark(struct {
         pub const args = [_][]const Point{
-            &randomPoints(64),
-            &randomPoints(256),
-            &randomPoints(1024),
-            &randomPoints(2056),
+            &random_points(64),
+            &random_points(256),
+            &random_points(1024),
+            &random_points(2056),
         };
-        
-        pub const arg_names = [_][]const u8 {
+
+        pub const arg_names = [_][]const u8{
             "64 random points",
             "256 random points",
             "1024 random points",
             "2056 random points",
         };
-    
+
         pub fn triangluate_bowyer_watson_2d(ps: []const Point) ![]Triangle {
             return try bowyer_watson_2d(testing.allocator, ps);
         }

@@ -7,7 +7,7 @@ const bench = std.build.Pkg{
 
 const zmath = std.build.Pkg{
     .name = "zmath",
-    .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },  
+    .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
 };
 
 pub const pkg = std.build.Pkg{
