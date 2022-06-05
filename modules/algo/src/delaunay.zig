@@ -67,6 +67,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 test_edges: for (bad_triangles.items) |bad_tri_2| {
                     for (tri_edges(bad_tri_2)) |bad_edge_2| {
                         if ( // edges match?
+                            // TODO(hazeycode): vectorise:
                             points_eq(bad_edge[0], bad_edge_2[0])
                             and points_eq(bad_edge[1], bad_edge_2[1],
                         )) {                    
@@ -85,6 +86,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 defer maybe_node = node.next;
                 // zig fmt: off
                 if ( // triangles match?
+                    // TODO(hazeycode): vectorise:
                     points_eq(node.data[0], bad_tri[0])
                     and points_eq(node.data[1], bad_tri[1])
                     and points_eq(node.data[2], bad_tri[2])
