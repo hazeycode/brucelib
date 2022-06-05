@@ -11,7 +11,7 @@ const zmath = std.build.Pkg{
 };
 
 pub const pkg = std.build.Pkg{
-    .name = "brucelib.algorithms",
+    .name = "brucelib.algo",
     .path = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
         bench,
