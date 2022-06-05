@@ -15,7 +15,25 @@ pub const Point = [2]f32;
 pub const Triangle = [3]Point;
 pub const Edge = [2]Point;
 
+
+/// Returns an array of random Points
+pub fn randomPoints(comptime count: comptime_int) [count]Point {
+    @setEvalBranchQuota(1000000);
+    
+    comptime var points: [count]Point = undefined;
+    
+    comptime var rng = std.rand.DefaultPrng.init(0);
+    inline for (points) |*p| p.* = .{
+        comptime rng.random().float(f32),
+        comptime rng.random().float(f32),
+    };
+    
+    return points;
+}
+
+
 // TODO(hazyecode): BowyerWatson3d
+
 
 /// Calculates the Delaunay triangulation of a set of points using the bowyer-watson algorithm
 /// Points must be in the range (0.0, 0.0)...(1.0, 1.0) and in counter-clockwise winding order
@@ -163,25 +181,22 @@ fn tri_edges(triangle: Triangle) [3]Edge {
 
 // Benchmarks ///////////////////////////////////////////////////////////////////////////////////////////////
 
-fn randomPoints() [1024]Point {
-    @setEvalBranchQuota(100000);
-    
-    comptime var points: [1024]Point = undefined;
-    
-    comptime var rng = std.rand.DefaultPrng.init(0);
-    inline for (points) |*p| p.* = .{
-        comptime rng.random().float(f32),
-        comptime rng.random().float(f32),
-    };
-    
-    return points;
-}
 
 test "bowyer-watson triangulate" {  
     try benchmark(struct {
-        const points = randomPoints();
-    
-        pub const args = [_][]const Point{ &points };
+        pub const args = [_][]const Point{
+            &randomPoints(64),
+            &randomPoints(256),
+            &randomPoints(1024),
+            &randomPoints(2056),
+        };
+        
+        pub const arg_names = [_][]const u8 {
+            "64 random points",
+            "256 random points",
+            "1024 random points",
+            "2056 random points",
+        };
     
         pub fn triangluate_bowyer_watson_2d(ps: []const Point) ![]Triangle {
             return try bowyer_watson_2d(testing.allocator, ps);
