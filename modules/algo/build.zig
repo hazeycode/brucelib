@@ -5,11 +5,17 @@ const bench = std.build.Pkg{
     .path = .{ .path = thisDir() ++ "/vendored/zig-bench/bench.zig" },
 };
 
+const zmath = std.build.Pkg{
+    .name = "zmath",
+    .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },  
+};
+
 pub const pkg = std.build.Pkg{
     .name = "brucelib.algorithms",
     .path = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
         bench,
+        zmath,
     },
 };
 
@@ -40,7 +46,7 @@ pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
 
     lib.setBuildMode(obj.build_mode);
     lib.setTarget(obj.target);
-    
+
     for (pkg.dependencies.?) |dep| {
         lib.addPackage(dep);
     }
