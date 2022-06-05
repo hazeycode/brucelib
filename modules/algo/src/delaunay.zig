@@ -30,21 +30,29 @@ pub fn random_points(comptime count: comptime_int) [count]Point {
 }
 
 /// Returns the vertices of the mesh of a set of triangles
-pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Triangle) ![]Point {
-    var res = std.ArrayList(Point).init(allocator);
-    errdefer res.deinit();
+pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Triangle) ![]Point {    
+    const max_verts = (triangles.len + 5) / 2;
     
-    // TODO(hazeycode): Optimise!
+    var point_buffer = try allocator.alloc(Point, max_verts);
+    var cursor: usize = 0;
+    
     for (triangles) |tri| {
-        for (tri) |vert| {
-            for (res.items) |v| if (points_eq(v, vert)) {
-                continue;
-            };
-            try res.append(vert);
+        const edges = tri_edges(tri);
+        for (edges) |edge| {
+            for (edge) |point| {
+                var readback: usize = 0;
+                while (cursor - readback > 0) : (readback += 1) {
+                    if (points_eq(point_buffer[readback], point)) {
+                        point_buffer[cursor] = point;
+                        cursor += 1;
+                        break;
+                    }
+                }
+            }
         }
     }
-    
-    return res.items;
+        
+    return point_buffer;
 }
 
 // TODO(hazyecode): BowyerWatson3d
@@ -185,6 +193,10 @@ fn points_eq(a: Point, b: Point) bool {
     return distance_sq(a, b) < 1e-9;
 }
 
+fn edges_eq(a: Edge, b: Edge) bool {
+    return (points_eq(a[0], b[0]) and points_eq(a[1], b[1]));
+}
+
 fn tri_edges(triangle: Triangle) [3]Edge {
     return .{
         .{ triangle[0], triangle[1] },
@@ -257,17 +269,17 @@ test "get_triangle_vertices" {
         
     try benchmark(struct {
         pub const args = [_][]const Triangle{
-            &random_triangles(8),
             &random_triangles(16),
-            &random_triangles(32),
-            &random_triangles(64),
+            &random_triangles(256),
+            &random_triangles(1024),
+            &random_triangles(4096),
         };
 
         pub const arg_names = [_][]const u8{
-            "8 random triangles",
             "16 random triangles",
-            "32 random triangles",
-            "64 random triangles",
+            "256 random triangles",
+            "1024 random triangles",
+            "4096 random triangles",
         };
 
         pub fn bench_get_triangle_vertices(triangles: []const Triangle) !void {
