@@ -16,7 +16,7 @@ pub const Edge = [2]Point;
 
 /// Returns an array of random Points
 pub fn random_points(comptime count: comptime_int) [count]Point {
-    @setEvalBranchQuota(1000000);
+    @setEvalBranchQuota(500000);
 
     comptime var points: [count]Point = undefined;
 
@@ -27,6 +27,24 @@ pub fn random_points(comptime count: comptime_int) [count]Point {
     };
 
     return points;
+}
+
+/// Returns the vertices of the mesh of a set of triangles
+pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Triangle) ![]Point {
+    var res = std.ArrayList(Point).init(allocator);
+    errdefer res.deinit();
+    
+    // TODO(hazeycode): Optimise!
+    for (triangles) |tri| {
+        for (tri) |vert| {
+            for (res.items) |v| if (points_eq(v, vert)) {
+                continue;
+            };
+            try res.append(vert);
+        }
+    }
+    
+    return res.items;
 }
 
 // TODO(hazyecode): BowyerWatson3d
@@ -175,7 +193,42 @@ fn tri_edges(triangle: Triangle) [3]Edge {
     };
 }
 
+
 // Benchmarks ///////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Returns an array of random triangles, used for benchmarks
+pub fn random_triangles(comptime count: comptime_int) [count]Triangle {
+    @setEvalBranchQuota(1000000);
+
+    comptime var triangles: [count]Triangle = undefined;
+
+    comptime var rng = std.rand.DefaultPrng.init(0);
+    inline for (triangles) |*p| p.* = .{
+        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
+        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
+        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
+    };
+
+    return triangles;
+}
+
+
+test "random_points" {
+    try benchmark(struct {
+        pub const args = [_]comptime_int{  64, 256, 1024, 4096 };
+
+        pub const arg_names = [_][]const u8{
+            "64 random points",
+            "256 random points",
+            "1024 random points",
+            "4096 random points",
+        };
+
+        pub fn bench_random_points(comptime count: comptime_int) ![]Point {
+            return &random_points(count);
+        }
+    });
+}
 
 test "bowyer-watson triangulate" {
     try benchmark(struct {
@@ -183,7 +236,7 @@ test "bowyer-watson triangulate" {
             &random_points(64),
             &random_points(256),
             &random_points(1024),
-            &random_points(2056),
+            &random_points(2048),
         };
 
         pub const arg_names = [_][]const u8{
@@ -193,8 +246,33 @@ test "bowyer-watson triangulate" {
             "2056 random points",
         };
 
-        pub fn triangluate_bowyer_watson_2d(ps: []const Point) ![]Triangle {
-            return try bowyer_watson_2d(testing.allocator, ps);
+        pub fn bench_bowyer_watson_2d(ps: []const Point) !void {
+            const triangles = try bowyer_watson_2d(testing.allocator, ps);
+            testing.allocator.free(triangles);
+        }
+    });
+}
+
+test "get_triangle_vertices" {
+        
+    try benchmark(struct {
+        pub const args = [_][]const Triangle{
+            &random_triangles(8),
+            &random_triangles(16),
+            &random_triangles(32),
+            &random_triangles(64),
+        };
+
+        pub const arg_names = [_][]const u8{
+            "8 random triangles",
+            "16 random triangles",
+            "32 random triangles",
+            "64 random triangles",
+        };
+
+        pub fn bench_get_triangle_vertices(triangles: []const Triangle) !void {
+            const verts = try get_triangle_vertices(testing.allocator, triangles);
+            testing.allocator.free(verts);
         }
     });
 }
