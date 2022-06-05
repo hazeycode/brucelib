@@ -1,6 +1,6 @@
 // ==============================================================================
 //
-// zmath - version 0.3
+// zmath v0.4 (wip)
 // SIMD math library for game developers
 // https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath
 //
@@ -33,6 +33,11 @@
 // var v4 = load(mem[0..], F32x4, 0);
 // var v8 = load(mem[100..], F32x8, 0);
 // var v16 = load(mem[200..], F32x16, 0);
+//
+// var camera_position = [3]f32{ 1.0, 2.0, 3.0 };
+// var cam_pos = load3(camera_position);
+// ...
+// store3(&camera_position, cam_pos);
 //
 // v4 = sin(v4); // SIMDx4
 // v8 = cos(v8); // .x86_64 -> 2 x SIMDx4, .x86_64+avx+fma -> SIMDx8
@@ -69,6 +74,14 @@
 //
 // load(mem: []const f32, comptime T: type, comptime len: u32) T
 // store(mem: []f32, v: anytype, comptime len: u32) void
+//
+// load2(arr: [2]f32) F32x4
+// load3(arr: [3]f32) F32x4
+// load4(arr: [4]f32) F32x4
+//
+// store2(arr: *[2]f32, v: F32x4) void
+// store3(arr: *[3]f32, v: F32x4) void
+// store4(arr: *[4]f32, v: F32x4) void
 //
 // splat(comptime T: type, value: f32) T
 // splatInt(comptime T: type, value: u32) T
@@ -388,6 +401,26 @@ test "zmath.store" {
 
 pub inline fn vec3ToArray(v: Vec) [3]f32 {
     return .{ v[0], v[1], v[2] };
+}
+
+pub inline fn load2(arr: [2]f32) F32x4 {
+    return f32x4(arr[0], arr[1], 0.0, 0.0);
+}
+pub inline fn load3(arr: [3]f32) F32x4 {
+    return f32x4(arr[0], arr[1], arr[2], 0.0);
+}
+pub inline fn load4(arr: [4]f32) F32x4 {
+    return f32x4(arr[0], arr[1], arr[2], arr[3]);
+}
+
+pub inline fn store2(arr: *[2]f32, v: F32x4) void {
+    arr.* = .{ v[0], v[1] };
+}
+pub inline fn store3(arr: *[3]f32, v: F32x4) void {
+    arr.* = .{ v[0], v[1], v[2] };
+}
+pub inline fn store4(arr: *[4]f32, v: F32x4) void {
+    arr.* = .{ v[0], v[1], v[2], v[3] };
 }
 
 // ------------------------------------------------------------------------------
@@ -2633,7 +2666,7 @@ pub inline fn asFloats(ptr: anytype) [*]const f32 {
     comptime assert(T == Mat or T == F32x4 or T == F32x8 or T == F32x16);
     return @ptrCast([*]const f32, ptr);
 }
-test "asFloats" {
+test "zmath.asFloats" {
     {
         const mat = identity();
         const f32ptr = asFloats(&mat);
@@ -2648,6 +2681,12 @@ test "asFloats" {
         try expect(f32ptr[1] == 1.0);
         try expect(f32ptr[7] == 1.0);
     }
+}
+
+test "zmath.loadArray" {
+    const camera_position = [3]f32{ 1.0, 2.0, 3.0 };
+    const simd_reg = load3(camera_position);
+    try expect(approxEqAbs(simd_reg, f32x4(1.0, 2.0, 3.0, 0.0), 0.0));
 }
 
 // ------------------------------------------------------------------------------
