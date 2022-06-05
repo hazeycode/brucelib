@@ -263,8 +263,14 @@ test "bowyer-watson triangulate" {
 }
 
 test "get_triangle_vertices" {
-        
+     
     try benchmark(struct {
+        
+        // TODO(hazeycode): this benchmark is stupid. using totally random triangles means that it's
+        // likely that all the points are unique which will affect the performance characteristics
+        // of get_triangle_vertices differently than a more realistic domain. Replace the random
+        // traingles with random delaunay meshes (i.e. where all triangles are connected)
+        
         pub const args = [_][]const Triangle{
             &random_triangles(16),
             &random_triangles(256),
