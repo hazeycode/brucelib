@@ -37,16 +37,13 @@ pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Tr
     var cursor: usize = 0;
     
     for (triangles) |tri| {
-        const edges = tri_edges(tri);
-        for (edges) |edge| {
-            for (edge) |point| {
-                var readback: usize = 0;
-                while (cursor - readback > 0) : (readback += 1) {
-                    if (points_eq(point_buffer[readback], point)) {
-                        point_buffer[cursor] = point;
-                        cursor += 1;
-                        break;
-                    }
+        for (tri) |point| {
+            var readback: usize = 0;
+            while (cursor - readback > 0) : (readback += 1) {
+                if (points_eq(point_buffer[readback], point)) {
+                    point_buffer[cursor] = point;
+                    cursor += 1;
+                    break;
                 }
             }
         }
