@@ -223,7 +223,7 @@ pub fn random_triangles(comptime count: comptime_int) [count]Triangle {
 
 
 test "random_points" {
-    try benchmark(struct {
+    try benchmark(void, struct {
         pub const args = [_]comptime_int{  64, 256, 1024, 4096 };
 
         pub const arg_names = [_][]const u8{
@@ -233,14 +233,19 @@ test "random_points" {
             "4096 random points",
         };
 
-        pub fn bench_random_points(comptime count: comptime_int) ![]Point {
+        pub fn bench_random_points(_: anytype, comptime count: comptime_int) ![]Point {
             return &random_points(count);
         }
     });
 }
 
 test "bowyer-watson triangulate" {
-    try benchmark(struct {
+    var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
+    defer temp_arena.deinit();
+    
+    var allocator = temp_arena.allocator();
+    
+    try benchmark(&allocator, struct {
         pub const args = [_][]const Point{
             &random_points(64),
             &random_points(256),
@@ -255,16 +260,19 @@ test "bowyer-watson triangulate" {
             "2056 random points",
         };
 
-        pub fn bench_bowyer_watson_2d(ps: []const Point) !void {
-            const triangles = try bowyer_watson_2d(testing.allocator, ps);
-            testing.allocator.free(triangles);
+        pub fn bench_bowyer_watson_2d(context: *std.mem.Allocator, ps: []const Point) ![]Triangle {
+            return try bowyer_watson_2d(context.*, ps);
         }
     });
 }
 
 test "get_triangle_vertices" {
+    var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
+    defer temp_arena.deinit();
+    
+    var allocator = temp_arena.allocator();
      
-    try benchmark(struct {
+    try benchmark(&allocator, struct {
         
         // TODO(hazeycode): this benchmark is stupid. using totally random triangles means that it's
         // likely that all the points are unique which will affect the performance characteristics
@@ -285,9 +293,8 @@ test "get_triangle_vertices" {
             "4096 random triangles",
         };
 
-        pub fn bench_get_triangle_vertices(triangles: []const Triangle) !void {
-            const verts = try get_triangle_vertices(testing.allocator, triangles);
-            testing.allocator.free(verts);
+        pub fn bench_get_triangle_vertices(context: *std.mem.Allocator, triangles: []const Triangle) ![]Point {
+            return try get_triangle_vertices(context.*, triangles);
         }
     });
 }
