@@ -55,7 +55,7 @@ pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Tr
 // TODO(hazyecode): BowyerWatson3d
 
 /// Calculates the Delaunay triangulation of a set of points using the bowyer-watson algorithm
-/// Points must be in the range (0.0, 0.0)...(1.0, 1.0) and in counter-clockwise winding order
+/// Points must be in the range (0.0, 0.0)...(1.0, 1.0)
 /// Caller owns the returned slice
 /// TODO(hazeycode): Optimsations
 pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]Triangle {
@@ -71,8 +71,8 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
     const super_tri = try allocator.create(TriangleList.Node);
     defer allocator.destroy(super_tri);
     super_tri.data = Triangle{
-        Point{ -10, -10 },
         Point{ 0, 10 },
+        Point{ -10, -10 },
         Point{ 10, -10 },
     };
     triangle_list.append(super_tri);
@@ -94,6 +94,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 const point_in_circ = det[0] > 0;
                 if (point_in_circ) {
                     try bad_triangles.append(tri.data);
+                    // std.log.warn("found invalidated triangle", .{});
                 }
             }
         }
@@ -110,6 +111,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                             bad_edge_2[1],
                         )) {
                             try polygon.append(bad_edge);
+                            // std.log.warn("found hole edge", .{});
                             break :test_edges;
                         }
                     }
@@ -131,6 +133,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 ) {
                 // zig fmt: on
                     triangle_list.remove(node);
+                    // std.log.warn("bad triangle removed", .{});
                     break;
                 }
             }
@@ -141,6 +144,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
             var tri_node = try allocator.create(TriangleList.Node);
             tri_node.data = .{ point, edge[0], edge[1] };
             triangle_list.append(tri_node);
+            // std.log.warn("triangle added", .{});
         }
 
         bad_triangles.clearRetainingCapacity();
