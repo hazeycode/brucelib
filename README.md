@@ -2,24 +2,19 @@
 
 **WARNING: WORK IN PROGRESS**
 
-A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors. Leveraging the [Zig programming language and toolchain](https://ziglang.org/), brucelib intends to be highly hackable and suitable for rapid prototyping, jams or fully-fledged products. [The examples](#examples) demonstrate how one can use modules in combination with each other.
-
-"Absorb what is useful, discard what is useless and add what is specifically your own” - Bruce Lee
+A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors.
 
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other. 3rd-party code is vendored and no external dependencies are required. Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. All you need is [Zig 0.10.x](https://github.com/ziglang/zig). The planned scope of this project is to target all the popular desktop, mobile and console platforms however support is limited to Linux and Windows currently.
+Modules are designed to be used standalone or in combination with each other (see [examples](#examples)). 3rd-party code is vendored and no external dependencies are required. Except for [platform](modules/platform/) and [graphics](modules/graphics/), modules have no system dependencies. All you need is [Zig 0.10.x](https://github.com/ziglang/zig). The planned scope of this project is to target all the popular desktop, mobile and console platforms however support is limited to Linux and Windows currently.
 
-| Module name | Description | Status |
-| :--- | :---------- | :----- |
-| [platform](modules/platform/) | Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures | in-progress |
-| [graphics](modules/graphics/) | Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives | in-progress |
-| [audio](modules/audio/) | Mixing, synthesis, signal processsing and file loaders | in-progress |
-| [algo](modules/algo/) | Various algorithms used in games and simulations | in-progress |
-| gui | A flexible gui library with an immediate-mode interface | planned |
-| asset | Data-agnostic, graph-based asset system | planned |
-| build | Useful build and distribution packaging procedures to import into your build.zig | planned |
+- [platform](modules/platform/) - Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures (in-progress)
+- [graphics](modules/graphics/) - Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives (in-progress)
+- [audio](modules/audio/) - Mixing, synthesis, signal processsing and file loaders (in-progress)
+- [algo](modules/algo/) - Various algorithms used in games and simulations (in-progress)
+- *gui* - A flexible gui library (planned)
+- *build* - Useful build and distribution packaging procedures to import into your build.zig (planned)
 
 
 ## Getting Started
@@ -29,21 +24,19 @@ Modules are designed to be used standalone or in combination with each other. 3r
 - List all available build targets with `zig build --help`
 - Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or build and link in your build.zig. See [build.zig](build.zig) for examples.
 
+Alternatively, take a look at [this project template](https://github.com/hazeycode/brucelib-begin)
+
 
 ### Examples
 
 | Example | Screen capture |
 | ------- | -------------- |
-| [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000_funky_triangle/screencap.gif" width=426/> |
+| [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000_funky_triangle/screencap.gif" width=213/> |
 
 
 ## Contributing
 
-Feature requests, bug reports and pull requests are most welcome. Please note however, that this project is in early stages of development.
-
-To contribute code, you must have sole ownership or have permission from an employer, client or partner where applicable and agree to license the contributed code under the license of this project as described in the [LICENSE](LICENSE) file.
-
-TODO: CLA
+Feature requests, bug reports and pull requests are most welcome. Please note however, that this project is in very early stages of development and everything may change.
 
 
 ## Licenses and attribution
