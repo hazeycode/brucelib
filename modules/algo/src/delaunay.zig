@@ -77,9 +77,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
     };
     triangle_list.append(super_tri);
 
-    for (points) |point, i| {
-        // std.log.warn("insert point {}", .{i});
-        
+    for (points) |point| {
         { // find all triangles invalidated by insertion of this point
             var maybe_tri = triangle_list.first;
             while (maybe_tri) |tri| {
@@ -126,12 +124,14 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
             var maybe_node = triangle_list.first;
             while (maybe_node) |node| {
                 defer maybe_node = node.next;
+                // zig fmt: off
                 if ( // triangles match?
                     // TODO(hazeycode): vectorise:
-                    points_eq(node.data[0], bad_tri[0]) and
-                    points_eq(node.data[1], bad_tri[1]) and
-                    points_eq(node.data[2], bad_tri[2])
+                    points_eq(node.data[0], bad_tri[0])
+                    and points_eq(node.data[1], bad_tri[1])
+                    and points_eq(node.data[2], bad_tri[2])
                 ) {
+                // zig fmt: on
                     triangle_list.remove(node);
                     // std.log.warn("bad triangle removed", .{});
                     break;
@@ -158,16 +158,16 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
         var maybe_triangle = triangle_list.first;
         while (maybe_triangle) |triangle| {
             defer maybe_triangle = triangle.next;
-            var filter = false;
-            test_super_tri: for (triangle.data) |vertex| {
+            var remove = false;
+            for (triangle.data) |vertex| {
                 for (super_tri.data) |super_tri_vert| {
                     if (points_eq(super_tri_vert, vertex)) {
-                        filter = true;
-                        break :test_super_tri;
+                        remove = true;
+                        break;
                     }
                 }
             }
-            if (filter == false) {
+            if (remove == false) {
                 try res.append(triangle.data);
             }
         }
