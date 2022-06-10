@@ -227,7 +227,7 @@ test "random_points" {
     defer temp_arena.deinit();
     
     var allocator = temp_arena.allocator();
-    
+        
     try benchmark(&allocator, struct {
         pub const args = [_]usize{  64, 256, 1024, 4096 };
 
@@ -249,76 +249,77 @@ test "bowyer-watson triangulate" {
     defer temp_arena.deinit();
     
     var allocator = temp_arena.allocator();
-    
-    var context = struct {
-        allocator: std.mem.Allocator,
-        data: [4][]Point,
-    }{
-        .allocator = allocator,
-        .data = .{
-            try random_points(allocator, 64),
-            try random_points(allocator, 256),
-            try random_points(allocator, 1024),
-            try random_points(allocator, 2048),
+        
+    try benchmark(
+        &struct {
+            allocator: std.mem.Allocator,
+            data: [4][]Point,
+        }{
+            .allocator = allocator,
+            .data = .{
+                try random_points(allocator, 64),
+                try random_points(allocator, 256),
+                try random_points(allocator, 1024),
+                try random_points(allocator, 2048),
+            },
         },
-    };
+        struct {
+            const range = @import("comptime_range.zig").range;
+            pub const args = range(0, 3);
     
-    try benchmark(&context, struct {
-        const range = @import("comptime_range.zig").range;
-        pub const args = range(0, 3);
-
-        pub const arg_names = [_][]const u8{
-            "64 random points",
-            "256 random points",
-            "1024 random points",
-            "2056 random points",
-        };
-
-        pub fn bench_bowyer_watson_2d(ctx: anytype, comptime data_idx: usize) ![]Triangle {
-            return try bowyer_watson_2d(ctx.allocator, ctx.data[data_idx]);
+            pub const arg_names = [_][]const u8{
+                "64 random points",
+                "256 random points",
+                "1024 random points",
+                "2056 random points",
+            };
+    
+            pub fn bench_bowyer_watson_2d(ctx: anytype, comptime data_idx: usize) ![]Triangle {
+                return try bowyer_watson_2d(ctx.allocator, ctx.data[data_idx]);
+            }
         }
-    });
+    );
 }
 
 test "get_triangle_vertices" {
+    // TODO(hazeycode): this benchmark is stupid. using totally random triangles means that it's
+    // likely that all the points are unique which will affect the performance characteristics
+    // of get_triangle_vertices differently than a more realistic domain. Replace the random
+    // traingles with random delaunay meshes (i.e. where all triangles are connected)
+    
     var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer temp_arena.deinit();
     
     var allocator = temp_arena.allocator();
     
-    var context = struct {
-        allocator: std.mem.Allocator,
-        data: [4][]Triangle,
-    }{
-        .allocator = allocator,
-        .data = .{
-            try random_triangles(allocator, 16),
-            try random_triangles(allocator, 256),
-            try random_triangles(allocator, 1024),
-            try random_triangles(allocator, 4096),
+    try benchmark(
+        &struct {
+            allocator: std.mem.Allocator,
+            data: [4][]Triangle,
+        }{
+            .allocator = allocator,
+            .data = .{
+                try random_triangles(allocator, 16),
+                try random_triangles(allocator, 256),
+                try random_triangles(allocator, 1024),
+                try random_triangles(allocator, 4096),
+            },
         },
-    };
-     
-    try benchmark(&context, struct {
-        
-        // TODO(hazeycode): this benchmark is stupid. using totally random triangles means that it's
-        // likely that all the points are unique which will affect the performance characteristics
-        // of get_triangle_vertices differently than a more realistic domain. Replace the random
-        // traingles with random delaunay meshes (i.e. where all triangles are connected)
-        
-        const range = @import("comptime_range.zig").range;
-        
-        pub const args = range(0, 3);
-
-        pub const arg_names = [_][]const u8{
-            "16 random triangles",
-            "256 random triangles",
-            "1024 random triangles",
-            "4096 random triangles",
-        };
-
-        pub fn bench_get_triangle_vertices(ctx: anytype, comptime data_idx: usize) ![]Point {
-            return try get_triangle_vertices(ctx.allocator, ctx.data[data_idx]);
+        struct {                
+            const range = @import("comptime_range.zig").range;
+            
+            pub const args = range(0, 3);
+    
+            pub const arg_names = [_][]const u8{
+                "16 random triangles",
+                "256 random triangles",
+                "1024 random triangles",
+                "4096 random triangles",
+            };
+    
+            pub fn bench_get_triangle_vertices(ctx: anytype, comptime data_idx: usize) ![]Point {
+                return try get_triangle_vertices(ctx.allocator, ctx.data[data_idx]);
+            }
         }
-    });
+    );
 }
