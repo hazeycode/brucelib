@@ -15,15 +15,13 @@ pub const Triangle = [3]Point;
 pub const Edge = [2]Point;
 
 /// Returns an array of random Points
-pub fn random_points(comptime count: comptime_int) [count]Point {
-    @setEvalBranchQuota(500000);
+pub fn random_points(allocator: std.mem.Allocator, count: usize) ![]Point {
+    var points = try allocator.alloc(Point, count);
 
-    comptime var points: [count]Point = undefined;
-
-    comptime var rng = std.rand.DefaultPrng.init(0);
-    inline for (points) |*p| p.* = .{
-        comptime rng.random().float(f32),
-        comptime rng.random().float(f32),
+    var rng = std.rand.DefaultPrng.init(0);
+    for (points) |*p| p.* = .{
+        rng.random().float(f32),
+        rng.random().float(f32),
     };
 
     return points;
@@ -77,7 +75,10 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
     };
     triangle_list.append(super_tri);
 
-    for (points) |point| {
+    for (points) |point, i| {
+        _ = i;
+        // std.log.warn("insert point {}", .{i});
+        
         { // find all triangles invalidated by insertion of this point
             var maybe_tri = triangle_list.first;
             while (maybe_tri) |tri| {
@@ -105,11 +106,10 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 test_edges: for (bad_triangles.items) |bad_tri_2| {
                     for (tri_edges(bad_tri_2)) |bad_edge_2| {
                         if ( // edges match?
-                        // TODO(hazeycode): vectorise:
-                        points_eq(bad_edge[0], bad_edge_2[0]) and points_eq(
-                            bad_edge[1],
-                            bad_edge_2[1],
-                        )) {
+                            // TODO(hazeycode): vectorise:
+                            points_eq(bad_edge[0], bad_edge_2[0]) and
+                            points_eq(bad_edge[1], bad_edge_2[1])
+                        ) {
                             try polygon.append(bad_edge);
                             // std.log.warn("found hole edge", .{});
                             break :test_edges;
@@ -124,14 +124,12 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
             var maybe_node = triangle_list.first;
             while (maybe_node) |node| {
                 defer maybe_node = node.next;
-                // zig fmt: off
                 if ( // triangles match?
                     // TODO(hazeycode): vectorise:
-                    points_eq(node.data[0], bad_tri[0])
-                    and points_eq(node.data[1], bad_tri[1])
-                    and points_eq(node.data[2], bad_tri[2])
+                    points_eq(node.data[0], bad_tri[0]) and
+                    points_eq(node.data[1], bad_tri[1]) and
+                    points_eq(node.data[2], bad_tri[2])
                 ) {
-                // zig fmt: on
                     triangle_list.remove(node);
                     // std.log.warn("bad triangle removed", .{});
                     break;
@@ -158,16 +156,16 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
         var maybe_triangle = triangle_list.first;
         while (maybe_triangle) |triangle| {
             defer maybe_triangle = triangle.next;
-            var remove = false;
-            for (triangle.data) |vertex| {
+            var filter = false;
+            test_super_tri: for (triangle.data) |vertex| {
                 for (super_tri.data) |super_tri_vert| {
                     if (points_eq(super_tri_vert, vertex)) {
-                        remove = true;
-                        break;
+                        filter = true;
+                        break :test_super_tri;
                     }
                 }
             }
-            if (remove == false) {
+            if (filter == false) {
                 try res.append(triangle.data);
             }
         }
@@ -210,16 +208,14 @@ fn tri_edges(triangle: Triangle) [3]Edge {
 // Benchmarks ///////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Returns an array of random triangles, used for benchmarks
-pub fn random_triangles(comptime count: comptime_int) [count]Triangle {
-    @setEvalBranchQuota(1000000);
+pub fn random_triangles(allocator: std.mem.Allocator, count: usize) ![]Triangle {
+    var triangles = try allocator.alloc(Triangle, count);
 
-    comptime var triangles: [count]Triangle = undefined;
-
-    comptime var rng = std.rand.DefaultPrng.init(0);
-    inline for (triangles) |*p| p.* = .{
-        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
-        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
-        .{ comptime rng.random().float(f32), comptime rng.random().float(f32) },
+    var rng = std.rand.DefaultPrng.init(0);
+    for (triangles) |*p| p.* = .{
+        .{ rng.random().float(f32), rng.random().float(f32) },
+        .{ rng.random().float(f32), rng.random().float(f32) },
+        .{ rng.random().float(f32), rng.random().float(f32) },
     };
 
     return triangles;
@@ -227,8 +223,13 @@ pub fn random_triangles(comptime count: comptime_int) [count]Triangle {
 
 
 test "random_points" {
-    try benchmark(void, struct {
-        pub const args = [_]comptime_int{  64, 256, 1024, 4096 };
+    var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
+    defer temp_arena.deinit();
+    
+    var allocator = temp_arena.allocator();
+    
+    try benchmark(&allocator, struct {
+        pub const args = [_]usize{  64, 256, 1024, 4096 };
 
         pub const arg_names = [_][]const u8{
             "64 random points",
@@ -237,8 +238,8 @@ test "random_points" {
             "4096 random points",
         };
 
-        pub fn bench_random_points(_: anytype, comptime count: comptime_int) ![]Point {
-            return &random_points(count);
+        pub fn bench_random_points(ctx: anytype, comptime count: usize) ![]Point {
+            return try random_points(ctx.*, count);
         }
     });
 }
@@ -249,13 +250,22 @@ test "bowyer-watson triangulate" {
     
     var allocator = temp_arena.allocator();
     
-    try benchmark(&allocator, struct {
-        pub const args = [_][]const Point{
-            &random_points(64),
-            &random_points(256),
-            &random_points(1024),
-            &random_points(2048),
-        };
+    var context = struct {
+        allocator: std.mem.Allocator,
+        data: [4][]Point,
+    }{
+        .allocator = allocator,
+        .data = .{
+            try random_points(allocator, 64),
+            try random_points(allocator, 256),
+            try random_points(allocator, 1024),
+            try random_points(allocator, 2048),
+        },
+    };
+    
+    try benchmark(&context, struct {
+        const range = @import("comptime_range.zig").range;
+        pub const args = range(0, 3);
 
         pub const arg_names = [_][]const u8{
             "64 random points",
@@ -264,8 +274,8 @@ test "bowyer-watson triangulate" {
             "2056 random points",
         };
 
-        pub fn bench_bowyer_watson_2d(context: *std.mem.Allocator, ps: []const Point) ![]Triangle {
-            return try bowyer_watson_2d(context.*, ps);
+        pub fn bench_bowyer_watson_2d(ctx: anytype, comptime data_idx: usize) ![]Triangle {
+            return try bowyer_watson_2d(ctx.allocator, ctx.data[data_idx]);
         }
     });
 }
@@ -275,20 +285,30 @@ test "get_triangle_vertices" {
     defer temp_arena.deinit();
     
     var allocator = temp_arena.allocator();
+    
+    var context = struct {
+        allocator: std.mem.Allocator,
+        data: [4][]Triangle,
+    }{
+        .allocator = allocator,
+        .data = .{
+            try random_triangles(allocator, 16),
+            try random_triangles(allocator, 256),
+            try random_triangles(allocator, 1024),
+            try random_triangles(allocator, 4096),
+        },
+    };
      
-    try benchmark(&allocator, struct {
+    try benchmark(&context, struct {
         
         // TODO(hazeycode): this benchmark is stupid. using totally random triangles means that it's
         // likely that all the points are unique which will affect the performance characteristics
         // of get_triangle_vertices differently than a more realistic domain. Replace the random
         // traingles with random delaunay meshes (i.e. where all triangles are connected)
         
-        pub const args = [_][]const Triangle{
-            &random_triangles(16),
-            &random_triangles(256),
-            &random_triangles(1024),
-            &random_triangles(4096),
-        };
+        const range = @import("comptime_range.zig").range;
+        
+        pub const args = range(0, 3);
 
         pub const arg_names = [_][]const u8{
             "16 random triangles",
@@ -297,8 +317,8 @@ test "get_triangle_vertices" {
             "4096 random triangles",
         };
 
-        pub fn bench_get_triangle_vertices(context: *std.mem.Allocator, triangles: []const Triangle) ![]Point {
-            return try get_triangle_vertices(context.*, triangles);
+        pub fn bench_get_triangle_vertices(ctx: anytype, comptime data_idx: usize) ![]Point {
+            return try get_triangle_vertices(ctx.allocator, ctx.data[data_idx]);
         }
     });
 }
