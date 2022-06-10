@@ -1,3 +1,5 @@
+const std = @import("std");
+
 /// Returns a slice of integers from start to end (inclusive) that can be iterated over
 pub fn range(comptime start: comptime_int, comptime end: comptime_int) []comptime_int {
     const d: isize = end - start;
