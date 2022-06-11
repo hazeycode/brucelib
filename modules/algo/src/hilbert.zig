@@ -1,4 +1,4 @@
-//! Algorithms based on Hilbert curves
+//! Algorithms based on Hilbert curves (https://en.wikipedia.org/wiki/Hilbert_curve)
 
 
 const std = @import("std");
@@ -8,6 +8,53 @@ const benchmark = @import("bench").benchmark;
 
 
 pub const Point = [2]u32;
+
+
+pub fn point_to_d(n: u32, point: Point) u32 {
+    var x = point[0];
+    var y = point[1];
+    var rx = @as(u32, 0);
+    var ry = @as(u32, 0);
+    var d = @as(u32, 0);
+    var s = n / 2;
+    while (s > 0) : (s /= 2) {
+        rx = (x & y) > 0;
+        ry = (y & s) > 0;
+        d += s * s * ((3 * rx) ^ ry);
+        rotate(n, &x, &y, rx, ry);
+    }
+    return d;
+}
+
+pub fn point_from_d(n: u32, d: u32) Point {
+    var x = @as(u32, 0);
+    var y = @as(u32, 0);
+    var rx = @as(u32, 0);
+    var ry = @as(u32, 0);
+    const t = d;
+    var s = 1;
+    while (s < n) : (s *= 2) {
+        rx = 1 & (t/2);
+        ry = 1 & (t^rx);
+        rotate(s, x, y, rx, ry);
+        x.* += s * rx;
+        y.* += s * ry;
+    }
+    return .{ x, y };
+}
+
+pub fn rotate(n: u32, x: *u32, y: *u32, rx: u32, ry: u32) void {
+    if (ry == 0) {
+        if (rx == 1) {
+            x.* = n - 1 - x.*;
+            y.* = n - 1 - y.*;
+        }
+        // swap
+        var temp = x.*;
+        x.* = y;
+        y.* = temp;
+    }
+}
 
 
 /// In-place Hilbert sort a set of points
