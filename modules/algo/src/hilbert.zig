@@ -243,7 +243,7 @@ test "benchmark hilbert sort points 2d" {
     
     try benchmark(
         &struct {
-            data: [16]struct { order: u32, points: []Point },
+            data: [20]struct { order: u32, points: []Point },
         }{
             .data = .{
                 .{ .order = 1, .points = try random_points(allocator, 64) },
@@ -262,11 +262,15 @@ test "benchmark hilbert sort points 2d" {
                 .{ .order = 4, .points = try random_points(allocator, 256) },
                 .{ .order = 4, .points = try random_points(allocator, 1024) },
                 .{ .order = 4, .points = try random_points(allocator, 4096) },
+                .{ .order = 5, .points = try random_points(allocator, 64) },
+                .{ .order = 5, .points = try random_points(allocator, 256) },
+                .{ .order = 5, .points = try random_points(allocator, 1024) },
+                .{ .order = 5, .points = try random_points(allocator, 4096) },
             },
         },
         struct {
             const range = @import("comptime_range.zig").range;
-            pub const args = range(0, 15);
+            pub const args = range(0, 19);
         
             pub const arg_names = [_][]const u8 {
                 "64 random points, order 1",
@@ -285,6 +289,10 @@ test "benchmark hilbert sort points 2d" {
                 "256 random points, order 4",
                 "1024 random points, order 4",
                 "4096 random points, order 4",
+                "64 random points, order 5",
+                "256 random points, order 5",
+                "1024 random points, order 5",
+                "4096 random points, order 5",
             };
         
             pub fn bench_hilbert_sort_points_2d(ctx: anytype, comptime data_idx: usize) ![]Point {
