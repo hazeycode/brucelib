@@ -19,41 +19,24 @@ pub const pkg = std.build.Pkg{
     },
 };
 
+pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep  {
+    const ts = b.addTest(pkg.path.path);
+    ts.setBuildMode(mode);
+    ts.setTarget(target);
+    for (pkg.dependencies.?) |dep| ts.addPackage(dep);
+    return ts;
+}
+
 pub fn build(b: *std.build.Builder) void {
     const build_mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
-    const tests = buildTests(b, build_mode, target);
 
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&tests.step);
+    test_step.dependOn(&tests(b, build_mode, target).step);
 }
 
-pub fn buildTests(
-    b: *std.build.Builder,
-    build_mode: std.builtin.Mode,
-    target: std.zig.CrossTarget,
-) *std.build.LibExeObjStep {
-    const tests = b.addTest(pkg.path.path);
-    tests.setBuildMode(build_mode);
-    tests.setTarget(target);
-    for (pkg.dependencies.?) |dep| tests.addPackage(dep);
-    buildAndLink(tests);
-    return tests;
-}
-
-pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
-    const lib = obj.builder.addStaticLibrary(pkg.name, pkg.path.path);
-
-    lib.setBuildMode(obj.build_mode);
-    lib.setTarget(obj.target);
-
-    for (pkg.dependencies.?) |dep| {
-        lib.addPackage(dep);
-    }
-
-    lib.install();
-
-    obj.linkLibrary(lib);
+pub fn add_to(obj: *std.build.LibExeObjStep) void {
+    obj.addPackage(pkg);
 }
 
 fn thisDir() []const u8 {

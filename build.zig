@@ -5,12 +5,7 @@ pub const graphics = @import("modules/graphics/build.zig");
 pub const audio = @import("modules/audio/build.zig");
 pub const algo = @import("modules/algo/build.zig");
 
-const all_modules = .{
-    platform,
-    graphics,
-    audio,
-    algo,  
-};
+const all_modules = .{platform, graphics, audio, algo};
 
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
@@ -20,9 +15,18 @@ pub fn build(b: *std.build.Builder) !void {
     const target_opts = b.standardTargetOptions(.{});
 
     const test_step = b.step("test", "Run all tests");
-    inline for (all_modules) |module| {
-        test_step.dependOn(&module.buildTests(b, mode, target_opts).step);
-    }
+    
+    const platform_tests = platform.tests(b, mode, target_opts);
+    platform.link(platform_tests);
+    
+    const graphics_tests = graphics.tests(b, mode, target_opts);
+    const audio_tests = audio.tests(b, mode, target_opts);
+    const algo_tests = algo.tests(b, mode, target_opts);
+    
+    test_step.dependOn(&platform_tests.step);
+    test_step.dependOn(&graphics_tests.step);
+    test_step.dependOn(&audio_tests.step);
+    test_step.dependOn(&algo_tests.step);
     
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
@@ -43,8 +47,7 @@ pub fn build(b: *std.build.Builder) !void {
                     example.setBuildMode(mode);
 
                     inline for (all_modules) |module| {
-                        example.addPackage(module.pkg);
-                        module.buildAndLink(example);
+                        module.add_to(example);
                     }
 
                     example.install();

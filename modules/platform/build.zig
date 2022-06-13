@@ -15,57 +15,42 @@ pub const pkg = std.build.Pkg{
     },
 };
 
-pub fn build(b: *std.build.Builder) void {
-    const build_mode = b.standardReleaseOptions();
-    const target = b.standardTargetOptions(.{});
-    const tests = buildTests(b, build_mode, target);
-
-    const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&tests.step);
+pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
+    const ts = b.addTest(pkg.path.path);
+    ts.setBuildMode(mode);
+    ts.setTarget(target);
+    for (pkg.dependencies.?) |dep| ts.addPackage(dep);
+    return ts;
 }
 
-pub fn buildTests(
-    b: *std.build.Builder,
-    build_mode: std.builtin.Mode,
-    target: std.zig.CrossTarget,
-) *std.build.LibExeObjStep {
-    const tests = b.addTest(pkg.path.path);
-    tests.setBuildMode(build_mode);
-    tests.setTarget(target);
-    for (pkg.dependencies.?) |dep| tests.addPackage(dep);
-    buildAndLink(tests);
-    return tests;
-}
-
-pub fn buildAndLink(obj: *std.build.LibExeObjStep) void {
-    const lib = obj.builder.addStaticLibrary(pkg.name, pkg.path.path);
-
-    lib.setBuildMode(obj.build_mode);
-    lib.setTarget(obj.target);
-
-    lib.linkLibC();
-
-    if (lib.target.isLinux()) {
-        lib.linkSystemLibrary("X11");
-        lib.linkSystemLibrary("xcb");
-        lib.linkSystemLibrary("X11-xcb");
-        lib.linkSystemLibrary("GL");
-    } else if (lib.target.isWindows()) {
-        lib.linkSystemLibrary("Kernel32");
-        lib.linkSystemLibrary("User32");
-        lib.linkSystemLibrary("d3d11");
-        lib.linkSystemLibrary("dxgi");
+pub fn link(obj: *std.build.LibExeObjStep) void {
+    obj.linkLibC();
+    if (obj.target.isLinux()) {
+        obj.linkSystemLibrary("X11");
+        obj.linkSystemLibrary("xcb");
+        obj.linkSystemLibrary("X11-xcb");
+        obj.linkSystemLibrary("GL");
+    } else if (obj.target.isWindows()) {
+        obj.linkSystemLibrary("Kernel32");
+        obj.linkSystemLibrary("User32");
+        obj.linkSystemLibrary("d3d11");
+        obj.linkSystemLibrary("dxgi");
     } else {
         std.debug.panic("Unsupported target!", .{});
     }
+}
 
-    for (pkg.dependencies.?) |dep| {
-        lib.addPackage(dep);
-    }
+pub fn add_to(obj: *std.build.LibExeObjStep) void {
+    obj.addPackage(pkg);
+    link(obj);
+}
 
-    lib.install();
+pub fn build(b: *std.build.Builder) void {
+    const build_mode = b.standardReleaseOptions();
+    const target = b.standardTargetOptions(.{});
 
-    obj.linkLibrary(lib);
+    const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&tests(b, build_mode, target).step);
 }
 
 fn thisDir() []const u8 {
