@@ -582,21 +582,43 @@ const X11 = struct {
                 },
                 c.XCB_BUTTON_PRESS => {
                     const xcb_button_press_event = @ptrCast(*c.xcb_button_press_event_t, xcb_event);
-                    try mouse_button_events.append(.{
-                        .action = .press,
-                        .button = @intToEnum(MouseButton, xcb_button_press_event.detail),
-                        .x = xcb_button_press_event.event_x,
-                        .y = xcb_button_press_event.event_y,
-                    });
+                    const maybe_mouse_button: ?MouseButton = switch (xcb_button_press_event.detail) {
+                        1 => .left,
+                        2 => .middle,
+                        3 => .right,
+                        else => null,
+                    };
+                    if (maybe_mouse_button) |mouse_button| {
+                        try mouse_button_events.append(.{
+                            .action = .press,
+                            .button = mouse_button,
+                            .x = xcb_button_press_event.event_x,
+                            .y = xcb_button_press_event.event_y,
+                        });
+                    }
+                    else {
+                        log.info("Pressed unmapped mouse button {}", .{xcb_button_press_event.detail});
+                    }
                 },
                 c.XCB_BUTTON_RELEASE => {
                     const xcb_button_release_event = @ptrCast(*c.xcb_button_release_event_t, xcb_event);
-                    try mouse_button_events.append(.{
-                        .action = .release,
-                        .button = @intToEnum(MouseButton, xcb_button_release_event.detail),
-                        .x = xcb_button_release_event.event_x,
-                        .y = xcb_button_release_event.event_y,
-                    });
+                    const maybe_mouse_button: ?MouseButton = switch (xcb_button_release_event.detail) {
+                        1 => .left,
+                        2 => .middle,
+                        3 => .right,
+                        else => null,
+                    };
+                    if (maybe_mouse_button) |mouse_button| {
+                        try mouse_button_events.append(.{
+                            .action = .release,
+                            .button = mouse_button,
+                            .x = xcb_button_release_event.event_x,
+                            .y = xcb_button_release_event.event_y,
+                        });
+                    }
+                    else {
+                        log.info("Released unmapped mouse button {}", .{xcb_button_release_event.detail});
+                    }
                 },
                 else => {},
             }
