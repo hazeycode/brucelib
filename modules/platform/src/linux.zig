@@ -45,25 +45,28 @@ pub fn getSampleRate() u32 {
     return audio_playback.interface.sample_rate;
 }
 
-pub fn run(args: struct {
-    graphics_api: GraphicsAPI = .opengl,
-    requested_framerate: u16 = 0,
-    title: []const u8 = "",
-    window_size: struct {
-        width: u16,
-        height: u16,
-    } = .{
-        .width = 854,
-        .height = 480,
+pub fn run(
+    comptime Profiler: type,
+    args: struct {
+        graphics_api: GraphicsAPI = .opengl,
+        requested_framerate: u16 = 0,
+        title: []const u8 = "",
+        window_size: struct {
+            width: u16,
+            height: u16,
+        } = .{
+            .width = 854,
+            .height = 480,
+        },
+        init_fn: InitFn,
+        deinit_fn: DeinitFn,
+        frame_fn: FrameFn,
+        audio_playback: ?struct {
+            request_sample_rate: u32 = 48000,
+            callback: AudioPlaybackFn = null,
+        },
     },
-    init_fn: InitFn,
-    deinit_fn: DeinitFn,
-    frame_fn: FrameFn,
-    audio_playback: ?struct {
-        request_sample_rate: u32 = 48000,
-        callback: AudioPlaybackFn = null,
-    },
-}) !void {
+) !void {
     var timer = try std.time.Timer.start();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -130,6 +133,8 @@ pub fn run(args: struct {
     var prev_cpu_frame_elapsed: u64 = 0;
 
     while (true) {
+        defer Profiler.FrameMark();
+        
         const prev_frame_elapsed = frame_timer.lap();
 
         const start_cpu_time = timer.read();

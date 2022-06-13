@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const pkg = std.build.Pkg{
+pub const pkg = std.build.Pkg {
     .name = "brucelib.platform",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
@@ -12,14 +12,14 @@ pub const pkg = std.build.Pkg{
             .name = "zig-alsa",
             .source = .{ .path = thisDir() ++ "/vendored/zig-alsa/src/main.zig" },
         },
-        std.build.Pkg{
-            .name = "ztracy",
-            .source = .{ .path = thisDir() ++ "/vendored/ztracy/src/ztracy.zig" },
-        }
     },
 };
 
-pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
+pub fn tests(
+    b: *std.build.Builder,
+    mode: std.builtin.Mode,
+    target: std.zig.CrossTarget
+) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
@@ -27,7 +27,7 @@ pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.Cros
     return ts;
 }
 
-pub fn link(obj: *std.build.LibExeObjStep, enable_ztracy: bool) void {
+pub fn link(obj: *std.build.LibExeObjStep) void { 
     obj.linkLibC();
     if (obj.target.isLinux()) {
         obj.linkSystemLibrary("X11");
@@ -42,15 +42,6 @@ pub fn link(obj: *std.build.LibExeObjStep, enable_ztracy: bool) void {
     } else {
         std.debug.panic("Unsupported target!", .{});
     }
-    
-    const ztracy = @import("vendored/ztracy/build.zig");
-    const ztracy_options = ztracy.BuildOptionsStep.init(obj.builder, .{ .enable_ztracy = enable_ztracy });
-    ztracy.link(obj, ztracy_options);
-}
-
-pub fn add_to(obj: *std.build.LibExeObjStep, enable_ztracy: bool) void {
-    obj.addPackage(pkg);
-    link(obj, enable_ztracy);
 }
 
 pub fn build(b: *std.build.Builder) void {

@@ -5,6 +5,8 @@ pub const graphics = @import("modules/graphics/build.zig");
 pub const audio = @import("modules/audio/build.zig");
 pub const algo = @import("modules/algo/build.zig");
 
+pub const ztracy = @import("tools/vendored/ztracy/build.zig");
+
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
@@ -12,21 +14,21 @@ pub fn build(b: *std.build.Builder) !void {
 
     const target_opts = b.standardTargetOptions(.{});
 
-    const test_step = b.step("test", "Run all tests");
+    // const test_step = b.step("test", "Run all tests");
     
-    const platform_tests = platform.tests(b, mode, target_opts);
-    platform.link(platform_tests, false);
+    // const platform_tests = platform.tests(b, mode, target_opts);
+    // const graphics_tests = graphics.tests(b, mode, target_opts);
+    // const audio_tests = audio.tests(b, mode, target_opts);
+    // const algo_tests = algo.tests(b, mode, target_opts);
     
-    const graphics_tests = graphics.tests(b, mode, target_opts);
-    const audio_tests = audio.tests(b, mode, target_opts);
-    const algo_tests = algo.tests(b, mode, target_opts);
-    
-    test_step.dependOn(&platform_tests.step);
-    test_step.dependOn(&graphics_tests.step);
-    test_step.dependOn(&audio_tests.step);
-    test_step.dependOn(&algo_tests.step);
+    // test_step.dependOn(&platform_tests.step);
+    // test_step.dependOn(&graphics_tests.step);
+    // test_step.dependOn(&audio_tests.step);
+    // test_step.dependOn(&algo_tests.step);
     
     const ztracy_enable = b.option(bool, "ztracy-enable", "Enable Tracy profiler markers") orelse false;
+    const ztracy_options = ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
+    const ztracy_pkg = ztracy.getPkg(&.{ztracy_options.getPkg()});    
     
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
@@ -45,11 +47,17 @@ pub fn build(b: *std.build.Builder) !void {
                     
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
-
-                    platform.add_to(example, ztracy_enable);
-                    graphics.add_to(example);
-                    audio.add_to(example);
-                    algo.add_to(example);
+                    
+                    example.addPackage(ztracy_pkg);
+                    
+                    example.addPackage(platform.pkg);
+                    example.addPackage(graphics.pkg);
+                    example.addPackage(audio.pkg);
+                    example.addPackage(algo.pkg);
+                    
+                    ztracy.link(example, ztracy_options);
+                    platform.link(example);
+                    graphics.link(example);
 
                     example.install();
 

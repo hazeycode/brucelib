@@ -49,12 +49,6 @@ pub fn link(obj: *std.build.LibExeObjStep) void {
     zmesh.link(obj);
 }
 
-pub fn add_to(obj: *std.build.LibExeObjStep) void {
-    obj.addIncludeDir(stb_image.include_dir);
-    obj.addPackage(pkg);
-    link(obj);
-}
-
 pub fn build(b: *std.build.Builder) void {
     const build_mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});

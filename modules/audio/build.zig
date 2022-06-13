@@ -22,10 +22,6 @@ pub fn build(b: *std.build.Builder) void {
     test_step.dependOn(&tests(b, build_mode, target).step);
 }
 
-pub fn add_to(obj: *std.build.LibExeObjStep) void {
-    obj.addPackage(pkg);
-}
-
 fn thisDir() []const u8 {
     return std.fs.path.dirname(@src().file) orelse ".";
 }
