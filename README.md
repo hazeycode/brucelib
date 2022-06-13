@@ -4,12 +4,14 @@
 
 A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors.
 
+The planned scope of this project is to target all the popular desktop, mobile and console platforms. While most modules have no system dependencies; the [platform](modules/platform) module is currently limted to Linux and Windows and the [graphics](modules/graphics) module is limited to OpenGL 4.4+ and D3D11. More backends are planned and the modules are designed to make adding new backends fairly trivial.
+
 Requires [Zig 0.10.x](https://github.com/ziglang/zig).
 
 
 ### Modules
 
-Modules are designed to be used standalone or in combination with each other (see [examples](#examples)). 3rd-party code is vendored and no external dependencies are required. The planned scope of this project is to target all the popular desktop, mobile and console platforms however support is limited to Linux and Windows currently.
+Modules are designed to be used standalone or in combination with each other (see [examples](#examples)). 3rd-party code is vendored and no external dependencies are required.
 
 - [platform](modules/platform/) - Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures (in-progress)
 - [graphics](modules/graphics/) - Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives (in-progress)
