@@ -7,7 +7,7 @@ const audio_on = false;
 
 pub fn main() anyerror!void {
     try platform.run(.{
-        .title = "000_funky_triangle",
+        .title = "000-funky-triangle",
         .window_size = .{
             .width = 854,
             .height = 480,
