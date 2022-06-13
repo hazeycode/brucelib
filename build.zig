@@ -28,11 +28,12 @@ pub fn build(b: *std.build.Builder) !void {
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
         const dir = try build_root_dir.openDir("examples", .{ .iterate = true });
 
-        var example_id: usize = 0;
         var dir_it = dir.iterate();
         while (try dir_it.next()) |entry| {
             switch (entry.kind) {
                 .Directory => {
+                    const example_id = entry.name[0..3];
+                
                     const example = b.addExecutable(
                         entry.name,
                         try std.fmt.allocPrint(b.allocator, "examples/{s}/main.zig", .{entry.name}),
@@ -53,12 +54,10 @@ pub fn build(b: *std.build.Builder) !void {
                     if (b.args) |args| example_runstep.addArgs(args);
 
                     var run = b.step(
-                        try std.fmt.allocPrint(b.allocator, "run-example-{:0>3}", .{example_id}),
+                        try std.fmt.allocPrint(b.allocator, "run-example-{s}", .{example_id}),
                         try std.fmt.allocPrint(b.allocator, "Build and run example {s}", .{entry.name}),
                     );
                     run.dependOn(&example_runstep.step);
-
-                    example_id += 1;
                 },
                 else => {},
             }
