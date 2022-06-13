@@ -21,7 +21,7 @@ Modules are designed to be used standalone or in combination with each other (se
 - *build* - Useful build and distribution packaging procedures to import into your build.zig (planned)
 
 ### Tools
-- [ztracy](tools/vendored/ztracy) - Vendored from [zig-gamedev](https://github.com/michal-z/zig-gamedev), an great Zig wrapper for the incredible [Tracy](https://github.com/wolfpld/tracy)
+- [ztracy](tools/vendored/ztracy) - Vendored from [zig-gamedev](https://github.com/michal-z/zig-gamedev), a great Zig wrapper for the incredible [Tracy](https://github.com/wolfpld/tracy)
 
 
 ## Getting Started
