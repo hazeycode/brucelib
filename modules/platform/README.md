@@ -90,4 +90,4 @@ Each vendored library is listed below with the license it is under; also see the
 | :--- | :---------- | :------ |
 | [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
 | [zig-alsa](https://github.com/hazeycode/zig-alsa) | Zig bindings for [ALSA](https://github.com/alsa-project/alsa-lib) | 0BSD |
-
+| [ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) | Zig wrapper for the [Tracy Porfiler](https://github.com/wolfpld/tracy) |MIT & BSD-3-Clause|
