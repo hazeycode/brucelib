@@ -35,8 +35,8 @@ Alternatively, take a look at [this project template](https://github.com/hazeyco
 
 | Example | Screen capture |
 | ------- | -------------- |
-| [000-funky triangle](examples/000_funky_triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000_funky_triangle/screencap.gif" width=213/> |
-
+| [000-funky-triangle](examples/000-funky-triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000-funky-triangle/screencap.gif" width=213/> |
+| 001-2d-tile-platformer: A simple 2d game and introduces the [audio module](modules/audio/) which is used to play SFX and music | in-progress |
 
 ## Contributing
 
