@@ -24,6 +24,7 @@ pub fn tests(
     ts.setBuildMode(mode);
     ts.setTarget(target);
     for (pkg.dependencies.?) |dep| ts.addPackage(dep);
+    link(ts);
     return ts;
 }
 

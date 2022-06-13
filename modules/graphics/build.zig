@@ -29,6 +29,7 @@ pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.Cros
     ts.setBuildMode(mode);
     ts.setTarget(target);
     for (pkg.dependencies.?) |dep| ts.addPackage(dep);
+    link(ts);
     return ts;
 }
 

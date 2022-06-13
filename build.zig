@@ -14,17 +14,17 @@ pub fn build(b: *std.build.Builder) !void {
 
     const target_opts = b.standardTargetOptions(.{});
 
-    // const test_step = b.step("test", "Run all tests");
+    const test_step = b.step("test", "Run all tests");
     
-    // const platform_tests = platform.tests(b, mode, target_opts);
-    // const graphics_tests = graphics.tests(b, mode, target_opts);
-    // const audio_tests = audio.tests(b, mode, target_opts);
-    // const algo_tests = algo.tests(b, mode, target_opts);
+    const platform_tests = platform.tests(b, mode, target_opts);
+    const graphics_tests = graphics.tests(b, mode, target_opts);
+    const audio_tests = audio.tests(b, mode, target_opts);
+    const algo_tests = algo.tests(b, mode, target_opts);
     
-    // test_step.dependOn(&platform_tests.step);
-    // test_step.dependOn(&graphics_tests.step);
-    // test_step.dependOn(&audio_tests.step);
-    // test_step.dependOn(&algo_tests.step);
+    test_step.dependOn(&platform_tests.step);
+    test_step.dependOn(&graphics_tests.step);
+    test_step.dependOn(&audio_tests.step);
+    test_step.dependOn(&algo_tests.step);
     
     const ztracy_enable = b.option(bool, "ztracy-enable", "Enable Tracy profiler markers") orelse false;
     const ztracy_options = ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
