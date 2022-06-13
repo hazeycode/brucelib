@@ -2,11 +2,12 @@ const std = @import("std");
 
 const platform = @import("brucelib.platform");
 const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
+const ztracy = @import("ztracy");
 
 const audio_on = false;
 
 pub fn main() anyerror!void {
-    try platform.run(.{
+    try platform.run(ztracy, .{
         .title = "000-funky-triangle",
         .window_size = .{
             .width = 854,
