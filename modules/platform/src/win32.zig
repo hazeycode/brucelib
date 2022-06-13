@@ -91,25 +91,28 @@ pub fn timestamp() u64 {
     return timer.read();
 }
 
-pub fn run(args: struct {
-    graphics_api: GraphicsAPI = .d3d11,
-    requested_framerate: u16 = 0,
-    title: []const u8 = "",
-    window_size: struct {
-        width: u16,
-        height: u16,
-    } = .{
-        .width = 854,
-        .height = 480,
+pub fn run(
+    comptime Profiler: type,    
+    args: struct {
+        graphics_api: GraphicsAPI = .d3d11,
+        requested_framerate: u16 = 0,
+        title: []const u8 = "",
+        window_size: struct {
+            width: u16,
+            height: u16,
+        } = .{
+            .width = 854,
+            .height = 480,
+        },
+        init_fn: InitFn,
+        deinit_fn: DeinitFn,
+        frame_fn: FrameFn,
+        audio_playback: ?struct {
+            request_sample_rate: u32 = 48000,
+            callback: AudioPlaybackFn = null,
+        },
     },
-    init_fn: InitFn,
-    deinit_fn: DeinitFn,
-    frame_fn: FrameFn,
-    audio_playback: ?struct {
-        request_sample_rate: u32 = 48000,
-        callback: AudioPlaybackFn = null,
-    },
-}) !void {
+) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
@@ -181,6 +184,8 @@ pub fn run(args: struct {
     var prev_cpu_frame_elapsed: u64 = 0;
 
     while (quit == false) main_loop: {
+        defer Profiler.FrameMark();
+        
         const prev_frame_elapsed = frame_timer.lap();
 
         const start_cpu_time = timestamp();
