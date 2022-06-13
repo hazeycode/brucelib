@@ -20,16 +20,20 @@ Modules are designed to be used standalone or in combination with each other (se
 - *gui* - A flexible gui library (planned)
 - *build* - Useful build and distribution packaging procedures to import into your build.zig (planned)
 
+### Tools
+- [ztracy](tools/vendored/ztracy) - Vendored from [zig-gamedev](https://github.com/michal-z/zig-gamedev), an great Zig wrapper for the incredible [Tracy](https://github.com/wolfpld/tracy)
+
 
 ## Getting Started
 - Copy/clone/submodule this respository
 - Run all the tests with `zig build test`
 - Build and run an example: e.g. `zig build run-example-000`
 - List all available build targets with `zig build --help`
-- Each module has a main.zig, i.e. `modules/{module_name}/main.zig`. Import in your source or build and link in your build.zig. See [build.zig](build.zig) for examples.
+- Each module has a build.zig (`modules/{module_name}/build.zig`) that exposes a `std.build.Pkg` and a `link` fn. See [build.zig](build.zig) for examples.
 
 Alternatively, take a look at [this project template](https://github.com/hazeycode/brucelib-begin)
 
+Use `zig build -Dztracy-enable=true` to enable profiling with Tracy
 
 ### Examples
 
