@@ -2,17 +2,17 @@ const std = @import("std");
 
 const bench = std.build.Pkg{
     .name = "bench",
-    .path = .{ .path = thisDir() ++ "/vendored/zig-bench/bench.zig" },
+    .source = .{ .path = thisDir() ++ "/vendored/zig-bench/bench.zig" },
 };
 
 const zmath = std.build.Pkg{
     .name = "zmath",
-    .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
+    .source = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
 };
 
 pub const pkg = std.build.Pkg{
     .name = "brucelib.algo",
-    .path = .{ .path = thisDir() ++ "/src/main.zig" },
+    .source = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
         bench,
         zmath,
@@ -20,7 +20,7 @@ pub const pkg = std.build.Pkg{
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep  {
-    const ts = b.addTest(pkg.path.path);
+    const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
     for (pkg.dependencies.?) |dep| ts.addPackage(dep);

@@ -2,12 +2,12 @@ const std = @import("std");
 
 pub const pkg = std.build.Pkg{
     .name = "brucelib.audio",
-    .path = .{ .path = thisDir() ++ "/src/main.zig" },
+    .source = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{},
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep  {
-    const ts = b.addTest(pkg.path.path);
+    const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
     for (pkg.dependencies.?) |dep| ts.addPackage(dep);

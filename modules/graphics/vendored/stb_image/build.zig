@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const pkg = std.build.Pkg{
     .name = "stb_image",
-    .path = .{ .path = thisDir() ++ "/main.zig" },
+    .source = .{ .path = thisDir() ++ "/main.zig" },
 };
 
 pub const include_dir = thisDir() ++ "/";

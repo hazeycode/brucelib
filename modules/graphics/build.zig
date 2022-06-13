@@ -5,19 +5,19 @@ const zmesh = @import("vendored/zmesh/build.zig");
 
 pub const pkg = std.build.Pkg{
     .name = "brucelib.graphics",
-    .path = .{ .path = thisDir() ++ "/src/main.zig" },
+    .source = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
         std.build.Pkg{
             .name = "zwin32",
-            .path = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
+            .source = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
         },
         std.build.Pkg{
             .name = "zmath",
-            .path = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
+            .source = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
         },
         std.build.Pkg{
             .name = "zig-opengl",
-            .path = .{ .path = thisDir() ++ "/vendored/zig-opengl-exports/gl_4v4.zig" },
+            .source = .{ .path = thisDir() ++ "/vendored/zig-opengl-exports/gl_4v4.zig" },
         },
         stb_image.pkg,
         zmesh.pkg,
@@ -25,7 +25,7 @@ pub const pkg = std.build.Pkg{
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep  {
-    const ts = b.addTest(pkg.path.path);
+    const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
     for (pkg.dependencies.?) |dep| ts.addPackage(dep);
