@@ -18,10 +18,8 @@ Modules are designed to be used standalone or in combination with each other (se
 - [audio](modules/audio/) - Mixing, synthesis, signal processsing and file loaders (in-progress)
 - [algo](modules/algo/) - Various algorithms used in games and simulations (in-progress)
 - *gui* - A flexible gui library (planned)
+- [trace](modules/trace/) - Interface to ztracy from [zig-gamedev](https://github.com/michal-z/zig-gamedev), a great Zig wrapper for the incredible [Tracy](https://github.com/wolfpld/tracy) (in-progress)
 - *build* - Useful build and distribution packaging procedures to import into your build.zig (planned)
-
-### Tools
-- [ztracy](tools/vendored/ztracy) - Vendored from [zig-gamedev](https://github.com/michal-z/zig-gamedev), a great Zig wrapper for the incredible [Tracy](https://github.com/wolfpld/tracy)
 
 
 ## Getting Started

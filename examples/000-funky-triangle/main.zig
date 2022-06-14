@@ -1,13 +1,14 @@
 const std = @import("std");
 
-const platform = @import("brucelib.platform");
+const ZtracyProfiler = @import("brucelib.trace").ZtracyProfiler;
+
+const platform = @import("brucelib.platform").with(ZtracyProfiler);
 const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
-const ztracy = @import("ztracy");
 
 const audio_on = false;
 
 pub fn main() anyerror!void {
-    try platform.run(ztracy, .{
+    try platform.run(.{
         .title = "000-funky-triangle",
         .window_size = .{
             .width = 854,

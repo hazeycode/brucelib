@@ -6,8 +6,8 @@ NOTICE files are also provided (https://github.com/hazeycode/brucelib)
 brucelib Apache 2.0 License
 ===============================================================================
 
-Code in this repository, with exception to portions described later in this
-file, is licensed under the Apache 2.0 license.
+Code in this repository, with exception to the vendored code libaries described
+later in this file, is licensed under the Apache 2.0 license.
 
  Copyright 2022 Chris Heyes
 
@@ -29,9 +29,8 @@ file, is licensed under the Apache 2.0 license.
 zmath MIT License
 ===============================================================================
 
-Code under the vendored/zmath/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) and is licensed
-under the MIT license.
+zmath from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath)
+is licensed under the MIT license
 
  MIT License
 
@@ -61,9 +60,8 @@ under the MIT license.
 zwin32 MIT License
 ===============================================================================
 
-Code under the vendored/zwin32/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) and is licensed
-under the MIT license.
+zwin32 from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32)
+is licensed under the MIT license
 
  MIT License
 
@@ -92,8 +90,7 @@ under the MIT license.
 stb_image MIT License
 ===============================================================================
 
-vendored/stb_image/stb_image.h is taken from stb
-(https://github.com/nothings/stb) and is licensed under the MIT license.
+stb_image.h from stb (https://github.com/nothings/stb) is licensed under the MIT license
 
   Copyright (c) 2017 Sean Barrett
   Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -117,9 +114,8 @@ vendored/stb_image/stb_image.h is taken from stb
 zmesh MIT License
 ===============================================================================
 
-Code under the vendored/zmesh/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) and is licensed
-under the MIT license.
+zmesh from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh)
+is licensed under the MIT license
 
 zmesh is a binding library for par shapes
 (https://github.com/prideout/par/blob/master/par_shapes.h)
@@ -254,9 +250,8 @@ zig-bench MIT License
 ztracy MIT License
 ===============================================================================
 
-Code under the vendored/ztracy/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) and is licensed
-under the MIT license.
+ztracy from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy)
+is licensed under the MIT license
   
   MIT License
   
