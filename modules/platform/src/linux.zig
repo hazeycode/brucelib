@@ -269,6 +269,12 @@ const X11 = struct {
         pub usingnamespace @import("linux/X11/XKBlib.zig");
         pub usingnamespace @import("linux/X11/glx.zig");
     };
+    
+    const glx_ctx_attribs = [_]c_int{
+        c.GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+        c.GLX_CONTEXT_MINOR_VERSION_ARB, 4,
+        c.GLX_CONTEXT_PROFILE_MASK_ARB,  c.GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+    };
 
     graphics_api: GraphicsAPI,
     display: *c.Display,
@@ -454,12 +460,7 @@ const X11 = struct {
                 );
 
                 // create context and set it as current
-                const attribs = [_]c_int{
-                    c.GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-                    c.GLX_CONTEXT_MINOR_VERSION_ARB, 4,
-                    c.GLX_CONTEXT_PROFILE_MASK_ARB,  c.GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-                };
-                const context = glXCreateContextAttribsARB(display, glx_fb_config, null, c.True, &attribs);
+                const context = glXCreateContextAttribsARB(display, glx_fb_config, null, c.True, &glx_ctx_attribs);
                 if (context == null) return error.FailedToCreateGLXContext;
                 if (c.glXMakeCurrent(display, window, context) != c.True) return error.FailedToMakeGLXContextCurrent;
 
