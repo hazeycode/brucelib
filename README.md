@@ -30,9 +30,11 @@ Modules are designed to be used standalone or in combination with each other (se
 
 Alternatively, take a look at [this project template](https://github.com/hazeycode/brucelib-begin)
 
-### Profiling with [Tracy](https://github.com/wolfpld/tracy) via [ztracy](modules/trace/src/vendored/ztracy)
+### Profiling
 
-Use `zig build -Dztracy-enable=true` to enable profiling with Tracy
+To use the [Tracy Profiler](https://github.com/wolfpld/tracy) integration via [zig-gamedev's ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy):
+
+`zig build -Dztracy-enable=true`
 
 ### Examples
 
