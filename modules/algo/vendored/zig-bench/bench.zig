@@ -108,16 +108,16 @@ pub fn benchmark(context: anytype, comptime B: type) !void {
                     else => std.mem.doNotOptimizeAway(&res),
                 }
             }
-            
+
             const runtime_mean = @intCast(u64, runtime_sum / i);
-            
+
             var d_sq_sum: u128 = 0;
-            for(runtimes[0..i]) |runtime| {
+            for (runtimes[0..i]) |runtime| {
                 const d = @intCast(i64, @intCast(i128, runtime) - runtime_mean);
                 d_sq_sum += @intCast(u64, d * d);
             }
             const variance = d_sq_sum / i;
-            
+
             if (index < arg_names.len) {
                 const arg_name = formatter("{s}", arg_names[index]);
                 _ = try printBenchmark(stderr, min_width, def.name, arg_name, i, min, max, variance, runtime_mean);
@@ -279,10 +279,10 @@ test "benchmark generics" {
 test "benchmark allocating" {
     var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer temp_arena.deinit();
-    
+
     var allocator = temp_arena.allocator();
-    
-    try benchmark(&allocator, struct {        
+
+    try benchmark(&allocator, struct {
         pub fn alloc_slice(context: *std.mem.Allocator) ![]u8 {
             return try context.alloc(u8, 4096);
         }

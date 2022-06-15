@@ -19,7 +19,6 @@ const c = struct {
     pub usingnamespace @import("X11/glx.zig");
 };
 
-
 display: *c.Display,
 connection: *c.xcb_connection_t,
 atom_protocols: *c.xcb_intern_atom_reply_t,
@@ -32,7 +31,6 @@ window_height: u16,
 
 key_states: [num_keys]bool = .{false} ** num_keys,
 key_repeats: [num_keys]u32 = .{0} ** num_keys,
-
 
 // TODO(hazeycode): refactor this to separate init and window creation
 pub fn init_and_create_window(window_properties: struct {
@@ -85,7 +83,7 @@ pub fn init_and_create_window(window_properties: struct {
     var visual_info: *c.XVisualInfo = undefined;
 
     var glx_fb_config: c.GLXFBConfig = undefined;
-    
+
     // query opengl version
     var glx_ver_min: c_int = undefined;
     var glx_ver_maj: c_int = undefined;
@@ -209,7 +207,7 @@ pub fn init_and_create_window(window_properties: struct {
         c.GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
         c.GLX_CONTEXT_MINOR_VERSION_ARB, 4,
         c.GLX_CONTEXT_PROFILE_MASK_ARB,  c.GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-        0
+        0,
     };
     const context = glXCreateContextAttribsARB(display, glx_fb_config, null, c.True, &glx_ctx_attribs);
     if (context == null) return error.FailedToCreateGLXContext;
@@ -288,21 +286,21 @@ pub fn next_event(self: *@This()) ?Event {
             c.XCB_CLIENT_MESSAGE => {
                 const xcb_client_message_event = @ptrCast(*c.xcb_client_message_event_t, xcb_event);
                 if (xcb_client_message_event.data.data32[0] == self.atom_delete_window.*.atom) {
-                    return Event{ .window_closed = .{ .window_id = xcb_client_message_event.window }};
+                    return Event{ .window_closed = .{ .window_id = xcb_client_message_event.window } };
                 }
             },
             c.XCB_CONFIGURE_NOTIFY => {
                 const xcb_config_event = @ptrCast(*c.xcb_configure_notify_event_t, xcb_event);
                 if (xcb_config_event.width != self.window_width or
-                    xcb_config_event.height != self.window_height
-                ) {
+                    xcb_config_event.height != self.window_height)
+                {
                     self.window_width = xcb_config_event.width;
                     self.window_height = xcb_config_event.height;
                     return Event{ .window_resize = .{
                         .window_id = xcb_config_event.window,
                         .width = self.window_width,
                         .height = self.window_height,
-                    }};
+                    } };
                 }
             },
             c.XCB_KEY_PRESS => {
@@ -318,10 +316,7 @@ pub fn next_event(self: *@This()) ?Event {
                         action = .{ .repeat = self.key_repeats[@enumToInt(key)] };
                     }
                     self.key_states[@enumToInt(key)] = true;
-                    return Event{ .key = .{
-                        .action = action,
-                        .key = key
-                    }};
+                    return Event{ .key = .{ .action = action, .key = key } };
                 }
             },
             c.XCB_KEY_RELEASE => {
@@ -329,7 +324,7 @@ pub fn next_event(self: *@This()) ?Event {
                 if (translateKey(self.display, xcb_key_release_event.detail)) |key| {
                     self.key_repeats[@enumToInt(key)] = 0;
                     self.key_states[@enumToInt(key)] = false;
-                    return Event{ .key = .{ .action = .release, .key = key }};
+                    return Event{ .key = .{ .action = .release, .key = key } };
                 }
             },
             c.XCB_BUTTON_PRESS => {
@@ -346,9 +341,8 @@ pub fn next_event(self: *@This()) ?Event {
                         .button = mouse_button,
                         .x = xcb_button_press_event.event_x,
                         .y = xcb_button_press_event.event_y,
-                    }};
-                }
-                else {
+                    } };
+                } else {
                     log.info("Pressed unmapped mouse button {}", .{xcb_button_press_event.detail});
                 }
             },
@@ -366,16 +360,15 @@ pub fn next_event(self: *@This()) ?Event {
                         .button = mouse_button,
                         .x = xcb_button_release_event.event_x,
                         .y = xcb_button_release_event.event_y,
-                    }};
-                }
-                else {
+                    } };
+                } else {
                     log.info("Released unmapped mouse button {}", .{xcb_button_release_event.detail});
                 }
             },
             else => {},
         }
     }
-    
+
     return null;
 }
 

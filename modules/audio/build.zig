@@ -6,7 +6,7 @@ pub const pkg = std.build.Pkg{
     .dependencies = &.{},
 };
 
-pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep  {
+pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);

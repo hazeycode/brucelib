@@ -88,7 +88,7 @@ pub const KeyEvent = struct {
         release: void,
         repeat: u32,
     };
-    
+
     action: Action,
     key: Key,
 };

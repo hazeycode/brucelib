@@ -92,7 +92,7 @@ pub fn timestamp() u64 {
 }
 
 pub fn run(
-    comptime Profiler: type,    
+    comptime Profiler: type,
     args: struct {
         graphics_api: GraphicsAPI = .d3d11,
         requested_framerate: u16 = 0,
@@ -185,7 +185,7 @@ pub fn run(
 
     while (quit == false) main_loop: {
         defer Profiler.FrameMark();
-        
+
         const prev_frame_elapsed = frame_timer.lap();
 
         const start_cpu_time = timestamp();

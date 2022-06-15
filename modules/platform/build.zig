@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const pkg = std.build.Pkg {
+pub const pkg = std.build.Pkg{
     .name = "brucelib.platform",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
     .dependencies = &.{
@@ -15,11 +15,7 @@ pub const pkg = std.build.Pkg {
     },
 };
 
-pub fn tests(
-    b: *std.build.Builder,
-    mode: std.builtin.Mode,
-    target: std.zig.CrossTarget
-) *std.build.LibExeObjStep {
+pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
@@ -28,7 +24,7 @@ pub fn tests(
     return ts;
 }
 
-pub fn link(obj: *std.build.LibExeObjStep) void { 
+pub fn link(obj: *std.build.LibExeObjStep) void {
     obj.linkLibC();
     if (obj.target.isLinux()) {
         obj.linkSystemLibrary("X11");

@@ -131,7 +131,7 @@ pub fn run(
 
     while (true) {
         defer Profiler.FrameMark();
-        
+
         const prev_frame_elapsed = frame_timer.lap();
 
         const start_cpu_time = timer.read();

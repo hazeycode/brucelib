@@ -28,12 +28,12 @@ pub fn random_points(allocator: std.mem.Allocator, count: usize) ![]Point {
 }
 
 /// Returns the vertices of the mesh of a set of triangles
-pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Triangle) ![]Point {    
+pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Triangle) ![]Point {
     const max_verts = (triangles.len + 5) / 2;
-    
+
     var point_buffer = try allocator.alloc(Point, max_verts);
     var cursor: usize = 0;
-    
+
     for (triangles) |tri| {
         for (tri) |point| {
             var readback: usize = 0;
@@ -46,7 +46,7 @@ pub fn get_triangle_vertices(allocator: std.mem.Allocator, triangles: []const Tr
             }
         }
     }
-        
+
     return point_buffer;
 }
 
@@ -78,7 +78,7 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
     for (points) |point, i| {
         _ = i;
         // std.log.warn("insert point {}", .{i});
-        
+
         { // find all triangles invalidated by insertion of this point
             var maybe_tri = triangle_list.first;
             while (maybe_tri) |tri| {
@@ -106,10 +106,10 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
                 test_edges: for (bad_triangles.items) |bad_tri_2| {
                     for (tri_edges(bad_tri_2)) |bad_edge_2| {
                         if ( // edges match?
-                            // TODO(hazeycode): vectorise:
-                            points_eq(bad_edge[0], bad_edge_2[0]) and
-                            points_eq(bad_edge[1], bad_edge_2[1])
-                        ) {
+                        // TODO(hazeycode): vectorise:
+                        points_eq(bad_edge[0], bad_edge_2[0]) and
+                            points_eq(bad_edge[1], bad_edge_2[1]))
+                        {
                             try polygon.append(bad_edge);
                             // std.log.warn("found hole edge", .{});
                             break :test_edges;
@@ -125,11 +125,11 @@ pub fn bowyer_watson_2d(allocator: std.mem.Allocator, points: []const Point) ![]
             while (maybe_node) |node| {
                 defer maybe_node = node.next;
                 if ( // triangles match?
-                    // TODO(hazeycode): vectorise:
-                    points_eq(node.data[0], bad_tri[0]) and
+                // TODO(hazeycode): vectorise:
+                points_eq(node.data[0], bad_tri[0]) and
                     points_eq(node.data[1], bad_tri[1]) and
-                    points_eq(node.data[2], bad_tri[2])
-                ) {
+                    points_eq(node.data[2], bad_tri[2]))
+                {
                     triangle_list.remove(node);
                     // std.log.warn("bad triangle removed", .{});
                     break;
@@ -204,7 +204,6 @@ fn tri_edges(triangle: Triangle) [3]Edge {
     };
 }
 
-
 // Benchmarks ///////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Returns an array of random triangles, used for benchmarks
@@ -221,15 +220,14 @@ pub fn random_triangles(allocator: std.mem.Allocator, count: usize) ![]Triangle 
     return triangles;
 }
 
-
 test "random_points" {
     var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer temp_arena.deinit();
-    
+
     var allocator = temp_arena.allocator();
-        
+
     try benchmark(&allocator, struct {
-        pub const args = [_]usize{  64, 256, 1024, 4096 };
+        pub const args = [_]usize{ 64, 256, 1024, 4096 };
 
         pub const arg_names = [_][]const u8{
             "64 random points",
@@ -247,38 +245,35 @@ test "random_points" {
 test "bowyer-watson triangulate" {
     var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer temp_arena.deinit();
-    
+
     var allocator = temp_arena.allocator();
-        
-    try benchmark(
-        &struct {
-            allocator: std.mem.Allocator,
-            data: [4][]Point,
-        }{
-            .allocator = allocator,
-            .data = .{
-                try random_points(allocator, 64),
-                try random_points(allocator, 256),
-                try random_points(allocator, 1024),
-                try random_points(allocator, 2048),
-            },
+
+    try benchmark(&struct {
+        allocator: std.mem.Allocator,
+        data: [4][]Point,
+    }{
+        .allocator = allocator,
+        .data = .{
+            try random_points(allocator, 64),
+            try random_points(allocator, 256),
+            try random_points(allocator, 1024),
+            try random_points(allocator, 2048),
         },
-        struct {
-            const range = @import("comptime_range.zig").range;
-            pub const args = range(0, 3);
-    
-            pub const arg_names = [_][]const u8{
-                "64 random points",
-                "256 random points",
-                "1024 random points",
-                "2056 random points",
-            };
-    
-            pub fn bench_bowyer_watson_2d(ctx: anytype, comptime data_idx: usize) ![]Triangle {
-                return try bowyer_watson_2d(ctx.allocator, ctx.data[data_idx]);
-            }
+    }, struct {
+        const range = @import("comptime_range.zig").range;
+        pub const args = range(0, 3);
+
+        pub const arg_names = [_][]const u8{
+            "64 random points",
+            "256 random points",
+            "1024 random points",
+            "2056 random points",
+        };
+
+        pub fn bench_bowyer_watson_2d(ctx: anytype, comptime data_idx: usize) ![]Triangle {
+            return try bowyer_watson_2d(ctx.allocator, ctx.data[data_idx]);
         }
-    );
+    });
 }
 
 test "get_triangle_vertices" {
@@ -286,40 +281,37 @@ test "get_triangle_vertices" {
     // likely that all the points are unique which will affect the performance characteristics
     // of get_triangle_vertices differently than a more realistic domain. Replace the random
     // traingles with random delaunay meshes (i.e. where all triangles are connected)
-    
+
     var temp_arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer temp_arena.deinit();
-    
+
     var allocator = temp_arena.allocator();
-    
-    try benchmark(
-        &struct {
-            allocator: std.mem.Allocator,
-            data: [4][]Triangle,
-        }{
-            .allocator = allocator,
-            .data = .{
-                try random_triangles(allocator, 16),
-                try random_triangles(allocator, 256),
-                try random_triangles(allocator, 1024),
-                try random_triangles(allocator, 4096),
-            },
+
+    try benchmark(&struct {
+        allocator: std.mem.Allocator,
+        data: [4][]Triangle,
+    }{
+        .allocator = allocator,
+        .data = .{
+            try random_triangles(allocator, 16),
+            try random_triangles(allocator, 256),
+            try random_triangles(allocator, 1024),
+            try random_triangles(allocator, 4096),
         },
-        struct {                
-            const range = @import("comptime_range.zig").range;
-            
-            pub const args = range(0, 3);
-    
-            pub const arg_names = [_][]const u8{
-                "16 random triangles",
-                "256 random triangles",
-                "1024 random triangles",
-                "4096 random triangles",
-            };
-    
-            pub fn bench_get_triangle_vertices(ctx: anytype, comptime data_idx: usize) ![]Point {
-                return try get_triangle_vertices(ctx.allocator, ctx.data[data_idx]);
-            }
+    }, struct {
+        const range = @import("comptime_range.zig").range;
+
+        pub const args = range(0, 3);
+
+        pub const arg_names = [_][]const u8{
+            "16 random triangles",
+            "256 random triangles",
+            "1024 random triangles",
+            "4096 random triangles",
+        };
+
+        pub fn bench_get_triangle_vertices(ctx: anytype, comptime data_idx: usize) ![]Point {
+            return try get_triangle_vertices(ctx.allocator, ctx.data[data_idx]);
         }
-    );
+    });
 }
