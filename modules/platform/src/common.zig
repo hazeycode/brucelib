@@ -56,6 +56,23 @@ pub const FrameInput = struct {
     },
 };
 
+pub const Event = union(enum) {
+    window_closed: WindowClosedEvent,
+    window_resize: WindowResizeEvent,
+    key: KeyEvent,
+    mouse_button: MouseButtonEvent,
+};
+
+pub const WindowClosedEvent = struct {
+    window_id: u32,
+};
+
+pub const WindowResizeEvent = struct {
+    window_id: u32,
+    width: u16,
+    height: u16,
+};
+
 pub const MouseButton = enum(u8) { left = 1, middle = 2, right = 3 };
 
 pub const MouseButtonEvent = struct {
@@ -66,11 +83,13 @@ pub const MouseButtonEvent = struct {
 };
 
 pub const KeyEvent = struct {
-    action: union(enum) {
+    pub const Action = union(enum) {
         press: void,
         release: void,
         repeat: u32,
-    },
+    };
+    
+    action: Action,
     key: Key,
 };
 
