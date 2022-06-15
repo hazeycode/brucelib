@@ -20,7 +20,8 @@ The platform module is configured with a Profiler. You can provide an `void` for
 
 ### Minimal usage example
 ```zig
-const platform = @import("brucelib.platform").using(void);
+// using the default module dependencies. See `platform.ModuleDependencies` for available options.
+const platform = @import("brucelib.platform").using(.{});
 
 pub fn main() anyerror!void {
 
