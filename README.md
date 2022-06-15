@@ -18,7 +18,7 @@ Modules are designed to be used standalone or in combination with each other (se
 - [audio](modules/audio/) - Mixing, synthesis, signal processsing and file loaders (in-progress)
 - [algo](modules/algo/) - Various algorithms used in games and simulations (in-progress)
 - *gui* - A flexible gui library (planned)
-- [util](modules/util/) - [Tracy Profiler](https://github.com/wolfpld/tracy) via [zig-gamedev's ztracy]([modules/util/src/vendored/ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) and other dev, test and deployment utilities (in-progress)
+- [util](modules/util/) - [Tracy Profiler](https://github.com/wolfpld/tracy) via [zig-gamedev's ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) and other dev, test and deployment utilities (in-progress)
 
 
 ## Getting Started
