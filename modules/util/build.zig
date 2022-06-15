@@ -4,9 +4,9 @@ pub const ztracy = @import("src/vendored/ztracy/build.zig");
 
 pub fn getPkg(ztracy_options: ztracy.BuildOptionsStep) std.build.Pkg {
     return .{
-        .name = "brucelib.trace",
+        .name = "brucelib.util",
         .source = .{ .path = thisDir() ++ "/src/main.zig" },
-        .dependencies = &.{ ztracy_options.getPkg() },
+        .dependencies = &.{ztracy_options.getPkg()},
     };
 }
 

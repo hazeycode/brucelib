@@ -1,8 +1,9 @@
-# brucelib.trace
+# brucelib.util
 
-Provides some builtin Profilers that can be used with the other modules.
+**WARNING: WORK IN PROGRESS**
 
-- `NullProfiler` can be used to disable profiling in modules that require a Profiler
+### Profiling
+
 - `ZtracyProfiler` is a wrapper around [ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy)
 
 

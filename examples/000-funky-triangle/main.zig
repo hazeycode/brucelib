@@ -1,8 +1,10 @@
 const std = @import("std");
 
-const ZtracyProfiler = @import("brucelib.trace").ZtracyProfiler;
+const util = @import("brucelib.util");
 
-const platform = @import("brucelib.platform").with(ZtracyProfiler);
+const platform = @import("brucelib.platform").using(.{
+    .Profiler = util.ZtracyProfiler,
+});
 const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
 
 const audio_on = false;

@@ -1,5 +1,9 @@
 const std = @import("std");
 
+pub const ModuleDependencies = struct {
+    Profiler: type = @import("NullProfiler.zig"),
+};
+
 pub const InitFn = fn (std.mem.Allocator) anyerror!void;
 pub const DeinitFn = fn (std.mem.Allocator) void;
 pub const FrameFn = fn (FrameInput) anyerror!bool;

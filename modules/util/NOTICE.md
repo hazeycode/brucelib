@@ -1,9 +1,9 @@
 ===============================================================================
-brucelib.trace Apache 2.0 License
+brucelib.util Apache 2.0 License
 ===============================================================================
 
-brucelib.trace code, with exception to portions described later in this
-file, is licensed under the Apache 2.0 license.
+brucelib.util code, with exception to portions described later in this file, is
+licensed under the Apache 2.0 license.
 
  Copyright 2022 Chris Heyes
 

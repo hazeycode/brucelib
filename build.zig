@@ -4,7 +4,7 @@ pub const platform = @import("modules/platform/build.zig");
 pub const graphics = @import("modules/graphics/build.zig");
 pub const audio = @import("modules/audio/build.zig");
 pub const algo = @import("modules/algo/build.zig");
-pub const trace = @import("modules/trace/build.zig");
+pub const util = @import("modules/util/build.zig");
 
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
@@ -26,7 +26,7 @@ pub fn build(b: *std.build.Builder) !void {
     test_step.dependOn(&algo_tests.step);
 
     const ztracy_enable = b.option(bool, "ztracy-enable", "Enable Tracy profiler markers") orelse false;
-    const ztracy_options = trace.ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
+    const ztracy_options = util.ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
 
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
@@ -45,19 +45,17 @@ pub fn build(b: *std.build.Builder) !void {
 
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
-                    
-                    example.addPackage(trace.getPkg(ztracy_options));
-                    
+
+                    example.addPackage(util.getPkg(ztracy_options));
+
                     example.addPackage(platform.pkg);
                     example.addPackage(graphics.pkg);
                     example.addPackage(audio.pkg);
                     example.addPackage(algo.pkg);
-                    
-                    trace.link(example, ztracy_options);
+
                     platform.link(example);
                     graphics.link(example);
-
-                    example.install();
+                    util.link(example, ztracy_options);
 
                     const example_runstep = example.run();
                     example_runstep.step.dependOn(b.getInstallStep());

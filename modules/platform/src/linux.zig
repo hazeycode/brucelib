@@ -1,13 +1,14 @@
 const std = @import("std");
 
+const common = @import("common.zig");
 const X11 = @import("linux/X11.zig");
 
 const log = std.log.scoped(.@"brucelib.platform.linux");
 
-pub fn with(comptime Profiler: type) type {
+pub fn using(comptime dependencies: common.ModuleDependencies) type {
+    const Profiler = dependencies.Profiler;
+
     return struct {
-                
-        const common = @import("common.zig");
         pub const InitFn = common.InitFn;
         pub const DeinitFn = common.DeinitFn;
         pub const FrameFn = common.FrameFn;
@@ -18,35 +19,35 @@ pub fn with(comptime Profiler: type) type {
         pub const MouseButton = common.MouseButton;
         pub const MouseButtonEvent = common.MouseButtonEvent;
         pub const Key = common.Key;
-        
+
         const num_keys = std.meta.fields(Key).len;
-        
+
         const AlsaPlaybackInterface = @import("linux/AlsaPlaybackInterface.zig");
         const AudioPlaybackInterface = AlsaPlaybackInterface;
-        
+
         const GraphicsAPI = enum {
             opengl,
         };
-        
+
         var target_framerate: u32 = undefined;
-        
+
         var window_closed = false;
         var quit = false;
-        
+
         var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
             interface: AudioPlaybackInterface = undefined,
             thread: std.Thread = undefined,
         }{};
-        
+
         pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
             return X11.glx_get_proc_addr(?*const anyopaque, entry_point.ptr) catch null;
         }
-        
+
         pub fn getSampleRate() u32 {
             return audio_playback.interface.sample_rate;
         }
-        
+
         pub fn run(args: struct {
             graphics_api: GraphicsAPI = .opengl,
             requested_framerate: u16 = 0,
@@ -65,39 +66,39 @@ pub fn with(comptime Profiler: type) type {
                 request_sample_rate: u32 = 48000,
                 callback: AudioPlaybackFn = null,
             },
-        }) !void {            
+        }) !void {
             var timer = try std.time.Timer.start();
-        
+
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer _ = gpa.deinit();
-        
+
             var allocator = gpa.allocator();
-        
+
             // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
             target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
-        
+
             var windowing = try X11.init_and_create_window(.{
                 .title = args.title,
                 .width = args.window_size.width,
                 .height = args.window_size.height,
             });
             defer windowing.deinit();
-        
+
             const audio_enabled = (args.audio_playback != null);
-        
+
             if (audio_enabled) {
                 audio_playback.user_cb = args.audio_playback.?.callback;
-        
+
                 const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
                     u32,
                     3 * args.audio_playback.?.request_sample_rate / target_framerate,
                 );
-        
+
                 audio_playback.interface = try AudioPlaybackInterface.init(
                     args.audio_playback.?.request_sample_rate,
                     buffer_size_frames,
                 );
-        
+
                 log.info(
                     \\Initilised audio playback (ALSA):
                     \\  {} channels
@@ -116,34 +117,34 @@ pub fn with(comptime Profiler: type) type {
                     audio_playback.interface.deinit();
                 }
             }
-        
+
             try args.init_fn(allocator);
             defer args.deinit_fn(allocator);
-        
+
             if (audio_enabled) {
                 audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
                 audio_playback.thread.detach();
             }
-        
+
             var frame_timer = try std.time.Timer.start();
-        
+
             var prev_cpu_frame_elapsed: u64 = 0;
-        
+
             while (true) {
                 defer Profiler.frame_mark();
-                
+
                 const prev_frame_elapsed = frame_timer.lap();
-        
+
                 const start_cpu_time = timer.read();
-        
+
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
-        
+
                 const arena_allocator = frame_mem_arena.allocator();
-        
+
                 var key_events = std.ArrayList(KeyEvent).init(arena_allocator);
                 var mouse_button_events = std.ArrayList(MouseButtonEvent).init(arena_allocator);
-                
+
                 while (windowing.next_event()) |event| {
                     switch (event) {
                         .window_closed => {
@@ -158,11 +159,11 @@ pub fn with(comptime Profiler: type) type {
                         },
                     }
                 }
-        
+
                 const mouse_pos = windowing.get_mouse_pos();
-        
+
                 const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
-                
+
                 {
                     const trace_zone = Profiler.zone_name_colour(@src(), "request frame", 0x00_ff_00_00);
                     defer trace_zone.End();
@@ -188,84 +189,83 @@ pub fn with(comptime Profiler: type) type {
                         },
                     }));
                 }
-        
+
                 prev_cpu_frame_elapsed = timer.read() - start_cpu_time;
-        
-        
+
                 windowing.swap_buffers();
-        
+
                 if (quit) break;
             }
         }
-        
+
         fn audioThread(allocator: std.mem.Allocator) !void {
             var buffer = try allocator.alloc(
                 f32,
                 audio_playback.interface.buffer_frames * audio_playback.interface.num_channels,
             );
             defer allocator.free(buffer);
-        
+
             var read_cur: usize = 0;
             var write_cur: usize = 0;
             var samples_queued: usize = 0;
-        
+
             std.mem.set(f32, buffer, 0);
-        
+
             { // write a couple of frames of silence
                 const samples_silence = 2 * audio_playback.interface.sample_rate / target_framerate;
                 std.debug.assert(samples_silence < buffer.len);
-        
+
                 _ = audio_playback.interface.writeSamples(buffer[0..(0 + samples_silence)]);
             }
-        
+
             try audio_playback.interface.prepare();
-        
+
             while (quit == false) {
                 if (samples_queued > 0) {
                     var end = read_cur + samples_queued;
                     if (end > buffer.len) {
                         end = buffer.len;
                     }
-        
+
                     if (end > read_cur) {
                         const samples = buffer[read_cur..end];
-        
+
                         read_cur = (read_cur + samples.len) % buffer.len;
-        
+
                         samples_queued -= samples.len;
-        
+
                         if (audio_playback.interface.writeSamples(samples) == false) {
                             try audio_playback.interface.prepare();
                             continue;
                         }
                     }
                 }
-        
+
                 const max_samples = 3 * audio_playback.interface.sample_rate / target_framerate;
                 std.debug.assert(max_samples < buffer.len);
-        
+
                 if (samples_queued < max_samples) {
                     const end = if ((buffer.len - write_cur) > max_samples)
                         write_cur + max_samples
                     else
                         buffer.len;
-        
+
                     const num_frames = try audio_playback.user_cb.?(.{
                         .sample_rate = audio_playback.interface.sample_rate,
                         .channels = audio_playback.interface.num_channels,
                         .sample_buf = buffer[write_cur..end],
                         .max_frames = @intCast(u32, end - write_cur) / audio_playback.interface.num_channels,
                     });
-        
+
                     const num_samples = num_frames * audio_playback.interface.num_channels;
-        
+
                     samples_queued += num_samples;
-        
+
                     write_cur = (write_cur + num_samples) % buffer.len;
                 }
-        
+
                 std.time.sleep(0);
             }
-        }        
+        }
     };
 }

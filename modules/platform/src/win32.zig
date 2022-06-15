@@ -3,9 +3,12 @@ const builtin = @import("builtin");
 
 const log = std.log.scoped(.@"brucelib.platform.win32");
 
-pub fn with(Profiler: anytype) type {
+const common = @import("common.zig");
+
+pub fn using(comptime dependencies: common.ModuleDependencies) type {
+    const Profiler = dependencies.Profiler;
+
     return struct {
-        const common = @import("common.zig");
         pub const InitFn = common.InitFn;
         pub const DeinitFn = common.DeinitFn;
         pub const FrameFn = common.FrameFn;
@@ -16,10 +19,10 @@ pub fn with(Profiler: anytype) type {
         pub const MouseButton = common.MouseButton;
         pub const MouseButtonEvent = common.MouseButtonEvent;
         pub const Key = common.Key;
-        
+
         const WasapiInterface = @import("win32/WasapiInterface.zig");
         const AudioPlaybackInterface = WasapiInterface;
-        
+
         const zwin32 = @import("zwin32");
         const BYTE = zwin32.base.BYTE;
         const UINT = zwin32.base.UINT;
@@ -42,17 +45,17 @@ pub fn with(Profiler: anytype) type {
         const d3d11 = zwin32.d3d11;
         const d3dcompiler = zwin32.d3dcompiler;
         const hrErrorOnFail = zwin32.hrErrorOnFail;
-        
+
         const L = std.unicode.utf8ToUtf16LeStringLiteral;
-        
+
         pub const Error = error{
             FailedToGetModuleHandle,
         };
-        
+
         const GraphicsAPI = enum {
             d3d11,
         };
-        
+
         pub var target_framerate: u16 = undefined;
         var target_frame_dt: u64 = undefined;
         var window_width: u16 = undefined;
@@ -61,38 +64,38 @@ pub fn with(Profiler: anytype) type {
         var mouse_y: i32 = undefined;
         var key_events: std.ArrayList(KeyEvent) = undefined;
         var mouse_button_events: std.ArrayList(MouseButtonEvent) = undefined;
-        
+
         pub var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
             interface: AudioPlaybackInterface = undefined,
             thread: std.Thread = undefined,
         }{};
-        
+
         var timer: std.time.Timer = undefined;
-        
+
         var window_closed = false;
         var quit = false;
-        
+
         pub fn getD3D11Device() *d3d11.IDevice {
             return d3d11_device.?;
         }
-        
+
         pub fn getD3D11DeviceContext() *d3d11.IDeviceContext {
             return d3d11_device_context.?;
         }
-        
+
         pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
             return d3d11_render_target_view.?;
         }
-        
+
         pub fn getSampleRate() u32 {
             return audio_playback.interface.sample_rate;
         }
-        
+
         pub fn timestamp() u64 {
             return timer.read();
         }
-        
+
         pub fn run(
             args: struct {
                 graphics_api: GraphicsAPI = .d3d11,
@@ -116,39 +119,39 @@ pub fn with(Profiler: anytype) type {
         ) !void {
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer _ = gpa.deinit();
-        
+
             var allocator = gpa.allocator();
-        
+
             // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
             target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
-        
+
             window_width = args.window_size.width;
             window_height = args.window_size.height;
-        
+
             timer = try std.time.Timer.start();
-        
+
             const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
                 log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
                 return Error.FailedToGetModuleHandle;
             });
-        
+
             var utf16_title = [_]u16{0} ** 64;
             _ = try std.unicode.utf8ToUtf16Le(utf16_title[0..], args.title);
             const utf16_title_ptr = @ptrCast([*:0]const u16, &utf16_title);
-        
+
             try registerClass(hinstance, utf16_title_ptr);
-        
+
             const hwnd = try createWindow(
                 hinstance,
                 utf16_title_ptr,
                 utf16_title_ptr,
             );
-        
+
             try createDeviceAndSwapchain(hwnd);
             try createRenderTargetView();
-        
+
             const audio_enabled = (args.audio_playback != null);
-        
+
             if (audio_enabled) {
                 audio_playback.user_cb = args.audio_playback.?.callback;
                 audio_playback.interface = try AudioPlaybackInterface.init(
@@ -172,33 +175,33 @@ pub fn with(Profiler: anytype) type {
                     audio_playback.interface.deinit();
                 }
             }
-        
+
             try args.init_fn(allocator);
             defer args.deinit_fn(allocator);
-        
+
             if (audio_enabled) {
                 audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
                 audio_playback.thread.detach();
             }
-        
+
             var frame_timer = try std.time.Timer.start();
             var prev_cpu_frame_elapsed: u64 = 0;
-        
+
             while (quit == false) main_loop: {
                 defer Profiler.frame_mark();
-                
+
                 const prev_frame_elapsed = frame_timer.lap();
-        
+
                 const start_cpu_time = timestamp();
-        
+
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
-        
+
                 var frame_arena_allocator = frame_mem_arena.allocator();
-        
+
                 key_events = std.ArrayList(KeyEvent).init(frame_arena_allocator);
                 mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
-        
+
                 var msg: user32.MSG = undefined;
                 while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
                     _ = user32.translateMessage(&msg);
@@ -208,9 +211,9 @@ pub fn with(Profiler: anytype) type {
                         break :main_loop;
                     }
                 }
-        
+
                 target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
-        
+
                 {
                     const trace_zone = Profiler.zone_name_colour(@src(), "request frame", 0x00_ff_00_00);
                     defer trace_zone.End();
@@ -236,13 +239,13 @@ pub fn with(Profiler: anytype) type {
                         },
                     }));
                 }
-        
+
                 prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
-        
+
                 try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
             }
         }
-        
+
         fn audioThread() !void {
             { // write some silence before starting the stream
                 var buffer_frames: UINT = 0;
@@ -250,7 +253,7 @@ pub fn with(Profiler: anytype) type {
                     std.debug.panic("audioThread: failed to prefill silence", .{});
                 };
                 log.debug("audio stream buffer size = {} frames", .{buffer_frames});
-        
+
                 var ptr: [*]f32 = undefined;
                 hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(
                     buffer_frames,
@@ -258,7 +261,7 @@ pub fn with(Profiler: anytype) type {
                 )) catch {
                     std.debug.panic("audioThread: failed to prefill silence", .{});
                 };
-        
+
                 hrErrorOnFail(audio_playback.interface.render_client.ReleaseBuffer(
                     @intCast(UINT, buffer_frames),
                     zwin32.wasapi.AUDCLNT_BUFFERFLAGS_SILENT,
@@ -266,33 +269,33 @@ pub fn with(Profiler: anytype) type {
                     std.debug.panic("audioThread: failed to prefill silence", .{});
                 };
             }
-        
+
             hrErrorOnFail(audio_playback.interface.client.Start()) catch {};
             defer _ = audio_playback.interface.client.Stop();
-        
+
             while (quit == false) {
                 zwin32.base.WaitForSingleObject(audio_playback.interface.buffer_ready_event, zwin32.base.INFINITE) catch {
                     continue;
                 };
-        
+
                 var buffer_frames: UINT = 0;
                 _ = audio_playback.interface.client.GetBufferSize(&buffer_frames);
-        
+
                 var padding: UINT = 0;
                 _ = audio_playback.interface.client.GetCurrentPadding(&padding);
-        
+
                 const num_frames = buffer_frames - padding;
                 const num_channels = audio_playback.interface.num_channels;
                 const num_samples = num_frames * num_channels;
-        
+
                 var byte_buf: [*]BYTE = undefined;
                 hrErrorOnFail(audio_playback.interface.render_client.GetBuffer(num_frames, @ptrCast(*?[*]BYTE, &byte_buf))) catch |err| {
                     log.warn("Audio GetBuffer failed with error: {}", .{err});
                     continue;
                 };
-        
+
                 const sample_buf = @ptrCast([*]f32, @alignCast(@alignOf(f32), byte_buf))[0..num_samples];
-        
+
                 const frames_written = try audio_playback.user_cb.?(.{
                     .sample_rate = audio_playback.interface.sample_rate,
                     .channels = num_channels,
@@ -302,14 +305,14 @@ pub fn with(Profiler: anytype) type {
                 if (frames_written < num_frames) {
                     log.warn("Audio playback underflow", .{});
                 }
-        
+
                 _ = audio_playback.interface.render_client.ReleaseBuffer(
                     @intCast(UINT, num_frames),
                     0,
                 );
             }
         }
-        
+
         fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
             switch (msg) {
                 user32.WM_CLOSE => {
@@ -342,7 +345,7 @@ pub fn with(Profiler: anytype) type {
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
         }
-        
+
         fn registerClass(hinstance: HINSTANCE, name: LPCWSTR) !void {
             var wndclass = user32.WNDCLASSEXW{
                 .cbSize = @sizeOf(user32.WNDCLASSEXW),
@@ -358,10 +361,10 @@ pub fn with(Profiler: anytype) type {
                 .lpszClassName = name,
                 .hIconSm = null,
             };
-        
+
             _ = try user32.registerClassExW(&wndclass);
         }
-        
+
         fn createWindow(
             hinstance: HINSTANCE,
             class_name: LPCWSTR,
@@ -395,18 +398,18 @@ pub fn with(Profiler: anytype) type {
             try user32.updateWindow(hwnd);
             return hwnd;
         }
-        
+
         var dxgi_swap_chain: ?*dxgi.ISwapChain = null;
         var d3d11_device: ?*d3d11.IDevice = null;
         var d3d11_device_context: ?*d3d11.IDeviceContext = null;
         var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
-        
+
         fn createDeviceAndSwapchain(hwnd: HWND) zwin32.HResultError!void {
             const STANDARD_MULTISAMPLE_QUALITY_LEVELS = enum(UINT) {
                 STANDARD_MULTISAMPLE_PATTERN = 0xffffffff,
                 CENTER_MULTISAMPLE_PATTERN = 0xfffffffe,
             };
-        
+
             // TODO(chris): check that hardware supports the multisampling values we want
             // and downgrade if nessesary
             var swapchain_desc: dxgi.SWAP_CHAIN_DESC = .{
@@ -432,14 +435,14 @@ pub fn with(Profiler: anytype) type {
                 .SwapEffect = dxgi.SWAP_EFFECT.DISCARD,
                 .Flags = 0,
             };
-        
+
             var flags: UINT = d3d11.CREATE_DEVICE_SINGLETHREADED;
             if (builtin.mode == .Debug) {
                 flags |= d3d11.CREATE_DEVICE_DEBUG;
             }
-        
+
             var feature_level: d3d.FEATURE_LEVEL = .FL_11_1;
-        
+
             try hrErrorOnFail(d3d11.D3D11CreateDeviceAndSwapChain(
                 null,
                 d3d.DRIVER_TYPE.HARDWARE,
@@ -455,7 +458,7 @@ pub fn with(Profiler: anytype) type {
                 &d3d11_device_context,
             ));
         }
-        
+
         fn createRenderTargetView() zwin32.HResultError!void {
             var framebuffer: *d3d11.IResource = undefined;
             try hrErrorOnFail(dxgi_swap_chain.?.GetBuffer(
@@ -470,7 +473,7 @@ pub fn with(Profiler: anytype) type {
             ));
             _ = framebuffer.Release();
         }
-        
+
         fn translateKey(wparam: WPARAM) Key {
             return switch (wparam) {
                 zwin32.base.VK_ESCAPE => .escape,
