@@ -16,10 +16,11 @@ The platform module abstracts the target operating system and SDKs and provides 
 
 \* Console platform backends are not public. Registered developers will be granted access on request.
 
+The platform module is configured with a Profiler. You can provide an `void` for none, your own type which conforms to the common interface, or use one provided by the [trace](https://github.com/hazeycode/brucelib/tree/main/modules/trace) module such as `trace.ZTracyProfiler`
 
 ### Minimal usage example
 ```zig
-const platform = @import("brucelib.platform");
+const platform = @import("brucelib.platform").using(void);
 
 pub fn main() anyerror!void {
 

@@ -5,7 +5,6 @@ Provides some builtin Profilers that can be used with the other modules.
 - `NullProfiler` can be used to disable profiling in modules that require a Profiler
 - `ZtracyProfiler` is a wrapper around [ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy)
 
-Use `zig build -Dztracy-enable=true` to enable profiling with Tracy
 
 ### Vendored
 

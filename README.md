@@ -31,6 +31,8 @@ Modules are designed to be used standalone or in combination with each other (se
 
 Alternatively, take a look at [this project template](https://github.com/hazeycode/brucelib-begin)
 
+### Profiling with [Tracy](https://github.com/wolfpld/tracy) via [ztracy](modules/trace/src/vendored/ztracy)
+
 Use `zig build -Dztracy-enable=true` to enable profiling with Tracy
 
 ### Examples
