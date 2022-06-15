@@ -5,7 +5,10 @@ const util = @import("brucelib.util");
 const platform = @import("brucelib.platform").using(.{
     .Profiler = util.ZtracyProfiler,
 });
-const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
+
+const graphics = @import("brucelib.graphics").using(.{
+    .Profiler = util.ZtracyProfiler,
+});
 
 const audio_on = false;
 

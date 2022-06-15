@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const ModuleDependencies = struct {
+pub const ModuleConfig = struct {
     Profiler: type = @import("NullProfiler.zig"),
 };
 

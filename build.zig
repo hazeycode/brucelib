@@ -46,12 +46,11 @@ pub fn build(b: *std.build.Builder) !void {
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
 
-                    example.addPackage(util.getPkg(ztracy_options));
-
                     example.addPackage(platform.pkg);
                     example.addPackage(graphics.pkg);
                     example.addPackage(audio.pkg);
                     example.addPackage(algo.pkg);
+                    example.addPackage(util.getPkg(ztracy_options));
 
                     platform.link(example);
                     graphics.link(example);

@@ -5,8 +5,8 @@ const log = std.log.scoped(.@"brucelib.platform.win32");
 
 const common = @import("common.zig");
 
-pub fn using(comptime dependencies: common.ModuleDependencies) type {
-    const Profiler = dependencies.Profiler;
+pub fn using(comptime config: common.ModuleConfig) type {
+    const Profiler = config.Profiler;
 
     return struct {
         pub const InitFn = common.InitFn;

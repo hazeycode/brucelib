@@ -1,18 +1,20 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-pub const BackendAPI = enum {
-    default,
-    opengl,
-    d3d11,
+pub const ModuleConfig = struct {
+    backend_api: enum {
+        default,
+        opengl,
+        d3d11,
+    } = .default,
+    Profiler: type = @import("NullProfiler.zig"),
 };
 
-pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
+pub fn using(comptime config: ModuleConfig) type {
+    const Profiler = config.Profiler;
     return struct {
-
-        // Graphics API abstraction
-
-        pub const backend = switch (backend_api) {
+        // Low-level backend API abstraction
+        pub const backend = switch (config.backend_api) {
             .default => switch (builtin.os.tag) {
                 .linux => @import("opengl.zig"),
                 .windows => @import("d3d11.zig"),
@@ -66,6 +68,9 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         pub var debugfont_texture: Texture2d = undefined;
 
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
+            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.init", 0x00_af_af_00);
+            defer trace_zone.End();
+            
             try backend.init(platform, allocator);
             errdefer backend.deinit();
 
@@ -226,6 +231,9 @@ pub fn usingBackendAPI(comptime backend_api: BackendAPI) type {
         }
 
         pub fn submitDrawList(draw_list: *DrawList) !void {
+            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.submit_draw_list", 0x00_af_af_00);
+            defer trace_zone.End();
+            
             var model = identityMatrix();
             var view = identityMatrix();
             var projection = identityMatrix();

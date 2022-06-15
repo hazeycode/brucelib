@@ -5,8 +5,8 @@ const X11 = @import("linux/X11.zig");
 
 const log = std.log.scoped(.@"brucelib.platform.linux");
 
-pub fn using(comptime dependencies: common.ModuleDependencies) type {
-    const Profiler = dependencies.Profiler;
+pub fn using(comptime config: common.ModuleConfig) type {
+    const Profiler = config.Profiler;
 
     return struct {
         pub const InitFn = common.InitFn;
