@@ -23,14 +23,30 @@ pub inline fn init_thread() void {}
 
 pub inline fn set_thread_name(_: [*:0]const u8) void {}
 
-pub inline fn zone(comptime _: Src) ZoneCtx {return .{};}
-pub inline fn zone_name(comptime _: Src, _: [*:0]const u8) ZoneCtx {return .{};}
-pub inline fn zone_colour(comptime _: Src, _: u32) ZoneCtx {return .{};}
-pub inline fn zone_name_colour(comptime _: Src, _: [*:0]const u8, _: u32) ZoneCtx {return .{};}
-pub inline fn zone_stack(comptime _: Src, _: i32) ZoneCtx {return .{};}
-pub inline fn zone_name_stack(comptime _: Src, _: [*:0]const u8, _: i32) ZoneCtx {return .{};}
-pub inline fn zone_colour_stack(comptime _: Src, _: u32, _: i32) ZoneCtx {return .{};}
-pub inline fn zone_name_colour_stack(comptime _: Src, _: [*:0]const u8, _: u32, _: i32) ZoneCtx {return .{};}
+pub inline fn zone(comptime _: Src) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_name(comptime _: Src, _: [*:0]const u8) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_colour(comptime _: Src, _: u32) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_name_colour(comptime _: Src, _: [*:0]const u8, _: u32) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_stack(comptime _: Src, _: i32) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_name_stack(comptime _: Src, _: [*:0]const u8, _: i32) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_colour_stack(comptime _: Src, _: u32, _: i32) ZoneCtx {
+    return .{};
+}
+pub inline fn zone_name_colour_stack(comptime _: Src, _: [*:0]const u8, _: u32, _: i32) ZoneCtx {
+    return .{};
+}
 
 pub inline fn alloc(_: ?*const anyopaque, _: usize) void {}
 pub inline fn free(_: ?*const anyopaque) void {}

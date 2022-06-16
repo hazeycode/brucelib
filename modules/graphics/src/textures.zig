@@ -6,7 +6,7 @@ const common = @import("common.zig");
 const TextureFormat = common.TextureFormat;
 const TextureHandle = common.TextureHandle;
 
-pub fn withBackend(comptime backend: anytype) type {
+pub fn using_backend(comptime Backend: anytype) type {
     return struct {
         pub const Texture2d = struct {
             handle: TextureHandle,
@@ -20,7 +20,7 @@ pub fn withBackend(comptime backend: anytype) type {
                 height: u32,
                 bytes: []const u8,
             ) !Texture2d {
-                const handle = try backend.createTexture2dWithBytes(
+                const handle = try Backend.createTexture2dWithBytes(
                     bytes,
                     width,
                     height,
@@ -58,7 +58,7 @@ pub fn withBackend(comptime backend: anytype) type {
                     else => unreachable,
                 };
 
-                const handle = try backend.createTexture2dWithBytes(
+                const handle = try Backend.createTexture2dWithBytes(
                     texture_bytes[0..texture_bytes_size],
                     width,
                     height,
@@ -135,7 +135,7 @@ pub fn withBackend(comptime backend: anytype) type {
                                     i += 1;
                                 }
 
-                                const handle = try backend.createTexture2dWithBytes(
+                                const handle = try Backend.createTexture2dWithBytes(
                                     texture_bytes,
                                     width,
                                     height,

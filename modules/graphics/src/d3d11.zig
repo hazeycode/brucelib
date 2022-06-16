@@ -4,15 +4,16 @@ const builtin = @import("builtin");
 const log = std.log.scoped(.@"brucelib.graphics.d3d11");
 
 const common = @import("common.zig");
-const VertexBufferHandle = common.VertexBufferHandle;
+const BufferHandle = common.BufferHandle;
 const VertexLayoutDesc = common.VertexLayoutDesc;
 const VertexLayoutHandle = common.VertexLayoutHandle;
 const TextureFormat = common.TextureFormat;
 const TextureHandle = common.TextureHandle;
-const ConstantBufferHandle = common.ConstantBufferHandle;
 const RasteriserStateHandle = common.RasteriserStateHandle;
 const BlendStateHandle = common.BlendStateHandle;
 const ShaderProgramHandle = common.ShaderProgramHandle;
+const FenceHandle = common.FenceHandle;
+const FenceState = common.FenceState;
 
 const win32 = @import("zwin32");
 const SIZE_T = win32.base.SIZE_T;
@@ -125,6 +126,15 @@ pub fn deinit() void {
     shader_programs.deinit();
 }
 
+pub fn fence() FenceHandle {
+    return 0; // TODO(hazeycode): implement this
+}
+
+pub fn wait_fence(_: FenceHandle) !FenceState {
+    // TODO(hazeycode): implement this
+    return FenceState.already_signaled;
+}
+
 pub fn logDebugMessages() !void {
     if (builtin.mode == .Debug) {
         var temp_arena = std.heap.ArenaAllocator.init(allocator);
@@ -200,7 +210,7 @@ pub fn draw(offset: u32, count: u32) void {
     device_ctx.Draw(count, offset);
 }
 
-pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
+pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, size),
@@ -216,14 +226,13 @@ pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
     return @ptrToInt(buffer.?);
 }
 
-pub fn destroyVertexBuffer(buffer_handle: VertexBufferHandle) !void {
+pub fn destroy_vertex_buffer(buffer_handle: BufferHandle) !void {
     _ = buffer_handle;
     // TODO(hazeycode): impl this!
 }
 
-pub fn mapBuffer(
-    buffer_handle: VertexBufferHandle,
-    offset: usize,
+pub fn map_buffer_persistent(
+    buffer_handle: BufferHandle,
     size: usize,
     comptime alignment: u7,
 ) ![]align(alignment) u8 {
@@ -237,10 +246,10 @@ pub fn mapBuffer(
         &subresource,
     ));
     const ptr = @ptrCast([*]u8, subresource.pData);
-    return @alignCast(alignment, ptr[offset..(offset + size)]);
+    return @alignCast(alignment, ptr[0..size]);
 }
 
-pub fn unmapBuffer(buffer_handle: VertexBufferHandle) void {
+pub fn unmap_buffer(buffer_handle: BufferHandle) void {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
     device_context.Unmap(vertex_buffer, 0);
 }
@@ -272,7 +281,7 @@ pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHan
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn bindVertexLayout(vertex_layout_handle: VertexLayoutHandle) void {
+pub fn bind_vertex_layout(vertex_layout_handle: VertexLayoutHandle) void {
     const vertex_layout = vertex_layouts.items[vertex_layout_handle];
     device_context.IASetVertexBuffers(
         0,
@@ -365,7 +374,7 @@ pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     device_context.PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
-pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
+pub fn createConstantBuffer(size: usize) !BufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, size),
@@ -389,7 +398,7 @@ pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
 }
 
 pub fn updateShaderConstantBuffer(
-    buffer_handle: ConstantBufferHandle,
+    buffer_handle: BufferHandle,
     bytes: []const u8,
 ) !void {
     const constant_buffer = @ptrCast(
@@ -413,7 +422,7 @@ pub fn updateShaderConstantBuffer(
     device_ctx.Unmap(constant_buffer, 0);
 }
 
-pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: BufferHandle) void {
     const buffer = constant_buffers.items[buffer_handle];
     const buffers = [_]*d3d11.IBuffer{buffer.buffer};
     device_context.VSSetConstantBuffers(

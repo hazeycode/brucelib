@@ -4,15 +4,16 @@ const gl = @import("zig-opengl");
 const log = std.log.scoped(.@"brucelib.graphics.opengl");
 
 const common = @import("common.zig");
-const VertexBufferHandle = common.VertexBufferHandle;
+const BufferHandle = common.BufferHandle;
 const VertexLayoutDesc = common.VertexLayoutDesc;
 const VertexLayoutHandle = common.VertexLayoutHandle;
 const TextureFormat = common.TextureFormat;
 const TextureHandle = common.TextureHandle;
-const ConstantBufferHandle = common.ConstantBufferHandle;
 const RasteriserStateHandle = common.RasteriserStateHandle;
 const BlendStateHandle = common.BlendStateHandle;
 const ShaderProgramHandle = common.ShaderProgramHandle;
+const FenceHandle = common.FenceHandle;
+const FenceState = common.FenceState;
 
 var allocator: std.mem.Allocator = undefined;
 
@@ -26,6 +27,25 @@ pub fn init(comptime platform: anytype, _allocator: std.mem.Allocator) !void {
 }
 
 pub fn deinit() void {}
+
+pub fn fence() FenceHandle {
+    return @ptrToInt(gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0));
+}
+
+pub fn wait_fence(fence_handle: FenceHandle, timeout: u64) !FenceState {
+    const wait_res = gl.clientWaitSync(
+        @intToPtr(gl.GLsync, fence_handle),
+        gl.SYNC_FLUSH_COMMANDS_BIT,
+        timeout,
+    );
+    return switch (wait_res) {
+        gl.ALREADY_SIGNALED => FenceState.already_signaled,
+        gl.TIMEOUT_EXPIRED => FenceState.timeout_expired,
+        gl.CONDITION_SATISFIED => FenceState.signaled,
+        gl.WAIT_FAILED => error.WaitFenceFailed, // TODO(hazeycode): map glError to error type
+        else => error.UnknownState,
+    };
+}
 
 pub fn logDebugMessages() !void {}
 
@@ -46,41 +66,47 @@ pub fn draw(offset: u32, count: u32) void {
     );
 }
 
-pub fn createVertexBuffer(size: u32) !VertexBufferHandle {
+pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     var vbo: gl.GLuint = undefined;
     gl.genBuffers(1, &vbo);
-    gl.bindBuffer(gl.ARRAY_BUFFER, @intCast(gl.GLenum, vbo));
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     gl.bufferStorage(
         gl.ARRAY_BUFFER,
-        size,
+        @intCast(gl.GLsizei, size),
         null,
         gl.MAP_WRITE_BIT | gl.MAP_PERSISTENT_BIT | gl.MAP_COHERENT_BIT,
     );
     return vbo;
 }
 
-pub fn destroyVertexBuffer(buffer_handle: VertexBufferHandle) !void {
+pub fn destroy_buffer(buffer_handle: BufferHandle) !void {
     const buffer = @intCast(gl.GLenum, buffer_handle);
     gl.deleteBuffers(1, &buffer);
 }
 
-pub fn mapBuffer(
-    buffer_handle: VertexBufferHandle,
-    offset: usize,
+pub fn map_buffer_persisent(
+    buffer_handle: BufferHandle,
     size: usize,
     comptime alignment: u7,
 ) ![]align(alignment) u8 {
     const buffer = @intCast(gl.GLenum, buffer_handle);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    const ptr = @ptrCast(
-        [*]u8,
-        gl.mapBuffer(gl.ARRAY_BUFFER, gl.WRITE_ONLY),
+    const maybe_ptr = gl.mapBufferRange(
+        gl.ARRAY_BUFFER,
+        0,
+        @intCast(isize, size),
+        gl.MAP_WRITE_BIT | gl.MAP_PERSISTENT_BIT | gl.MAP_COHERENT_BIT,
     );
-    return @alignCast(alignment, ptr[offset..(offset + size)]);
+    
+    if (maybe_ptr) |ptr| {
+        return @alignCast(alignment, @ptrCast([*]u8, ptr)[0..size]);
+    } else {
+        return error.FailedToMapBuffer;
+    }
 }
 
-pub fn unmapBuffer(buffer_handle: VertexBufferHandle) void {
+pub fn unmap_buffer(buffer_handle: BufferHandle) void {
     const buffer = @intCast(gl.GLenum, buffer_handle);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
@@ -119,7 +145,7 @@ pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     return vao;
 }
 
-pub fn bindVertexLayout(layout_handle: VertexLayoutHandle) void {
+pub fn bind_vertex_layout(layout_handle: VertexLayoutHandle) void {
     gl.bindVertexArray(@intCast(gl.GLuint, layout_handle));
 }
 
@@ -160,7 +186,7 @@ pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     gl.bindTexture(gl.TEXTURE_2D, @intCast(gl.GLuint, texture_handle));
 }
 
-pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
+pub fn createConstantBuffer(size: usize) !BufferHandle {
     var ubo: gl.GLuint = undefined;
     gl.genBuffers(1, &ubo);
     gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
@@ -169,7 +195,7 @@ pub fn createConstantBuffer(size: usize) !ConstantBufferHandle {
 }
 
 pub fn updateShaderConstantBuffer(
-    buffer_handle: ConstantBufferHandle,
+    buffer_handle: BufferHandle,
     bytes: []const u8,
 ) !void {
     const ubo = @intCast(gl.GLuint, buffer_handle);
@@ -183,7 +209,7 @@ pub fn updateShaderConstantBuffer(
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
 }
 
-pub fn setConstantBuffer(buffer_handle: ConstantBufferHandle) void {
+pub fn setConstantBuffer(buffer_handle: BufferHandle) void {
     gl.bindBuffer(gl.UNIFORM_BUFFER, @intCast(gl.GLuint, buffer_handle));
 }
 

@@ -1,19 +1,25 @@
 const std = @import("std");
 
 pub const ShaderProgramHandle = u64;
-pub const ConstantBufferHandle = u64;
-pub const VertexBufferHandle = u64;
+pub const BufferHandle = u64;
 pub const VertexLayoutHandle = u64;
 pub const RasteriserStateHandle = u64;
 pub const BlendStateHandle = u64;
 pub const TextureHandle = u64;
 pub const SamplerStateHandle = u64;
+pub const FenceHandle = u64;
+
+pub const FenceState = enum {
+    already_signaled,
+    timeout_expired,
+    signaled,
+};
 
 pub const VertexLayoutDesc = struct {
     entries: []Entry,
 
     pub const Entry = struct {
-        buffer_handle: VertexBufferHandle,
+        buffer_handle: BufferHandle,
         attributes: []const Attribute,
         offset: u32,
 

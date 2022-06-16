@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const log = std.log.scoped(.@"brucelib.graphics");
+
 pub const ModuleConfig = struct {
     backend_api: enum {
         default,
@@ -12,9 +14,9 @@ pub const ModuleConfig = struct {
 
 pub fn using(comptime config: ModuleConfig) type {
     const Profiler = config.Profiler;
+    
     return struct {
-        // Low-level backend API abstraction
-        pub const backend = switch (config.backend_api) {
+        pub const Backend = switch (config.backend_api) {
             .default => switch (builtin.os.tag) {
                 .linux => @import("opengl.zig"),
                 .windows => @import("d3d11.zig"),
@@ -23,14 +25,10 @@ pub fn using(comptime config: ModuleConfig) type {
             .opengl => @import("opengl.zig"),
             .d3d11 => @import("d3d11.zig"),
         };
-
-        pub const VertexBuffer = @import("buffers.zig").withBackend(backend).VertexBuffer;
-        pub const Texture2d = @import("textures.zig").withBackend(backend).Texture2d;
-
+        
         const common = @import("common.zig");
         pub const ShaderProgramHandle = common.ShaderProgramHandle;
-        pub const ConstantBufferHandle = common.ConstantBufferHandle;
-        pub const VertexBufferHandle = common.VertexBufferHandle;
+        pub const BufferHandle = common.BufferHandle;
         pub const VertexLayoutHandle = common.VertexLayoutHandle;
         pub const RasteriserStateHandle = common.RasteriserStateHandle;
         pub const BlendStateHandle = common.BlendStateHandle;
@@ -38,8 +36,14 @@ pub fn using(comptime config: ModuleConfig) type {
         pub const SamplerStateHandle = common.SamplerStateHandle;
         pub const VertexLayoutDesc = common.VertexLayoutDesc;
         pub const TextureFormat = common.TextureFormat;
-
-        // Linear maths
+        pub const FenceHandle = common.FenceHandle;
+        pub const FenceState = common.FenceState;
+        
+        const buffers = @import("buffers.zig").using_backend(Backend);
+        pub const VertexBufferDynamic = buffers.VertexBufferDynamic;
+        
+        const textures = @import("textures.zig").using_backend(Backend);
+        pub const Texture2d = textures.Texture2d;
 
         pub const zmath = @import("zmath");
         pub const F32x4 = zmath.F32x4;
@@ -56,8 +60,8 @@ pub fn using(comptime config: ModuleConfig) type {
         } = undefined;
 
         pub var builtin_vertex_buffers: struct {
-            pos: VertexBuffer(Vertex),
-            pos_uv: VertexBuffer(TexturedVertex),
+            pos: VertexBufferDynamic(Vertex),
+            pos_uv: VertexBufferDynamic(TexturedVertex),
         } = undefined;
 
         pub const ShaderConstants = extern struct {
@@ -66,18 +70,18 @@ pub fn using(comptime config: ModuleConfig) type {
         };
 
         pub var debugfont_texture: Texture2d = undefined;
-
+        
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
             const trace_zone = Profiler.zone_name_colour(@src(), "graphics.init", 0x00_af_af_00);
             defer trace_zone.End();
             
-            try backend.init(platform, allocator);
-            errdefer backend.deinit();
+            try Backend.init(platform, allocator);
+            errdefer Backend.deinit();
 
             debugfont_texture = try Texture2d.fromPBM(allocator, @embedFile("../data/debugfont.pbm"));
 
-            builtin_vertex_buffers.pos = try VertexBuffer(Vertex).init(1e3);
-            builtin_vertex_buffers.pos_uv = try VertexBuffer(TexturedVertex).init(1e3);
+            builtin_vertex_buffers.pos = try VertexBufferDynamic(Vertex).init(1e3);
+            builtin_vertex_buffers.pos_uv = try VertexBufferDynamic(TexturedVertex).init(1e3);
 
             { // create builtin uniform_colour_verts pipeline
                 const vertex_layout_desc = VertexLayoutDesc{
@@ -91,15 +95,15 @@ pub fn using(comptime config: ModuleConfig) type {
                 };
 
                 builtin_pipeline_resources.uniform_colour_verts = .{
-                    .program = try backend.createUniformColourShader(),
+                    .program = try Backend.createUniformColourShader(),
                     .vertex_layout = .{
-                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .handle = try Backend.createVertexLayout(vertex_layout_desc),
                         .desc = vertex_layout_desc,
                     },
-                    .rasteriser_state = try backend.createRasteriserState(),
-                    .blend_state = try backend.createBlendState(),
+                    .rasteriser_state = try Backend.createRasteriserState(),
+                    .blend_state = try Backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
-                    .constant_buffer = try backend.createConstantBuffer(0x1000),
+                    .constant_buffer = try Backend.createConstantBuffer(0x1000),
                 };
             }
 
@@ -115,15 +119,15 @@ pub fn using(comptime config: ModuleConfig) type {
                 };
 
                 builtin_pipeline_resources.textured_verts_mono = .{
-                    .program = try backend.createTexturedVertsMonoShader(),
+                    .program = try Backend.createTexturedVertsMonoShader(),
                     .vertex_layout = .{
-                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .handle = try Backend.createVertexLayout(vertex_layout_desc),
                         .desc = vertex_layout_desc,
                     },
-                    .rasteriser_state = try backend.createRasteriserState(),
-                    .blend_state = try backend.createBlendState(),
+                    .rasteriser_state = try Backend.createRasteriserState(),
+                    .blend_state = try Backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
-                    .constant_buffer = try backend.createConstantBuffer(0x1000),
+                    .constant_buffer = try Backend.createConstantBuffer(0x1000),
                 };
             }
 
@@ -139,32 +143,39 @@ pub fn using(comptime config: ModuleConfig) type {
                 };
 
                 builtin_pipeline_resources.textured_verts = .{
-                    .program = try backend.createTexturedVertsShader(),
+                    .program = try Backend.createTexturedVertsShader(),
                     .vertex_layout = .{
-                        .handle = try backend.createVertexLayout(vertex_layout_desc),
+                        .handle = try Backend.createVertexLayout(vertex_layout_desc),
                         .desc = vertex_layout_desc,
                     },
-                    .rasteriser_state = try backend.createRasteriserState(),
-                    .blend_state = try backend.createBlendState(),
+                    .rasteriser_state = try Backend.createRasteriserState(),
+                    .blend_state = try Backend.createBlendState(),
                     // TODO(hazeycode): create constant buffer of exactly the required size
-                    .constant_buffer = try backend.createConstantBuffer(0x1000),
+                    .constant_buffer = try Backend.createConstantBuffer(0x1000),
                 };
             }
         }
 
         pub fn deinit() void {
-            backend.deinit();
+            Backend.deinit();
+        }
+        
+    
+        pub fn begin_frame(clear_colour: Colour) void {
+            const bind_trace_zone = Profiler.zone_name_colour(@src(), "begin_frame", 0x00_00_ff_ff);
+            defer bind_trace_zone.End();
+            Backend.clearWithColour(
+                clear_colour.r,
+                clear_colour.g,
+                clear_colour.b,
+                clear_colour.a,
+            );
         }
 
+    
         // Core DrawList API
 
-        pub fn beginDrawing(allocator: std.mem.Allocator) !DrawList {
-            try builtin_vertex_buffers.pos.map();
-            builtin_vertex_buffers.pos.clear(false);
-
-            try builtin_vertex_buffers.pos_uv.map();
-            builtin_vertex_buffers.pos_uv.clear(false);
-
+        pub fn begin(allocator: std.mem.Allocator) !DrawList {
             return DrawList{
                 .entries = std.ArrayList(DrawList.Entry).init(allocator),
             };
@@ -173,12 +184,6 @@ pub fn using(comptime config: ModuleConfig) type {
         pub fn setViewport(draw_list: *DrawList, viewport: Viewport) !void {
             try draw_list.entries.append(.{
                 .set_viewport = viewport,
-            });
-        }
-
-        pub fn clearViewport(draw_list: *DrawList, colour: Colour) !void {
-            try draw_list.entries.append(.{
-                .clear_viewport = colour,
             });
         }
 
@@ -231,25 +236,24 @@ pub fn using(comptime config: ModuleConfig) type {
         }
 
         pub fn submitDrawList(draw_list: *DrawList) !void {
-            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.submit_draw_list", 0x00_af_af_00);
+            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.submit_draw_list", 0x00_00_ff_00);
             defer trace_zone.End();
             
             var model = identityMatrix();
             var view = identityMatrix();
             var projection = identityMatrix();
             var current_colour = Colour.white;
-            var constant_buffer_handle: ConstantBufferHandle = 0;
-
-            builtin_vertex_buffers.pos.unmap();
-            builtin_vertex_buffers.pos_uv.unmap();
+            var constant_buffer_handle: BufferHandle = 0;
 
             for (draw_list.entries.items) |entry| {
+                // const entry_trace_zone = Profiler.zone_name_colour(@src(), "drawlist entry", 0x00_00_ff_ff);
+                // defer entry_trace_zone.End();
+                
                 switch (entry) {
                     .set_viewport => |viewport| {
-                        backend.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                    },
-                    .clear_viewport => |colour| {
-                        backend.clearWithColour(colour.r, colour.g, colour.b, colour.a);
+                        const bind_trace_zone = Profiler.zone_name_colour(@src(), "set viewport", 0x00_00_ff_ff);
+                        defer bind_trace_zone.End();
+                        Backend.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
                     },
                     .set_projection_transform => |transform| {
                         projection = transform;
@@ -264,18 +268,22 @@ pub fn using(comptime config: ModuleConfig) type {
                         current_colour = colour;
                     },
                     .bind_pipeline_resources => |resources| {
-                        backend.setShaderProgram(resources.program);
-                        backend.bindVertexLayout(resources.vertex_layout.handle);
-                        backend.setRasteriserState(resources.rasteriser_state);
-                        backend.setBlendState(resources.blend_state);
-                        backend.setConstantBuffer(resources.constant_buffer);
+                        const bind_trace_zone = Profiler.zone_name_colour(@src(), "bind pipeline resources", 0x00_00_ff_ff);
+                        defer bind_trace_zone.End();
+                        Backend.setShaderProgram(resources.program);
+                        Backend.bind_vertex_layout(resources.vertex_layout.handle);
+                        Backend.setRasteriserState(resources.rasteriser_state);
+                        Backend.setBlendState(resources.blend_state);
+                        Backend.setConstantBuffer(resources.constant_buffer);
                         constant_buffer_handle = resources.constant_buffer;
                     },
                     .bind_texture => |desc| {
-                        backend.bindTexture(desc.slot, desc.texture.handle);
+                        Backend.bindTexture(desc.slot, desc.texture.handle);
                     },
                     .draw => |desc| {
-                        try backend.updateShaderConstantBuffer(
+                        const draw_trace_zone = Profiler.zone_name_colour(@src(), "draw", 0x00_00_ff_ff);
+                        defer draw_trace_zone.End();
+                        try Backend.updateShaderConstantBuffer(
                             constant_buffer_handle,
                             std.mem.asBytes(&.{
                                 .mvp = zmath.mul(zmath.mul(model, view), projection),
@@ -283,14 +291,14 @@ pub fn using(comptime config: ModuleConfig) type {
                             }),
                         );
 
-                        backend.draw(desc.vertex_offset, desc.vertex_count);
+                        Backend.draw(desc.vertex_offset, desc.vertex_count);
                     },
                 }
             }
 
             if (builtin.mode == .Debug) {
-                try backend.logDebugMessages();
-            }
+                try Backend.logDebugMessages();
+            }            
         }
 
         // High-level DrawList API
@@ -301,7 +309,7 @@ pub fn using(comptime config: ModuleConfig) type {
             colour: Colour,
             vertices: []const Vertex,
         ) !void {
-            const vert_offset = builtin_vertex_buffers.pos.append(vertices);
+            const vert_offset = builtin_vertex_buffers.pos.push(vertices);
 
             try bindPipelineResources(draw_list, resources);
             try setColour(draw_list, colour);
@@ -314,7 +322,7 @@ pub fn using(comptime config: ModuleConfig) type {
             texture: Texture2d,
             vertices: []const TexturedVertex,
         ) !void {
-            const vert_offset = builtin_vertex_buffers.pos_uv.append(vertices);
+            const vert_offset = builtin_vertex_buffers.pos_uv.push(vertices);
 
             try bindPipelineResources(draw_list, resources);
             try bindTexture(draw_list, 0, texture);
@@ -357,7 +365,6 @@ pub fn using(comptime config: ModuleConfig) type {
         pub const DrawList = struct {
             pub const Entry = union(enum) {
                 set_viewport: Viewport,
-                clear_viewport: Colour,
                 bind_pipeline_resources: PipelineResources,
                 set_projection_transform: Matrix,
                 set_view_transform: Matrix,
@@ -380,7 +387,7 @@ pub fn using(comptime config: ModuleConfig) type {
         pub const PipelineResources = struct {
             program: ShaderProgramHandle,
             vertex_layout: VertexLayout,
-            constant_buffer: ConstantBufferHandle,
+            constant_buffer: BufferHandle,
             blend_state: BlendStateHandle,
             rasteriser_state: RasteriserStateHandle,
         };
@@ -394,7 +401,7 @@ pub fn using(comptime config: ModuleConfig) type {
         ///
         pub const Vertex = extern struct {
             pos: [3]f32,
-
+        
             pub fn getLayoutAttributes() []const VertexLayoutDesc.Entry.Attribute {
                 return &[_]VertexLayoutDesc.Entry.Attribute{
                     .{ .format = .f32x3 },
@@ -402,13 +409,9 @@ pub fn using(comptime config: ModuleConfig) type {
             }
         };
 
-        pub const VertexIndex = u16;
-
-        pub const VertexUV = [2]f32;
-
         pub const TexturedVertex = extern struct {
             pos: [3]f32,
-            uv: VertexUV,
+            uv: [2]f32,
 
             pub fn getLayoutAttributes() []const VertexLayoutDesc.Entry.Attribute {
                 return &[_]VertexLayoutDesc.Entry.Attribute{
