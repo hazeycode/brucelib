@@ -55,8 +55,8 @@ pub const FrameInput = struct {
 
     /// Various debug stats, used for displaying debug information
     debug_stats: struct {
-        /// This is how long was taken doing actual work on the CPU for the previous frame
-        prev_cpu_frame_elapsed: u64,
+        /// This is how long was taken doing actual work on the CPU in the previous frame
+        prev_cpu_elapsed: u64,
     },
 };
 

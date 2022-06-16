@@ -67,8 +67,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 callback: AudioPlaybackFn = null,
             },
         }) !void {
-            var timer = try std.time.Timer.start();
-
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer _ = gpa.deinit();
 
@@ -126,73 +124,84 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 audio_playback.thread.detach();
             }
 
-            var frame_timer = try std.time.Timer.start();
+            var prev_frame_elapsed: u64 = 0;
+            var prev_cpu_elapsed: u64 = 0;
 
-            var prev_cpu_frame_elapsed: u64 = 0;
-
+            var timer = try std.time.Timer.start();
             while (true) {
+                prev_frame_elapsed = timer.lap();
+
                 defer Profiler.frame_mark();
 
-                const prev_frame_elapsed = frame_timer.lap();
+                const outer_trace_zone = Profiler.zone_name_colour(@src(), "platform main loop", 0x00_ff_00_00);
+                defer outer_trace_zone.End();
 
-                const start_cpu_time = timer.read();
+                {
+                    const trace_zone = Profiler.zone_name_colour(@src(), "platform update", 0x00_ff_00_00);
+                    defer trace_zone.End();
 
-                var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
-                defer frame_mem_arena.deinit();
+                    var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
+                    defer frame_mem_arena.deinit();
 
-                const arena_allocator = frame_mem_arena.allocator();
+                    const arena_allocator = frame_mem_arena.allocator();
 
-                var key_events = std.ArrayList(KeyEvent).init(arena_allocator);
-                var mouse_button_events = std.ArrayList(MouseButtonEvent).init(arena_allocator);
+                    var key_events = std.ArrayList(KeyEvent).init(arena_allocator);
+                    var mouse_button_events = std.ArrayList(MouseButtonEvent).init(arena_allocator);
 
-                while (windowing.next_event()) |event| {
-                    switch (event) {
-                        .window_closed => {
-                            window_closed = true;
-                        },
-                        .window_resize => {},
-                        .key => |key_event| {
-                            try key_events.append(key_event);
-                        },
-                        .mouse_button => |mouse_button_event| {
-                            try mouse_button_events.append(mouse_button_event);
-                        },
+                    while (windowing.next_event()) |event| {
+                        switch (event) {
+                            .window_closed => {
+                                window_closed = true;
+                            },
+                            .window_resize => {},
+                            .key => |key_event| {
+                                try key_events.append(key_event);
+                            },
+                            .mouse_button => |mouse_button_event| {
+                                try mouse_button_events.append(mouse_button_event);
+                            },
+                        }
+                    }
+
+                    const mouse_pos = windowing.get_mouse_pos();
+
+                    const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+
+                    {
+                        const frame_trace_zone = Profiler.zone_name_colour(@src(), "request frame", 0x00_ff_00_00);
+                        defer frame_trace_zone.End();
+
+                        quit = !(try args.frame_fn(.{
+                            .frame_arena_allocator = arena_allocator,
+                            .quit_requested = window_closed,
+                            .target_frame_dt = target_frame_dt,
+                            .prev_frame_elapsed = prev_frame_elapsed,
+                            .user_input = .{
+                                .key_events = key_events.items,
+                                .mouse_button_events = mouse_button_events.items,
+                                .mouse_position = .{
+                                    .x = mouse_pos.x,
+                                    .y = mouse_pos.y,
+                                },
+                            },
+                            .window_size = .{
+                                .width = windowing.window_width,
+                                .height = windowing.window_height,
+                            },
+                            .debug_stats = .{
+                                .prev_cpu_elapsed = prev_cpu_elapsed,
+                            },
+                        }));
                     }
                 }
 
-                const mouse_pos = windowing.get_mouse_pos();
-
-                const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+                prev_cpu_elapsed = timer.read();
 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "request frame", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(@src(), "platform swap_buffers", 0x00_ff_00_00);
                     defer trace_zone.End();
-                    quit = !(try args.frame_fn(.{
-                        .frame_arena_allocator = arena_allocator,
-                        .quit_requested = window_closed,
-                        .target_frame_dt = target_frame_dt,
-                        .prev_frame_elapsed = prev_frame_elapsed,
-                        .user_input = .{
-                            .key_events = key_events.items,
-                            .mouse_button_events = mouse_button_events.items,
-                            .mouse_position = .{
-                                .x = mouse_pos.x,
-                                .y = mouse_pos.y,
-                            },
-                        },
-                        .window_size = .{
-                            .width = windowing.window_width,
-                            .height = windowing.window_height,
-                        },
-                        .debug_stats = .{
-                            .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
-                        },
-                    }));
+                    windowing.swap_buffers();
                 }
-
-                prev_cpu_frame_elapsed = timer.read() - start_cpu_time;
-
-                windowing.swap_buffers();
 
                 if (quit) break;
             }

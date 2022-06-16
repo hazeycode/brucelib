@@ -71,8 +71,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
             thread: std.Thread = undefined,
         }{};
 
-        var timer: std.time.Timer = undefined;
-
         var window_closed = false;
         var quit = false;
 
@@ -90,10 +88,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
         pub fn getSampleRate() u32 {
             return audio_playback.interface.sample_rate;
-        }
-
-        pub fn timestamp() u64 {
-            return timer.read();
         }
 
         pub fn run(
@@ -127,8 +121,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
             window_width = args.window_size.width;
             window_height = args.window_size.height;
-
-            timer = try std.time.Timer.start();
 
             const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
                 log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
@@ -183,16 +175,15 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
                 audio_playback.thread.detach();
             }
+            
+            var prev_frame_elapsed: u64 = 0;
+            var prev_cpu_elapsed: u64 = 0;
 
-            var frame_timer = try std.time.Timer.start();
-            var prev_cpu_frame_elapsed: u64 = 0;
-
+            var timer = try std.time.Timer.start();
             while (quit == false) main_loop: {
+                prev_frame_elapsed = timer.lap();
+                
                 defer Profiler.frame_mark();
-
-                const prev_frame_elapsed = frame_timer.lap();
-
-                const start_cpu_time = timestamp();
 
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
@@ -235,12 +226,12 @@ pub fn using(comptime config: common.ModuleConfig) type {
                             .height = window_height,
                         },
                         .debug_stats = .{
-                            .prev_cpu_frame_elapsed = prev_cpu_frame_elapsed,
+                            .prev_cpu_elapsed = prev_cpu_elapsed,
                         },
                     }));
                 }
 
-                prev_cpu_frame_elapsed = timestamp() - start_cpu_time;
+                prev_cpu_elapsed = timer.read();
 
                 try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
             }
