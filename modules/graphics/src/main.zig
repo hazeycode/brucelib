@@ -4,12 +4,13 @@ const std = @import("std");
 const log = std.log.scoped(.@"brucelib.graphics");
 
 pub const ModuleConfig = struct {
+    Profiler: type = @import("NullProfiler.zig"),
+    profile_marker_colour: u32 = 0x00_00_AA_AA,
     backend_api: enum {
         default,
         opengl,
         d3d11,
     } = .default,
-    Profiler: type = @import("NullProfiler.zig"),
 };
 
 pub fn using(comptime config: ModuleConfig) type {
@@ -72,7 +73,11 @@ pub fn using(comptime config: ModuleConfig) type {
         pub var debugfont_texture: Texture2d = undefined;
         
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
-            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.init", 0x00_af_af_00);
+            const trace_zone = Profiler.zone_name_colour(
+                @src(),
+                "graphics.init",
+                config.profile_marker_colour,
+            );
             defer trace_zone.End();
             
             try Backend.init(platform, allocator);
@@ -167,7 +172,12 @@ pub fn using(comptime config: ModuleConfig) type {
         }
     
         pub fn begin_frame(clear_colour: Colour) void {
-            const bind_trace_zone = Profiler.zone_name_colour(@src(), "begin_frame", 0x00_00_ff_ff);
+            const bind_trace_zone = Profiler.zone_name_colour(
+                @src(), 
+                "begin_frame",
+                config.profile_marker_colour,
+            );
+            
             defer bind_trace_zone.End();
             Backend.clearWithColour(
                 clear_colour.r,
@@ -241,7 +251,11 @@ pub fn using(comptime config: ModuleConfig) type {
         }
 
         pub fn submitDrawList(draw_list: *DrawList) !void {
-            const trace_zone = Profiler.zone_name_colour(@src(), "graphics.submit_draw_list", 0x00_00_ff_00);
+            const trace_zone = Profiler.zone_name_colour(
+                @src(),
+                "graphics.submit_draw_list",
+                config.profile_marker_colour,
+            );
             defer trace_zone.End();
             
             var model = identityMatrix();
@@ -251,9 +265,6 @@ pub fn using(comptime config: ModuleConfig) type {
             var constant_buffer_handle: BufferHandle = 0;
 
             for (draw_list.entries.items) |entry| {
-                // const entry_trace_zone = Profiler.zone_name_colour(@src(), "drawlist entry", 0x00_00_ff_ff);
-                // defer entry_trace_zone.End();
-                
                 switch (entry) {
                     .set_viewport => |viewport| {
                         const bind_trace_zone = Profiler.zone_name_colour(@src(), "set viewport", 0x00_00_ff_ff);
@@ -273,8 +284,6 @@ pub fn using(comptime config: ModuleConfig) type {
                         current_colour = colour;
                     },
                     .bind_pipeline_resources => |resources| {
-                        const bind_trace_zone = Profiler.zone_name_colour(@src(), "bind pipeline resources", 0x00_00_ff_ff);
-                        defer bind_trace_zone.End();
                         Backend.setShaderProgram(resources.program);
                         Backend.bind_vertex_layout(resources.vertex_layout.handle);
                         Backend.setRasteriserState(resources.rasteriser_state);
@@ -286,8 +295,6 @@ pub fn using(comptime config: ModuleConfig) type {
                         Backend.bindTexture(desc.slot, desc.texture.handle);
                     },
                     .draw => |desc| {
-                        const draw_trace_zone = Profiler.zone_name_colour(@src(), "draw", 0x00_00_ff_ff);
-                        defer draw_trace_zone.End();
                         try Backend.updateShaderConstantBuffer(
                             constant_buffer_handle,
                             std.mem.asBytes(&.{

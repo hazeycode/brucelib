@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const ModuleConfig = struct {
     Profiler: type = @import("NullProfiler.zig"),
+    profile_marker_colour: u32 = 0x00_AA_AA_00,
 };
 
 pub const InitFn = fn (std.mem.Allocator) anyerror!void;

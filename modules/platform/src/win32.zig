@@ -208,8 +208,13 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "request frame", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "request frame",
+                        config.profile_marker_colour,
+                    );
                     defer trace_zone.End();
+                    
                     quit = !(try args.frame_fn(.{
                         .frame_arena_allocator = frame_arena_allocator,
                         .quit_requested = window_closed,
@@ -236,14 +241,24 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 prev_cpu_elapsed = timer.read();
                 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "frame commit", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "frame commit",
+                        config.profile_marker_colour,
+                    );
                     defer trace_zone.End();
+                    
                     args.frame_end_fn();
                 }
 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "platform present", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "platform present",
+                        config.profile_marker_colour,
+                    );
                     defer trace_zone.End();
+                    
                     try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
                 }
             }

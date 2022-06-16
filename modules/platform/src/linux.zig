@@ -133,7 +133,11 @@ pub fn using(comptime config: common.ModuleConfig) type {
             while (true) {
                 defer Profiler.frame_mark();
 
-                const outer_trace_zone = Profiler.zone_name_colour(@src(), "platform main loop", 0x00_ff_00_00);
+                const outer_trace_zone = Profiler.zone_name_colour(
+                    @src(),
+                    "platform main loop",
+                    config.profile_marker_colour,
+                );
                 defer outer_trace_zone.End();
                                                 
                 prev_frame_elapsed = timer.lap();
@@ -166,7 +170,11 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
                 {
-                    const frame_trace_zone = Profiler.zone_name_colour(@src(), "platform request frame", 0x00_ff_00_00);
+                    const frame_trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "platform request frame",
+                        config.profile_marker_colour,
+                    );
                     defer frame_trace_zone.End();
 
                     quit = !(try args.frame_fn(.{
@@ -195,13 +203,21 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 prev_cpu_elapsed = timer.read();
                 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "frame commit", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "frame commit",
+                        config.profile_marker_colour,
+                    );
                     defer trace_zone.End();
                     args.frame_end_fn();
                 }
 
                 {
-                    const trace_zone = Profiler.zone_name_colour(@src(), "platform swap_buffers", 0x00_ff_00_00);
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "platform swap_buffers",
+                        config.profile_marker_colour,
+                    );
                     defer trace_zone.End();
                     windowing.swap_buffers();
                 }
