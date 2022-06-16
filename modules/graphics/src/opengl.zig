@@ -84,7 +84,7 @@ pub fn destroy_buffer(buffer_handle: BufferHandle) !void {
     gl.deleteBuffers(1, &buffer);
 }
 
-pub fn map_buffer_persisent(
+pub fn map_buffer_persistent(
     buffer_handle: BufferHandle,
     size: usize,
     comptime alignment: u7,
