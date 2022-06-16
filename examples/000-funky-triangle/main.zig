@@ -22,6 +22,7 @@ pub fn main() anyerror!void {
         .init_fn = init,
         .deinit_fn = deinit,
         .frame_fn = frame,
+        .frame_end_fn = frame_end,
         .audio_playback = if (audio_on) .{
             .callback = audioPlayback,
         } else null,
@@ -124,6 +125,11 @@ fn frame(input: platform.FrameInput) !bool {
     try graphics.submitDrawList(&draw_list);
 
     return true;
+}
+
+/// Called after `frame`, just before the frame is commited, gives us a chance to sync gpu
+pub fn frame_end() void {
+    graphics.sync();
 }
 
 /// Optional audio playback callback. If set it can be called at any time by the platform module

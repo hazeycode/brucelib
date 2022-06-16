@@ -28,6 +28,10 @@ pub fn init(comptime platform: anytype, _allocator: std.mem.Allocator) !void {
 
 pub fn deinit() void {}
 
+pub fn sync() void {
+    gl.finish();
+}
+
 pub fn fence() FenceHandle {
     return @ptrToInt(gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0));
 }

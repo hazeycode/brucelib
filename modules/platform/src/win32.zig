@@ -12,6 +12,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
         pub const InitFn = common.InitFn;
         pub const DeinitFn = common.DeinitFn;
         pub const FrameFn = common.FrameFn;
+        pub const FrameEndFn = common.FrameEndFn;
         pub const AudioPlaybackFn = common.AudioPlaybackFn;
         pub const FrameInput = common.FrameInput;
         pub const AudioPlaybackStream = common.AudioPlaybackStream;
@@ -105,6 +106,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 init_fn: InitFn,
                 deinit_fn: DeinitFn,
                 frame_fn: FrameFn,
+                frame_end_fn: FrameEndFn,
                 audio_playback: ?struct {
                     request_sample_rate: u32 = 48000,
                     callback: AudioPlaybackFn = null,
@@ -232,8 +234,18 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
 
                 prev_cpu_elapsed = timer.read();
+                
+                {
+                    const trace_zone = Profiler.zone_name_colour(@src(), "frame commit", 0x00_ff_00_00);
+                    defer trace_zone.End();
+                    args.frame_end_fn();
+                }
 
-                try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
+                {
+                    const trace_zone = Profiler.zone_name_colour(@src(), "platform present", 0x00_ff_00_00);
+                    defer trace_zone.End();
+                    try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
+                }
             }
         }
 

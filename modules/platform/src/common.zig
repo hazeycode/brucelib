@@ -7,6 +7,7 @@ pub const ModuleConfig = struct {
 pub const InitFn = fn (std.mem.Allocator) anyerror!void;
 pub const DeinitFn = fn (std.mem.Allocator) void;
 pub const FrameFn = fn (FrameInput) anyerror!bool;
+pub const FrameEndFn = fn () void;
 pub const AudioPlaybackFn = fn (AudioPlaybackStream) anyerror!u32;
 
 /// Defines the structure that is passed to the audio playback fn by the platform layer
@@ -52,7 +53,7 @@ pub const FrameInput = struct {
 
     /// The current window size / framebuffer dimensions
     window_size: struct { width: u16, height: u16 },
-
+    
     /// Various debug stats, used for displaying debug information
     debug_stats: struct {
         /// This is how long was taken doing actual work on the CPU in the previous frame

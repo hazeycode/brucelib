@@ -154,12 +154,17 @@ pub fn using(comptime config: ModuleConfig) type {
                     .constant_buffer = try Backend.createConstantBuffer(0x1000),
                 };
             }
+            
+            Backend.sync();
         }
 
         pub fn deinit() void {
             Backend.deinit();
         }
         
+        pub fn sync() void {
+            Backend.sync();
+        }
     
         pub fn begin_frame(clear_colour: Colour) void {
             const bind_trace_zone = Profiler.zone_name_colour(@src(), "begin_frame", 0x00_00_ff_ff);

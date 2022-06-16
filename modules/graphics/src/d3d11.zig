@@ -126,6 +126,10 @@ pub fn deinit() void {
     shader_programs.deinit();
 }
 
+pub fn sync() void {
+    return;
+}
+
 pub fn fence() FenceHandle {
     return 0; // TODO(hazeycode): implement this
 }
