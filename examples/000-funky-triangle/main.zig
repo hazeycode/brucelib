@@ -55,8 +55,10 @@ fn frame(input: platform.FrameInput) !bool {
     if (input.quit_requested) {
         return false;
     }
+    
+    graphics.begin_frame(graphics.Colour.black);
 
-    var draw_list = try graphics.beginDrawing(input.frame_arena_allocator);
+    var draw_list = try graphics.begin(input.frame_arena_allocator);
 
     try graphics.setViewport(&draw_list, .{
         .x = 0,
@@ -64,7 +66,6 @@ fn frame(input: platform.FrameInput) !bool {
         .width = input.window_size.width,
         .height = input.window_size.height,
     });
-    try graphics.clearViewport(&draw_list, graphics.Colour.black);
 
     { // update and draw funky triangle
         state.triangle_hue = @mod(
@@ -99,7 +100,7 @@ fn frame(input: platform.FrameInput) !bool {
 
         try debug_gui.label(
             "{d:.2} ms update",
-            .{@intToFloat(f32, input.debug_stats.prev_cpu_frame_elapsed) / 1e6},
+            .{@intToFloat(f32, input.debug_stats.prev_cpu_elapsed) / 1e6},
         );
 
         const prev_frame_time_ms = @intToFloat(f32, input.prev_frame_elapsed) / 1e6;
