@@ -182,6 +182,10 @@ pub fn using(comptime config: Config) type {
                 );
             }
         }
+        
+        pub fn separator(self: *@This()) void {
+            self.cur_y += inset * 2;
+        }
 
         pub fn label(
             self: *@This(),
@@ -197,6 +201,55 @@ pub fn using(comptime config: Config) type {
             const bounding_rect = try self.draw_text(string, &self.text_verts);
 
             self.cur_y += (bounding_rect.max_y - bounding_rect.min_y);
+        }
+        
+        pub fn toggle_button(self: *@This(), comptime fmt: []const u8, args: anytype, value_ptr: *bool) !void {
+            const id = 1; // TODO(hazeycode): obtain some sort of unique identifier
+
+            var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+            defer temp_arena.deinit();
+            const temp_allocator = temp_arena.allocator();
+
+            const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
+            const text_rect = try self.draw_text(string, &self.text_verts);
+            
+            const bounding_rect = text_rect.inset(-4, -3, -4, 1);
+            
+            const input = self.state.input;
+            const mouse_over = text_rect.contains_point(input.mouse_x, input.mouse_y);
+
+            if (id == self.state.active_id) {
+                if (input.mouse_btn_was_released) {
+                    self.state.active_id = 0;
+                    value_ptr.* = !value_ptr.*;
+                }
+            } else if (id == self.state.hover_id) {
+                if (input.mouse_btn_was_pressed) {
+                    if (mouse_over) {
+                        self.state.active_id = id;
+                        self.state.keyboard_focus = id;
+                    } else {
+                        self.state.keyboard_focus = 0;
+                    }
+                }
+            } else {
+                if (mouse_over) {
+                    self.state.hover_id = id;
+                }
+            }
+            
+            try self.draw_colour_rect(
+                colour: {
+                    if (id == self.state.active_id) {
+                        if (self.state.input.mouse_btn_down) break :colour Colour.white;
+                    }
+                    break :colour if (value_ptr.*) Colour.orange else Colour.black;
+                },
+                bounding_rect,
+            );
+            try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
+
+            self.cur_y += (text_rect.max_y - text_rect.min_y);
         }
 
         pub fn text_field(
