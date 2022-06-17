@@ -5,7 +5,13 @@ This module **does not** handle graphics context creation. You must use some oth
 
 ### Selecting a backend API
 
-A backend graphics API is selected at comptime with `usingBackendAPI(backend_api)` where `backend_api` is one of:
+A backend graphics API can be selected by overriding the module config default e.g.
+```zig
+const graphics = @import("brucelib.graphics").using(.{
+    .backend_api = .opengl,
+});
+```
+where `backend_api` is one of:
 
 ```zig
 .opengl, // 4.4 core profile or greater
@@ -16,73 +22,49 @@ A backend graphics API is selected at comptime with `usingBackendAPI(backend_api
 * Support for other backend APIs is planned.
 
 
-```zig
-const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
-```
-
-The appropriate system libraries for the selected backend are required at runtime. But cross-compilation support is in-progress/planned.
-
 ### Backend API abstraction
 
-A backend API abstraction is lazily defined by the backend implementations weakly conforming to the same interface. The selected backend API is exposed by the namespace returned by `usingBackendAPI`. Refer to the implementation of `DrawList` for usage examples.
+A backend API abstraction is lazily defined by the backend implementations weakly conforming to the same interface. The selected backend API is exported by the module.
 
 
-### DrawList API
+### Usage
 
-`graphics.DrawList` provides higher-level rendering procedures. The public interface of `DrawList` could be categoried into two sets, the Core API, and the Render API, which provides a convenient layer on top of the Core API.
+- Initilise the module with `init`, cleanup with `deinit`
+- Call `begin_frame` at the start of your frame
+- Use `sync` to force a CPU/GPU sync point (under review / development)
+- Initilise `RenderList`
 
-DrawList Core API
 
-```zig
-beginDrawing(std.mem.Allocator) !DrawList
+### RenderList API
 
-setViewport(*DrawList, Viewport) !void
-
-clearViewport(*DrawList, Colour) !void
-
-bindPipelineResources(*DrawList, *PipelineResources) !void
-
-setProjectionTransform(*DrawList, Matrix) !void
-
-setViewTransform(*DrawList, Matrix) !void
-
-setModelTransform(*DrawList, Matrix) !void
-
-setColour(*DrawList, Colour) !void
-
-bindTexture(*DrawList, slot: u32, Texture2d) !void
-
-submitDrawList(*DrawList) !void
-```
-
-DrawList Render API
+The core of the module is the `RenderList` API, which is the primary interface for scheduling GPU work
 
 ```zig
-drawUniformColourVerts(*DrawList, PipelineResources, Colour, []const Vertex) !void
-
-drawTexturedVerts(*DrawList, PipelineResources, Texture2d, []const TexturedVertex) !void
-
-drawTexturedQuad(
-    *DrawList,
-    PipelineResources,
-    args: struct {
-        texture: Texture2d,
-        uv_rect: Rect = .{
-            .min_x = 0,
-            .min_y = 0,
-            .max_x = 1,
-            .max_y = 1,
-        },
-    },
-) !void
-
+set_viewport(Viewport) !void
+clear_viewport(Colour) !void
+bind_pipeline_resources(*PipelineResources) !void
+set_projection_transform(Matrix) !void
+set_view_transform(Matrix) !void
+set_model_transform(Matrix) !void
+set_colour(Colour) !void
+bind_texture(slot: u32, Texture2d) !void
+draw(vertex_offset: u32, vertex_count: u32) !void
 ```
+
+### Builtin Renderers
+
+As a matter of convenience, the following builtin Renderers are provided, which are particulary useful for quick prototyping
+
+- `UniformColourVertsRenderer`
+- `TexturedVertsRenderer`
+- (more planned)
 
 
 ### Example usage
 ```zig
-// import the graphics module and select the backend to use
-const graphics = @import("brucelib.graphics").usingBackendAPI(.default);
+// import the graphics module, with the default configution (and backend)
+const graphics = @import("brucelib.graphics").using(.{});
+
 
 // initilise graphics with a strucure that weakly specifies graphics context
 try graphics.init(allocator, .{
@@ -103,29 +85,31 @@ try graphics.init(allocator, .{
     }
 });
 
-// begin a new draw list
-var draw_list = try graphics.beginDrawing(allocator);
+// init a builtin renderer
+var renderer = try graphics.UniformColourVertsRenderer.init(1000);
 
-// set the viewport
-try graphics.setViewport(&draw_list, 0, 0, viewport_width, viewport_height);
+loop {
+   // being a new frame, clearing the render target with the specified colour
+   try graphics.begin_frame(graphics.Colour.black);
 
-// clear the viewport to black
-try graphics.clearViewport(&draw_list, graphics.Colour.black);
+   // create a new `RenderList` and set the viewport
+   var render_list = try graphics.RenderList.init(frame_arena_allocator);
+   try render_list.set_viewport(0, 0, viewport_width, viewport_height);
+   
+   // prepare a solid orange triangle for renderering
+   try colour_verts_renderer.render(
+      &render_list,
+      graphics.Colour.orange,
+      &[_]graphics.Vertex{
+          .{ .pos = .{ -0.5, -0.5, 0.0 } },
+          .{ .pos = .{ 0.5, -0.5, 0.0 } },
+          .{ .pos = .{ 0.0, 0.5, 0.0 } },
+      },
+   );
 
-// draw a triangle with a solid uniform orange colour using the builtin pipeline
-try graphics.drawUniformColourVerts(
-    &draw_list,
-    graphics.builtin_pipeline_resources.uniform_colour_verts,
-    graphics.Colour.orange,
-    &[_]graphics.Vertex{
-        .{ .pos = .{ -0.5, -0.5, 0.0 } },
-        .{ .pos = .{ 0.5, -0.5, 0.0 } },
-        .{ .pos = .{ 0.0, 0.5, 0.0 } },
-    },
-);
-
-// submit the drawlist for rendering
-try graphics.submitDrawList(&draw_list);
+   // submit the `RenderList` (this submits all the draw calls to GPU)
+   try render_list.submit();
+}
 
 // cleanup
 graphics.deinit();
@@ -135,7 +119,7 @@ For more usage examples, refer to the [brucelib examples](https://github.com/haz
 
 ### DebugGUI
 
-`graphics.DebugGUI` provides an optional debug gui implemented ontop of the DrawList API.
+`graphics.debug_gui` provides an optional debug gui implemented ontop of the builtin Renderers and `RenderList` API.
 
 The builtin debugfont was created with:
 
