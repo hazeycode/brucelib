@@ -19,12 +19,11 @@ pub const Config = struct {
 pub fn using(comptime config: Config) type {
     const Backend = config.Backend;
     const Profiler = config.Profiler;
-    
+
     const textures = @import("textures.zig").using_backend(Backend);
     const Texture2d = textures.Texture2d;
-        
+
     return struct {
-    
         pub const Entry = union(enum) {
             set_viewport: Viewport,
             bind_pipeline_resources: PipelineResources,
@@ -43,13 +42,13 @@ pub fn using(comptime config: Config) type {
         };
 
         entries: std.ArrayList(Entry),
-        
+
         pub fn init(allocator: std.mem.Allocator) !@This() {
             return @This(){
                 .entries = std.ArrayList(@This().Entry).init(allocator),
             };
         }
-        
+
         pub fn set_viewport(self: *@This(), viewport: Viewport) !void {
             try self.entries.append(.{
                 .set_viewport = viewport,
@@ -103,7 +102,7 @@ pub fn using(comptime config: Config) type {
                 },
             });
         }
-        
+
         pub fn submit(self: *@This()) !void {
             const trace_zone = Profiler.zone_name_colour(
                 @src(),
@@ -111,7 +110,7 @@ pub fn using(comptime config: Config) type {
                 config.profile_marker_colour,
             );
             defer trace_zone.End();
-            
+
             var model = identity_matrix();
             var view = identity_matrix();
             var projection = identity_matrix();
@@ -159,10 +158,10 @@ pub fn using(comptime config: Config) type {
                     },
                 }
             }
-    
+
             if (builtin.mode == .Debug) {
                 try Backend.log_debug_messages();
-            } 
+            }
         }
     };
 }

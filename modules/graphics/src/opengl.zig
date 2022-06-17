@@ -102,7 +102,7 @@ pub fn map_buffer_persistent(
         @intCast(isize, size),
         gl.MAP_WRITE_BIT | gl.MAP_PERSISTENT_BIT | gl.MAP_COHERENT_BIT,
     );
-    
+
     if (maybe_ptr) |ptr| {
         return @alignCast(alignment, @ptrCast([*]u8, ptr)[0..size]);
     } else {

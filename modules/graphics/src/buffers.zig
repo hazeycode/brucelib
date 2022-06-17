@@ -6,8 +6,8 @@ const BufferHandle = common.BufferHandle;
 pub fn using_backend(comptime Backend: type) type {
     return struct {
         // TODO(hazeycode): VertexBufferStatic
-            
-        pub fn VertexBufferDynamic(comptime vertex_type: type) type {            
+
+        pub fn VertexBufferDynamic(comptime vertex_type: type) type {
             return struct {
                 pub const VertexType: type = vertex_type;
 
@@ -32,30 +32,29 @@ pub fn using_backend(comptime Backend: type) type {
                     Backend.unmap_buffer(self.handle);
                     Backend.destroy_vertex_buffer(self.handle);
                 }
-                
+
                 /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
                 /// Returns the offset in the buffer of the first vertex that was written
                 pub fn push(self: *@This(), vertices: []const VertexType) u32 {
                     std.debug.assert(vertices.len <= self.mapped.len);
-                    
+
                     const remaining = self.mapped.len - self.write_cursor;
                     if (remaining < vertices.len) {
                         self.write_cursor = 0;
                     }
-                    
+
                     const position = self.write_cursor;
-                    
+
                     std.mem.copy( // TODO(hazeycode): investigate/profile 16-byte aligned mem copy
                         VertexType,
                         self.mapped[self.write_cursor..],
                         vertices[0..],
                     );
-                    
+
                     self.write_cursor += @intCast(u32, vertices.len);
-                                        
+
                     return position;
                 }
-                
             };
         }
     };

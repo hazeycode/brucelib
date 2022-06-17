@@ -39,7 +39,6 @@ var state: struct {
 
 var colour_verts_renderer: graphics.UniformColourVertsRenderer = undefined;
 
-
 /// Called before the platform event loop begins
 fn init(allocator: std.mem.Allocator) !void {
     try graphics.init(allocator, platform);
@@ -60,7 +59,7 @@ fn frame(input: platform.FrameInput) !bool {
     if (input.quit_requested) {
         return false;
     }
-    
+
     graphics.begin_frame(graphics.Colour.black);
 
     var render_list = try graphics.RenderList.init(input.frame_arena_allocator);

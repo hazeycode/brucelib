@@ -19,16 +19,16 @@ pub const Config = struct {
 pub fn using(comptime config: Config) type {
     const Backend = config.Backend;
     const Profiler = config.Profiler;
-    
+
     const textures = @import("textures.zig").using_backend(Backend);
     const Texture2d = textures.Texture2d;
-    
+
     const RenderList = @import("render_list.zig").using(.{
         .Backend = Backend,
         .Profiler = Profiler,
         .profile_marker_colour = config.profile_marker_colour,
     });
-    
+
     const renderers = @import("renderers.zig").using(.{
         .Backend = Backend,
         .Profiler = Profiler,
@@ -36,7 +36,7 @@ pub fn using(comptime config: Config) type {
     });
     const UniformColourVertsRenderer = renderers.UniformColourVertsRenderer;
     const TexturedVertsRenderer = renderers.TexturedVertsRenderer;
-        
+
     return struct {
         allocator: std.mem.Allocator,
         text_verts: std.ArrayList(TexturedVertex),
@@ -102,7 +102,7 @@ pub fn using(comptime config: Config) type {
                 }
             }
         };
-                
+
         pub fn init(allocator: std.mem.Allocator) !@This() {
             const debugfont_texture = try Texture2d.fromPBM(
                 allocator,
@@ -140,7 +140,7 @@ pub fn using(comptime config: Config) type {
             self.cur_x = @intToFloat(f32, inset);
             self.cur_y = @intToFloat(f32, inset);
             self.state = state;
-            
+
             self.text_verts.shrinkRetainingCapacity(0);
             self.uniform_colour_verts.shrinkRetainingCapacity(0);
         }
@@ -402,7 +402,6 @@ pub fn using(comptime config: Config) type {
                         .max_y = y + glyph_height,
                     };
 
-                    
                     // TODO(hazeycode): yank uv mapping out of here
                     // debugfont only has a single row and is tightly packed
                     const u = @intToFloat(f32, glyph_width * glyph_idx);

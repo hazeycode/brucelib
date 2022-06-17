@@ -54,7 +54,7 @@ pub const FrameInput = struct {
 
     /// The current window size / framebuffer dimensions
     window_size: struct { width: u16, height: u16 },
-    
+
     /// Various debug stats, used for displaying debug information
     debug_stats: struct {
         /// This is how long was taken doing actual work on the CPU in the previous frame

@@ -139,7 +139,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     config.profile_marker_colour,
                 );
                 defer outer_trace_zone.End();
-                                                
+
                 prev_frame_elapsed = timer.lap();
 
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
@@ -201,7 +201,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
 
                 prev_cpu_elapsed = timer.read();
-                
+
                 {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),

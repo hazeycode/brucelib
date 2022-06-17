@@ -9,7 +9,6 @@ pub const translation = zmath.translation;
 pub const scaling = zmath.scaling;
 pub const mul = zmath.mul;
 
-
 pub const ShaderProgramHandle = u64;
 pub const BufferHandle = u64;
 pub const VertexLayoutHandle = u64;

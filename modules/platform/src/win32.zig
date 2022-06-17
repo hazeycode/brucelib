@@ -177,14 +177,14 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
                 audio_playback.thread.detach();
             }
-            
+
             var prev_frame_elapsed: u64 = 0;
             var prev_cpu_elapsed: u64 = 0;
 
             var timer = try std.time.Timer.start();
             while (quit == false) main_loop: {
                 prev_frame_elapsed = timer.lap();
-                
+
                 defer Profiler.frame_mark();
 
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
@@ -214,7 +214,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-                    
+
                     quit = !(try args.frame_fn(.{
                         .frame_arena_allocator = frame_arena_allocator,
                         .quit_requested = window_closed,
@@ -239,7 +239,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
 
                 prev_cpu_elapsed = timer.read();
-                
+
                 {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
@@ -247,7 +247,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-                    
+
                     args.frame_end_fn();
                 }
 
@@ -258,7 +258,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-                    
+
                     try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
                 }
             }
