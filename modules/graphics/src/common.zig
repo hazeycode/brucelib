@@ -1,5 +1,15 @@
 const std = @import("std");
 
+pub const zmath = @import("zmath");
+pub const F32x4 = zmath.F32x4;
+pub const Matrix = zmath.Mat;
+pub const identity_matrix = zmath.identity;
+pub const orthographic = zmath.orthographicLh;
+pub const translation = zmath.translation;
+pub const scaling = zmath.scaling;
+pub const mul = zmath.mul;
+
+
 pub const ShaderProgramHandle = u64;
 pub const BufferHandle = u64;
 pub const VertexLayoutHandle = u64;
@@ -25,10 +35,10 @@ pub const VertexLayoutDesc = struct {
 
         /// Returns the stride of the entry, where attributes are assumed to be
         /// tightly packed
-        pub fn getStride(self: @This()) u32 {
+        pub fn get_stride(self: @This()) u32 {
             var res: u32 = 0;
             for (self.attributes) |attr| {
-                res += attr.getSize();
+                res += attr.get_size();
             }
             return res;
         }
@@ -40,7 +50,7 @@ pub const VertexLayoutDesc = struct {
                 f32x4,
             },
 
-            pub inline fn getNumComponents(self: @This()) u32 {
+            pub inline fn get_num_components(self: @This()) u32 {
                 return switch (self.format) {
                     .f32x2 => 2,
                     .f32x3 => 3,
@@ -48,8 +58,8 @@ pub const VertexLayoutDesc = struct {
                 };
             }
 
-            pub inline fn getSize(self: @This()) u32 {
-                return @intCast(u32, @sizeOf(f32)) * self.getNumComponents();
+            pub inline fn get_size(self: @This()) u32 {
+                return @intCast(u32, @sizeOf(f32)) * self.get_num_components();
             }
         };
     };
@@ -58,4 +68,152 @@ pub const VertexLayoutDesc = struct {
 pub const TextureFormat = enum(u16) {
     uint8,
     rgba_u8,
+};
+
+///
+pub const PipelineResources = struct {
+    program: ShaderProgramHandle,
+    vertex_layout: VertexLayout,
+    constant_buffer: BufferHandle,
+    blend_state: BlendStateHandle,
+    rasteriser_state: RasteriserStateHandle,
+};
+
+///
+pub const VertexLayout = struct {
+    handle: VertexLayoutHandle,
+    desc: VertexLayoutDesc,
+};
+
+///
+pub const Vertex = extern struct {
+    pos: [3]f32,
+
+    pub fn get_layout_attributes() []const VertexLayoutDesc.Entry.Attribute {
+        return &[_]VertexLayoutDesc.Entry.Attribute{
+            .{ .format = .f32x3 },
+        };
+    }
+};
+
+pub const TexturedVertex = extern struct {
+    pos: [3]f32,
+    uv: [2]f32,
+
+    pub fn get_layout_attributes() []const VertexLayoutDesc.Entry.Attribute {
+        return &[_]VertexLayoutDesc.Entry.Attribute{
+            .{ .format = .f32x3 },
+            .{ .format = .f32x2 },
+        };
+    }
+};
+
+///
+pub const Viewport = struct { x: u16, y: u16, width: u16, height: u16 };
+
+pub const Colour = extern struct {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+
+    pub const black = from_rgb(0, 0, 0);
+    pub const white = from_rgb(1, 1, 1);
+    pub const red = from_rgb(1, 0, 0);
+    pub const orange = from_rgb(1, 0.5, 0);
+
+    pub fn from_rgb(r: f32, g: f32, b: f32) Colour {
+        return .{ .r = r, .g = g, .b = b, .a = 1 };
+    }
+
+    pub fn from_rgba(r: f32, g: f32, b: f32, a: f32) Colour {
+        return .{ .r = r, .g = g, .b = b, .a = a };
+    }
+
+    /// Returns a Colour for a given hue, saturation and value
+    /// h, s, v are assumed to be in the range 0...1
+    pub fn from_hsv(h: f32, s: f32, v: f32) Colour {
+        // Modified version of HSV TO RGB from here: https://www.tlbx.app/color-converter
+        // TODO(hazeycode): compare performance & codegen of this vs zmath.hsvToRgb
+        const hp = (h * 360) / 60;
+        const c = v * s;
+        const x = c * (1 - @fabs(@mod(hp, 2) - 1));
+        const m = v - c;
+        if (hp <= 1) {
+            return Colour.from_rgb(c + m, x + m, m);
+        } else if (hp <= 2) {
+            return Colour.from_rgb(x + m, c + m, m);
+        } else if (hp <= 3) {
+            return Colour.from_rgb(m, c + m, x + m);
+        } else if (hp <= 4) {
+            return Colour.from_rgb(m, x + m, c + m);
+        } else if (hp <= 5) {
+            return Colour.from_rgb(x + m, m, c + m);
+        } else if (hp <= 6) {
+            return Colour.from_rgb(c + m, m, x + m);
+        } else {
+            std.debug.assert(false);
+            return Colour.from_rgb(0, 0, 0);
+        }
+    }
+};
+
+pub const Rect = extern struct {
+    min_x: f32,
+    min_y: f32,
+    max_x: f32,
+    max_y: f32,
+
+    pub fn vertices(self: Rect) [6]Vertex {
+        return [_]Vertex{
+            .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
+            .{ .pos = .{ self.min_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.max_y, 0.0 } },
+            .{ .pos = .{ self.max_x, self.min_y, 0.0 } },
+            .{ .pos = .{ self.min_x, self.min_y, 0.0 } },
+        };
+    }
+
+    pub fn textured_vertices(self: Rect, uv_rect: Rect) [6]TexturedVertex {
+        return [_]TexturedVertex{
+            TexturedVertex{
+                .pos = .{ self.min_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.min_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.min_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.max_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.max_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.max_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.max_x, uv_rect.min_y },
+            },
+            TexturedVertex{
+                .pos = .{ self.min_x, self.min_y, 0.0 },
+                .uv = .{ uv_rect.min_x, uv_rect.min_y },
+            },
+        };
+    }
+
+    pub fn contains_point(self: Rect, x: f32, y: f32) bool {
+        return (x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_y);
+    }
+
+    pub fn inset(self: Rect, left: f32, right: f32, top: f32, bottom: f32) Rect {
+        return .{
+            .min_x = self.min_x + left,
+            .max_x = self.max_x - right,
+            .min_y = self.min_y + top,
+            .max_y = self.max_y - bottom,
+        };
+    }
 };

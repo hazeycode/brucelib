@@ -51,13 +51,13 @@ pub fn wait_fence(fence_handle: FenceHandle, timeout: u64) !FenceState {
     };
 }
 
-pub fn logDebugMessages() !void {}
+pub fn log_debug_messages() !void {}
 
-pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
+pub fn set_viewport(x: u16, y: u16, width: u16, height: u16) void {
     gl.viewport(x, y, width, height);
 }
 
-pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
+pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {
     gl.clearColor(r, g, b, a);
     gl.clear(gl.COLOR_BUFFER_BIT);
 }
@@ -117,7 +117,7 @@ pub fn unmap_buffer(buffer_handle: BufferHandle) void {
     _ = gl.unmapBuffer(gl.ARRAY_BUFFER);
 }
 
-pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
+pub fn create_vertex_layout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     var vao: gl.GLuint = undefined;
     gl.genVertexArrays(1, &vao);
     gl.bindVertexArray(@intCast(gl.GLuint, vao));
@@ -127,7 +127,7 @@ pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
 
         var attrib_offset: usize = 0;
         for (entry.attributes) |attr, j| {
-            const num_components = attr.getNumComponents();
+            const num_components = attr.get_num_components();
             const component_type: gl.GLenum = switch (attr.format) {
                 .f32x2, .f32x3, .f32x4 => gl.FLOAT,
             };
@@ -137,10 +137,10 @@ pub fn createVertexLayout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
                 @intCast(gl.GLint, num_components),
                 component_type,
                 gl.FALSE,
-                @intCast(gl.GLsizei, entry.getStride()),
+                @intCast(gl.GLsizei, entry.get_stride()),
                 if (attrib_offset == 0) null else @intToPtr(*anyopaque, attrib_offset),
             );
-            attrib_offset += attr.getSize();
+            attrib_offset += attr.get_size();
         }
 
         gl.enableVertexAttribArray(@intCast(gl.GLuint, i));
@@ -176,7 +176,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return texture;
 }
 
-pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
+pub fn bind_texture(slot: u32, texture_handle: TextureHandle) void {
     // skip binding 0, which is used for the uniform block
     const binding = 1 + switch (slot) {
         0 => @as(gl.GLenum, gl.TEXTURE0),
@@ -190,7 +190,7 @@ pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     gl.bindTexture(gl.TEXTURE_2D, @intCast(gl.GLuint, texture_handle));
 }
 
-pub fn createConstantBuffer(size: usize) !BufferHandle {
+pub fn create_constant_buffer(size: usize) !BufferHandle {
     var ubo: gl.GLuint = undefined;
     gl.genBuffers(1, &ubo);
     gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
@@ -198,7 +198,7 @@ pub fn createConstantBuffer(size: usize) !BufferHandle {
     return ubo;
 }
 
-pub fn updateShaderConstantBuffer(
+pub fn update_shader_constant_buffer(
     buffer_handle: BufferHandle,
     bytes: []const u8,
 ) !void {
@@ -213,29 +213,29 @@ pub fn updateShaderConstantBuffer(
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
 }
 
-pub fn setConstantBuffer(buffer_handle: BufferHandle) void {
+pub fn set_constant_buffer(buffer_handle: BufferHandle) void {
     gl.bindBuffer(gl.UNIFORM_BUFFER, @intCast(gl.GLuint, buffer_handle));
 }
 
-pub fn createRasteriserState() !RasteriserStateHandle {
+pub fn create_raster_state() !RasteriserStateHandle {
     return 0;
 }
 
-pub fn setRasteriserState(_: RasteriserStateHandle) void {
+pub fn set_raster_state(_: RasteriserStateHandle) void {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 }
 
-pub fn createBlendState() !BlendStateHandle {
+pub fn create_blend_state() !BlendStateHandle {
     return 0;
 }
 
-pub fn setBlendState(_: BlendStateHandle) void {
+pub fn set_blend_state(_: BlendStateHandle) void {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
 
-pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
+pub fn set_shader_program(program_handle: ShaderProgramHandle) void {
     gl.useProgram(@intCast(gl.GLuint, program_handle));
 }
 

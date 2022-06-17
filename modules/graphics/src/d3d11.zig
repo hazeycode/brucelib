@@ -139,7 +139,7 @@ pub fn wait_fence(_: FenceHandle) !FenceState {
     return FenceState.already_signaled;
 }
 
-pub fn logDebugMessages() !void {
+pub fn log_debug_messages() !void {
     if (builtin.mode == .Debug) {
         var temp_arena = std.heap.ArenaAllocator.init(allocator);
         defer temp_arena.deinit();
@@ -179,7 +179,7 @@ pub fn logDebugMessages() !void {
     }
 }
 
-pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
+pub fn set_viewport(x: u16, y: u16, width: u16, height: u16) void {
     const viewports = [_]d3d11.VIEWPORT{
         .{
             .TopLeftX = @intToFloat(FLOAT, x),
@@ -203,7 +203,7 @@ pub fn setViewport(x: u16, y: u16, width: u16, height: u16) void {
     );
 }
 
-pub fn clearWithColour(r: f32, g: f32, b: f32, a: f32) void {
+pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {
     const colour = [4]FLOAT{ r, g, b, a };
     device_context.ClearRenderTargetView(render_target_view, &colour);
 }
@@ -258,7 +258,7 @@ pub fn unmap_buffer(buffer_handle: BufferHandle) void {
     device_context.Unmap(vertex_buffer, 0);
 }
 
-pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
+pub fn create_vertex_layout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     const num_entries = vertex_layout_desc.entries.len;
 
     var buffers = try allocator.alloc(*d3d11.IBuffer, num_entries);
@@ -272,7 +272,7 @@ pub fn createVertexLayout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutHan
 
     for (vertex_layout_desc.entries) |entry, i| {
         buffers[i] = @intToPtr(*d3d11.IBuffer, entry.buffer_handle);
-        strides[i] = entry.getStride();
+        strides[i] = entry.get_stride();
         offsets[i] = entry.offset;
     }
 
@@ -366,7 +366,7 @@ pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, form
     return (textures.items.len - 1);
 }
 
-pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
+pub fn bind_texture(slot: u32, texture_handle: TextureHandle) void {
     const samplers = [_]*d3d11.ISamplerState{
         textures.items[texture_handle].sampler_state,
     };
@@ -378,7 +378,7 @@ pub fn bindTexture(slot: u32, texture_handle: TextureHandle) void {
     device_context.PSSetShaderResources(slot, 1, &shader_res_views);
 }
 
-pub fn createConstantBuffer(size: usize) !BufferHandle {
+pub fn create_constant_buffer(size: usize) !BufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, size),
@@ -401,7 +401,7 @@ pub fn createConstantBuffer(size: usize) !BufferHandle {
     return (constant_buffers.items.len - 1);
 }
 
-pub fn updateShaderConstantBuffer(
+pub fn update_shader_constant_buffer(
     buffer_handle: BufferHandle,
     bytes: []const u8,
 ) !void {
@@ -426,7 +426,7 @@ pub fn updateShaderConstantBuffer(
     device_ctx.Unmap(constant_buffer, 0);
 }
 
-pub fn setConstantBuffer(buffer_handle: BufferHandle) void {
+pub fn set_constant_buffer(buffer_handle: BufferHandle) void {
     const buffer = constant_buffers.items[buffer_handle];
     const buffers = [_]*d3d11.IBuffer{buffer.buffer};
     device_context.VSSetConstantBuffers(
@@ -441,7 +441,7 @@ pub fn setConstantBuffer(buffer_handle: BufferHandle) void {
     );
 }
 
-pub fn createRasteriserState() !RasteriserStateHandle {
+pub fn create_raster_state() !RasteriserStateHandle {
     var res: ?*d3d11.IRasterizerState = null;
     const desc = d3d11.RASTERIZER_DESC{
         .FrontCounterClockwise = TRUE,
@@ -450,12 +450,12 @@ pub fn createRasteriserState() !RasteriserStateHandle {
     return @ptrToInt(res);
 }
 
-pub fn setRasteriserState(state_handle: RasteriserStateHandle) void {
+pub fn set_raster_state(state_handle: RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
     device_context.RSSetState(state);
 }
 
-pub fn createBlendState() !BlendStateHandle {
+pub fn create_blend_state() !BlendStateHandle {
     var blend_state: ?*d3d11.IBlendState = null;
     var rt_blend_descs: [8]d3d11.RENDER_TARGET_BLEND_DESC = undefined;
     rt_blend_descs[0] = .{
@@ -480,7 +480,7 @@ pub fn createBlendState() !BlendStateHandle {
     return @ptrToInt(blend_state.?);
 }
 
-pub fn setBlendState(blend_state_handle: BlendStateHandle) void {
+pub fn set_blend_state(blend_state_handle: BlendStateHandle) void {
     const blend_state = @intToPtr(*d3d11.IBlendState, blend_state_handle);
     device_context.OMSetBlendState(
         blend_state,
@@ -489,7 +489,7 @@ pub fn setBlendState(blend_state_handle: BlendStateHandle) void {
     );
 }
 
-pub fn setShaderProgram(program_handle: ShaderProgramHandle) void {
+pub fn set_shader_program(program_handle: ShaderProgramHandle) void {
     const shader_program = shader_programs.items[program_handle];
     device_context.IASetInputLayout(shader_program.input_layout);
     device_context.VSSetShader(shader_program.vs, null, 0);
