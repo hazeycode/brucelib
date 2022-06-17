@@ -14,7 +14,7 @@ Requires [Zig 0.10.x](https://github.com/ziglang/zig).
 Modules are designed to be used standalone or in combination with each other (see [examples](#examples)). 3rd-party code is vendored and no external dependencies are required.
 
 - [platform](modules/platform/) - Platform abstraction for windowing, graphics context creation, input, audio playback, network and file system procedures (in-progress)
-- [graphics](modules/graphics/) - Graphics API abstraction, a higher-level `DrawList` API and various rendering primitives (in-progress)
+- [graphics](modules/graphics/) - Graphics API abstraction, a`RenderList` API, primitives and builtin renderers (in-progress)
 - [audio](modules/audio/) - Mixing, synthesis, signal processsing and file loaders (in-progress)
 - [algo](modules/algo/) - Various algorithms used in games and simulations (in-progress)
 - *gui* - A flexible gui library (planned)
