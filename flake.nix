@@ -15,7 +15,7 @@
             zig.packages."${system}".master.latest
             buildPackages.xlibsWrapper
             buildPackages.libGL
-            buildPackages.alsa-lib
+            buildPackages.libsoundio
           ];
         };
       });

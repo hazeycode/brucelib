@@ -8,10 +8,6 @@ pub const pkg = std.build.Pkg{
             .name = "zwin32",
             .source = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
         },
-        std.build.Pkg{
-            .name = "zig-alsa",
-            .source = .{ .path = thisDir() ++ "/vendored/zig-alsa/src/main.zig" },
-        },
     },
 };
 
@@ -31,6 +27,7 @@ pub fn link(obj: *std.build.LibExeObjStep) void {
         obj.linkSystemLibrary("xcb");
         obj.linkSystemLibrary("X11-xcb");
         obj.linkSystemLibrary("GL");
+        obj.linkSystemLibrary("soundio"); // TODO(hazeycode): remove this dependency, vendor&compile libsoundio instead
     } else if (obj.target.isWindows()) {
         obj.linkSystemLibrary("Kernel32");
         obj.linkSystemLibrary("User32");

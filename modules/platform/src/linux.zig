@@ -23,8 +23,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
         const num_keys = std.meta.fields(Key).len;
 
-        const AlsaPlaybackInterface = @import("linux/AlsaPlaybackInterface.zig");
-        const AudioPlaybackInterface = AlsaPlaybackInterface;
+        const soundio = @import("soundio.zig");
+        const AudioPlaybackInterface = soundio.Interface(log, audio_playback_cb);
 
         const GraphicsAPI = enum {
             opengl,
@@ -38,15 +38,14 @@ pub fn using(comptime config: common.ModuleConfig) type {
         var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
             interface: AudioPlaybackInterface = undefined,
-            thread: std.Thread = undefined,
         }{};
 
         pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
             return X11.glx_get_proc_addr(?*const anyopaque, entry_point.ptr) catch null;
         }
 
-        pub fn getSampleRate() u32 {
-            return audio_playback.interface.sample_rate;
+        pub fn get_sample_rate() u32 {
+            return audio_playback.interface.outstream.sample_rate;
         }
 
         pub fn run(args: struct {
@@ -89,26 +88,13 @@ pub fn using(comptime config: common.ModuleConfig) type {
             if (audio_enabled) {
                 audio_playback.user_cb = args.audio_playback.?.callback;
 
-                const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
-                    u32,
-                    3 * args.audio_playback.?.request_sample_rate / target_framerate,
-                );
+                audio_playback.interface = try AudioPlaybackInterface.init();
 
-                audio_playback.interface = try AudioPlaybackInterface.init(
-                    args.audio_playback.?.request_sample_rate,
-                    buffer_size_frames,
-                );
-
-                log.info(
-                    \\Initilised audio playback (ALSA):
-                    \\  {} channels
-                    \\  {} Hz
-                    \\  {} bits per sample
-                ,
+                // TODO(hazeycode): move libsoundio specific stuff to soundio.zig
+                log.info("{} channels, {} Hz" ,
                     .{
-                        audio_playback.interface.num_channels,
-                        audio_playback.interface.sample_rate,
-                        audio_playback.interface.bits_per_sample,
+                        audio_playback.interface.outstream.layout.channel_count,
+                        audio_playback.interface.outstream.sample_rate,
                     },
                 );
             }
@@ -120,11 +106,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
             try args.init_fn(allocator);
             defer args.deinit_fn(allocator);
-
-            if (audio_enabled) {
-                audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
-                audio_playback.thread.detach();
-            }
+            
+            try audio_playback.interface.start();
 
             var prev_frame_elapsed: u64 = 0;
             var prev_cpu_elapsed: u64 = 0;
@@ -225,74 +208,66 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 if (quit) break;
             }
         }
-
-        fn audioThread(allocator: std.mem.Allocator) !void {
-            var buffer = try allocator.alloc(
-                f32,
-                audio_playback.interface.buffer_frames * audio_playback.interface.num_channels,
-            );
-            defer allocator.free(buffer);
-
-            var read_cur: usize = 0;
-            var write_cur: usize = 0;
-            var samples_queued: usize = 0;
-
-            std.mem.set(f32, buffer, 0);
-
-            { // write a couple of frames of silence
-                const samples_silence = 2 * audio_playback.interface.sample_rate / target_framerate;
-                std.debug.assert(samples_silence < buffer.len);
-
-                _ = audio_playback.interface.writeSamples(buffer[0..(0 + samples_silence)]);
-            }
-
-            try audio_playback.interface.prepare();
-
-            while (quit == false) {
-                if (samples_queued > 0) {
-                    var end = read_cur + samples_queued;
-                    if (end > buffer.len) {
-                        end = buffer.len;
-                    }
-
-                    if (end > read_cur) {
-                        const samples = buffer[read_cur..end];
-
-                        read_cur = (read_cur + samples.len) % buffer.len;
-
-                        samples_queued -= samples.len;
-
-                        if (audio_playback.interface.writeSamples(samples) == false) {
-                            try audio_playback.interface.prepare();
-                            continue;
-                        }
-                    }
+    
+        // TODO(hazeycode): move libsoundio specific stuff to soundio.zig
+        fn audio_playback_cb(
+            maybe_outstream: ?*soundio.SoundIoOutStream,
+            frame_count_min: c_int,
+            frame_count_max: c_int,
+        ) callconv(.C) void {            
+            const outstream = maybe_outstream.?;
+            const layout = &outstream.layout;
+            const max_samples = @intCast(u32, frame_count_max * layout.channel_count);
+            
+            // TODO(hazeycode): size this buffer better
+            _ = frame_count_min;
+            var buffer: [0x100000]f32 = undefined;
+            std.debug.assert(buffer.len >= max_samples);
+                    
+            var frames_remaining = frame_count_max;
+            while (frames_remaining > 0) {
+                var frame_count = frames_remaining;
+                
+                var areas: [*]soundio.SoundIoChannelArea = undefined;
+                soundio.err(soundio.soundio_outstream_begin_write(
+                    outstream,
+                    @ptrCast([*c][*c]soundio.SoundIoChannelArea, &areas),
+                    &frame_count,
+                )) catch |err| {
+                    log.err("soundio error: {}", .{err});
+                };
+                
+                const sample_count = @intCast(u32, frame_count * layout.channel_count);
+                
+                if (frame_count == 0) break;
+                
+                const frames_available = audio_playback.user_cb.?(.{
+                    .sample_rate = @intCast(u32, outstream.sample_rate),
+                    .channels = @intCast(u32, layout.channel_count),
+                    .sample_buf = buffer[0..sample_count],
+                    .max_frames = @intCast(u32, frame_count),
+                }) catch |err| on_error: {
+                    log.err("audio playback failed with error: {}", .{err});
+                    break :on_error 0;
+                };
+                
+                const num_samples = frames_available * @intCast(u32, layout.channel_count);
+                
+                // TODO(hazeycode): make this cheaper
+                for (buffer[0..num_samples]) |sample, i| {
+                    const channel = i % @intCast(usize, layout.channel_count);
+                    const channel_ptr = areas[channel].ptr.?;
+                    const sample_ptr = &channel_ptr[@intCast(usize, areas[channel].step) * @divFloor(i, @intCast(usize, layout.channel_count))];
+                    @ptrCast(*f32, @alignCast(@alignOf(f32), sample_ptr)).* = sample;
                 }
-
-                const max_samples = 3 * audio_playback.interface.sample_rate / target_framerate;
-                std.debug.assert(max_samples < buffer.len);
-
-                if (samples_queued < max_samples) {
-                    const end = if ((buffer.len - write_cur) > max_samples)
-                        write_cur + max_samples
-                    else
-                        buffer.len;
-
-                    const num_frames = try audio_playback.user_cb.?(.{
-                        .sample_rate = audio_playback.interface.sample_rate,
-                        .channels = audio_playback.interface.num_channels,
-                        .sample_buf = buffer[write_cur..end],
-                        .max_frames = @intCast(u32, end - write_cur) / audio_playback.interface.num_channels,
-                    });
-
-                    const num_samples = num_frames * audio_playback.interface.num_channels;
-
-                    samples_queued += num_samples;
-
-                    write_cur = (write_cur + num_samples) % buffer.len;
-                }
-
-                std.time.sleep(0);
+                
+                soundio.err(soundio.soundio_outstream_end_write(outstream)) catch |err| {
+                   log.err("soundio error: {}", .{err});
+                };
+                
+                // log.info("wrote {} frames of audio", .{frame_count});
+                
+                frames_remaining -= frame_count;
             }
         }
     };

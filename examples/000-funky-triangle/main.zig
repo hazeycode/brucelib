@@ -10,7 +10,7 @@ const graphics = @import("brucelib.graphics").using(.{
     .Profiler = util.ZtracyProfiler,
 });
 
-const audio_enabled = false;
+const audio_enabled = true;
 
 pub fn main() anyerror!void {
     try platform.run(.{
@@ -160,8 +160,8 @@ fn audio_playback(stream: platform.AudioPlaybackStream) !u32 {
 
     var n: u32 = 0;
     while (n < num_frames) : (n += 1) {
-        var sample = 0.5 * sin(
-            @intToFloat(f32, state.audio_cursor + n) * (tao * state.tone_hz) / sample_rate,
+        var sample = sin(
+            (@intToFloat(f32, state.audio_cursor + n) * 1 / sample_rate) * state.tone_hz * tao,
         );
         sample *= if (state.mute) 0 else state.volume;
 
