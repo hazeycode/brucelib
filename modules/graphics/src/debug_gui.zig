@@ -1,3 +1,5 @@
+//! builtin immediate mode gui for quick and dirty debugging. TODO(hazeycode): this code is messy and bad, give it some love 
+
 const std = @import("std");
 
 const common = @import("common.zig");
@@ -49,14 +51,18 @@ pub fn using(comptime config: Config) type {
         canvas_height: f32 = undefined,
         cur_x: f32 = 0,
         cur_y: f32 = 0,
+        prev_x_end: f32 = 0,
+        same_line_set: bool = false,
+        prev_cur_x: f32 = 0,
         state: *State = undefined,
-
-        const inset = 4;
-        const line_spacing = 4;
 
         // values for builtin debugfont
         const glyph_width = 7;
         const glyph_height = 12;
+
+        const margin = glyph_width / 2;
+        const line_height = glyph_height + glyph_height / 5;
+        const text_y_inset = glyph_height / 10;
 
         pub const ElemId = u32;
 
@@ -137,8 +143,8 @@ pub fn using(comptime config: Config) type {
             self.render_list = render_list;
             self.canvas_width = canvas_width;
             self.canvas_height = canvas_height;
-            self.cur_x = @intToFloat(f32, inset);
-            self.cur_y = @intToFloat(f32, inset);
+            self.cur_x = @intToFloat(f32, margin);
+            self.cur_y = @intToFloat(f32, margin);
             self.state = state;
 
             self.text_verts.shrinkRetainingCapacity(0);
@@ -156,8 +162,8 @@ pub fn using(comptime config: Config) type {
                 if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
                 if (v.pos[1] > rect.max_y) rect.max_y = v.pos[0];
             }
-            rect.max_x += @intToFloat(f32, inset);
-            rect.max_y += @intToFloat(f32, inset);
+            rect.max_x += @intToFloat(f32, margin);
+            rect.max_y += @intToFloat(f32, margin);
 
             // draw background
             try self.draw_colour_rect(Colour.from_rgba(0.13, 0.13, 0.13, 0.13), rect);
@@ -175,16 +181,23 @@ pub fn using(comptime config: Config) type {
                     Colour.white,
                     .{
                         .min_x = self.state.text_cur_x - 1,
-                        .min_y = self.state.text_cur_y - line_spacing / 2,
+                        .min_y = self.state.text_cur_y,
                         .max_x = self.state.text_cur_x + 1,
-                        .max_y = self.state.text_cur_y + glyph_height + line_spacing / 2,
+                        .max_y = self.state.text_cur_y + line_height,
                     },
                 );
             }
         }
         
+        pub fn same_line(self: *@This()) void {
+            self.cur_y -= line_height;
+            self.prev_cur_x = self.cur_x;
+            self.cur_x = self.prev_x_end + glyph_width;
+            self.same_line_set = true;
+        }
+        
         pub fn separator(self: *@This()) void {
-            self.cur_y += inset * 2;
+            self.cur_y += line_height / 2;
         }
 
         pub fn label(
@@ -198,9 +211,15 @@ pub fn using(comptime config: Config) type {
 
             const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
 
-            const bounding_rect = try self.draw_text(string, &self.text_verts);
+            const text_rect = try self.draw_text(string, &self.text_verts);
 
-            self.cur_y += (bounding_rect.max_y - bounding_rect.min_y);
+            self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
+            self.prev_x_end = text_rect.max_x;
+            
+            if (self.same_line_set) {
+                self.cur_x = self.prev_cur_x;
+                self.same_line_set = false;
+            }
         }
         
         pub fn toggle_button(self: *@This(), comptime fmt: []const u8, args: anytype, value_ptr: *bool) !void {
@@ -211,9 +230,15 @@ pub fn using(comptime config: Config) type {
             const temp_allocator = temp_arena.allocator();
 
             const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
+            
             const text_rect = try self.draw_text(string, &self.text_verts);
             
-            const bounding_rect = text_rect.inset(-4, -3, -4, 1);
+            const bounding_rect = text_rect.inset(
+                -@divFloor(glyph_width, 2),
+                -@divFloor(glyph_width, 2),
+                -text_y_inset,
+                -text_y_inset,
+            );
             
             const input = self.state.input;
             const mouse_over = text_rect.contains_point(input.mouse_x, input.mouse_y);
@@ -249,7 +274,13 @@ pub fn using(comptime config: Config) type {
             );
             try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
 
-            self.cur_y += (text_rect.max_y - text_rect.min_y);
+            self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
+            self.prev_x_end = text_rect.max_x;
+            
+            if (self.same_line_set) {
+                self.cur_x = self.prev_cur_x;
+                self.same_line_set = false;
+            }
         }
 
         pub fn text_field(
@@ -258,7 +289,7 @@ pub fn using(comptime config: Config) type {
             comptime fmt: []const u8,
             value_ptr: *T,
         ) !void {
-            const id = 1; // TODO(hazeycode): obtain some sort of unique identifier
+            const id = 2; // TODO(hazeycode): obtain some sort of unique identifier
 
             var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
             defer temp_arena.deinit();
@@ -268,7 +299,12 @@ pub fn using(comptime config: Config) type {
 
             const text_rect = try self.draw_text(string, &self.text_verts);
 
-            const bounding_rect = text_rect.inset(-4, -3, -4, 1);
+            const bounding_rect = text_rect.inset(
+                -@divFloor(glyph_width, 2),
+                -@divFloor(glyph_width, 2),
+                -text_y_inset,
+                -text_y_inset,
+            );
             try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
 
             const input = self.state.input;
@@ -294,7 +330,7 @@ pub fn using(comptime config: Config) type {
                     const line = 0;
 
                     const x_offset = capped_column * glyph_width;
-                    const y_offset = line * (glyph_height + line_spacing);
+                    const y_offset = line * line_height;
 
                     self.state.text_cur_x = text_rect.min_x + @intToFloat(f32, x_offset);
                     self.state.text_cur_y = text_rect.min_y + @intToFloat(f32, y_offset);
@@ -318,7 +354,13 @@ pub fn using(comptime config: Config) type {
                 }
             }
 
-            self.cur_y += (text_rect.max_y - text_rect.min_y);
+            self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
+            self.prev_x_end = text_rect.max_x;
+            
+            if (self.same_line_set) {
+                self.cur_x = self.prev_cur_x;
+                self.same_line_set = false;
+            }
         }
 
         fn draw_colour_rect(self: *@This(), colour: Colour, rect: Rect) !void {
@@ -447,12 +489,12 @@ pub fn using(comptime config: Config) type {
                 };
                 if (maybe_glyph_idx) |glyph_idx| {
                     const x = self.cur_x + @intToFloat(f32, column * glyph_width);
-                    const y = self.cur_y + @intToFloat(f32, cur_line * (glyph_height + line_spacing));
+                    const y = self.cur_y + @intToFloat(f32, cur_line * line_height);
                     const rect = Rect{
                         .min_x = x,
-                        .min_y = y,
+                        .min_y = y + text_y_inset,
                         .max_x = x + glyph_width,
-                        .max_y = y + glyph_height,
+                        .max_y = y + text_y_inset + glyph_height + text_y_inset,
                     };
 
                     // TODO(hazeycode): yank uv mapping out of here
@@ -492,7 +534,7 @@ pub fn using(comptime config: Config) type {
                 .min_x = self.cur_x,
                 .min_y = self.cur_y,
                 .max_x = self.cur_x + @intToFloat(f32, max_column * glyph_width),
-                .max_y = self.cur_y + @intToFloat(f32, cur_line * (glyph_height + line_spacing)),
+                .max_y = self.cur_y + @intToFloat(f32, cur_line * line_height),
             };
         }
     };
