@@ -7,6 +7,3 @@ graphics:
 - premultiplied alpha
 - (sparse) bindless texture arrays
 - ARB_multi_draw_indirect
-- implement destroyViewLayout
-- implement destroyShaderProgram
-- implement destroyConstantBuffer
