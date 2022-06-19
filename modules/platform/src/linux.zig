@@ -236,6 +236,11 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 )) catch |err| {
                     log.err("soundio error: {}", .{err});
                 };
+                defer {
+                    soundio.err(soundio.soundio_outstream_end_write(outstream)) catch |err| {
+                       log.err("soundio error: {}", .{err});
+                    };
+                }
                 
                 const sample_count = @intCast(u32, frame_count * layout.channel_count);
                 
@@ -250,24 +255,21 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     log.err("audio playback failed with error: {}", .{err});
                     break :on_error 0;
                 };
-                
-                const num_samples = frames_available * @intCast(u32, layout.channel_count);
-                
-                // TODO(hazeycode): make this cheaper
-                for (buffer[0..num_samples]) |sample, i| {
-                    const channel = i % @intCast(usize, layout.channel_count);
-                    const channel_ptr = areas[channel].ptr.?;
-                    const sample_ptr = &channel_ptr[@intCast(usize, areas[channel].step) * @divFloor(i, @intCast(usize, layout.channel_count))];
-                    @ptrCast(*f32, @alignCast(@alignOf(f32), sample_ptr)).* = sample;
+                                
+                var i: usize = 0;
+                while (i < frames_available) : (i += 1) {
+                    var channel: usize = 0;
+                    while (channel < layout.channel_count) : (channel += 1) {
+                        const sample = buffer[i * @intCast(usize, layout.channel_count) + channel];
+                        const channel_ptr = areas[channel].ptr.?;
+                        const sample_ptr = &channel_ptr[@intCast(usize, areas[channel].step) * i];
+                        @ptrCast(*f32, @alignCast(@alignOf(f32), sample_ptr)).* = sample;
+                    }
                 }
                 
-                soundio.err(soundio.soundio_outstream_end_write(outstream)) catch |err| {
-                   log.err("soundio error: {}", .{err});
-                };
+                // log.info("wrote {} frames of audio", .{frames_available});
                 
-                // log.info("wrote {} frames of audio", .{frame_count});
-                
-                frames_remaining -= frame_count;
+                frames_remaining -= @intCast(c_int, frames_available);
             }
         }
     };
