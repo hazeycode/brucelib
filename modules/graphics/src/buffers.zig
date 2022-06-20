@@ -5,7 +5,25 @@ const BufferHandle = common.BufferHandle;
 
 pub fn using_backend(comptime Backend: type) type {
     return struct {
-        // TODO(hazeycode): VertexBufferStatic
+        
+        pub fn VertexBufferStatic(comptime vertex_type: type) type {
+            return struct {
+                pub const VertexType: type = vertex_type;
+                
+                handle: BufferHandle,
+                
+                pub fn init(vertices: []VertexType) !@This() {
+                    return @This(){
+                        .handle = try Backend.create_vertex_buffer_with_bytes(std.mem.sliceAsBytes(vertices)),
+                    };
+                }
+                
+                pub fn deinit(self: *@This()) void {
+                    Backend.destroy_vertex_buffer(self.handle);
+                    self.handle = 0;
+                }
+            };
+        }
 
         pub fn VertexBufferDynamic(comptime vertex_type: type) type {
             return struct {
@@ -28,9 +46,13 @@ pub fn using_backend(comptime Backend: type) type {
                     };
                 }
 
-                pub fn deinit(self: @This()) void {
+                pub fn deinit(self: *@This()) void {
                     Backend.unmap_buffer(self.handle);
                     Backend.destroy_vertex_buffer(self.handle);
+                    self.handle = 0;
+                    self.capacity = 0;
+                    self.write_cursor = 0;
+                    self.mapped = .{};
                 }
 
                 /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward

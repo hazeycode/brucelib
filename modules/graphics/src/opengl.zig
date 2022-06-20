@@ -70,6 +70,14 @@ pub fn draw(offset: u32, count: u32) void {
     );
 }
 
+pub fn create_vertex_buffer_with_bytes(vertices: []const u8) !BufferHandle {
+    var vbo: gl.GLuint = undefined;
+    gl.genBuffers(1, &vbo);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices.len, vertices.ptr, gl.STATIC_DRAW);
+    return vbo;
+}
+
 pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     var vbo: gl.GLuint = undefined;
     gl.genBuffers(1, &vbo);

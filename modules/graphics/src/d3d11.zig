@@ -214,6 +214,24 @@ pub fn draw(offset: u32, count: u32) void {
     device_ctx.Draw(count, offset);
 }
 
+pub fn create_vertex_buffer_with_bytes(vertices: []const u8) !BufferHandle {
+    var buffer: ?*d3d11.IBuffer = null;
+    const desc = d3d11.BUFFER_DESC{
+        .ByteWidth = @intCast(UINT, vertices.len),
+        .Usage = d3d11.USAGE_IMMUTABLE,
+        .BindFlags = d3d11.BIND_VERTEX_BUFFER,
+    };
+    const subresource = d3d11.SUBRESOURCE_DATA{
+        .pSysMem = vertices.ptr,
+    };
+    try win32.hrErrorOnFail(device.CreateBuffer(
+        &desc,
+        &subresource,
+        &buffer,
+    ));
+    return @ptrToInt(buffer.?);
+}
+
 pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
