@@ -248,9 +248,9 @@ pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     return @ptrToInt(buffer.?);
 }
 
-pub fn destroy_vertex_buffer(buffer_handle: BufferHandle) !void {
-    _ = buffer_handle;
-    // TODO(hazeycode): impl this!
+pub fn destroy_buffer(buffer_handle: BufferHandle) !void {
+    const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
+    vertex_buffer.Release();
 }
 
 pub fn map_buffer_persistent(
