@@ -89,6 +89,7 @@ pub fn using(comptime config: ModuleConfig) type {
         }
 
         pub fn deinit() void {
+            debug_gui.deinit();
             Backend.deinit();
         }
 

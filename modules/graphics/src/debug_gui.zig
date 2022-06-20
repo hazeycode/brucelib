@@ -123,6 +123,11 @@ pub fn using(comptime config: Config) type {
                 .font_texture = debugfont_texture,
             };
         }
+        
+        pub fn deinit(self: *@This()) void {
+            self.text_verts.deinit();
+            self.uniform_colour_verts.deinit();
+        }
 
         pub fn begin(
             self: *@This(),
