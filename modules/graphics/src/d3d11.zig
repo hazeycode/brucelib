@@ -179,7 +179,7 @@ pub fn log_debug_messages() !void {
     }
 }
 
-pub fn set_viewport(x: u16, y: u16, width: u16, height: u16) void {
+pub fn set_viewport(x: i32, y: i32, width: u16, height: u16) void {
     const viewports = [_]d3d11.VIEWPORT{
         .{
             .TopLeftX = @intToFloat(FLOAT, x),

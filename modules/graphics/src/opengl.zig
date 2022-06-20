@@ -53,7 +53,7 @@ pub fn wait_fence(fence_handle: FenceHandle, timeout: u64) !FenceState {
 
 pub fn log_debug_messages() !void {}
 
-pub fn set_viewport(x: u16, y: u16, width: u16, height: u16) void {
+pub fn set_viewport(x: i32, y: i32, width: u16, height: u16) void {
     gl.viewport(x, y, width, height);
 }
 

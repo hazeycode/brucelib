@@ -108,7 +108,7 @@ pub const TexturedVertex = extern struct {
 };
 
 ///
-pub const Viewport = struct { x: u16, y: u16, width: u16, height: u16 };
+pub const Viewport = struct { x: i32, y: i32, width: u16, height: u16 };
 
 pub const Colour = extern struct {
     r: f32,
