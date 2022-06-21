@@ -136,14 +136,10 @@ pub fn using(comptime config: Config) type {
             canvas_height: f32,
             state: *State,
         ) !void {
-            const projection = orthographic(canvas_width, canvas_height, 0, 1);
-            try render_list.set_projection_transform(projection);
-
-            const view = mul(
+            try render_list.set_projection_transform(mul(
                 translation(-canvas_width / 2, -canvas_height / 2, 0),
-                scaling(1, -1, 1),
-            );
-            try render_list.set_view_transform(view);
+                orthographic(canvas_width, -canvas_height, 0, 1),
+            ));
 
             self.render_list = render_list;
             self.canvas_width = canvas_width;
