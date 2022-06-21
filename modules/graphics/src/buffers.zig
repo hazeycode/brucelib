@@ -47,11 +47,11 @@ pub fn using_backend(comptime Backend: type) type {
 
                 pub fn deinit(self: *@This()) void {
                     Backend.unmap_buffer(self.handle);
-                    Backend.destroy_vertex_buffer(self.handle);
+                    Backend.destroy_buffer(self.handle);
                     self.handle = 0;
                     self.capacity = 0;
                     self.write_cursor = 0;
-                    self.mapped = .{};
+                    self.mapped = &.{};
                 }
 
                 /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward

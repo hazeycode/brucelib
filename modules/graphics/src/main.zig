@@ -40,6 +40,7 @@ pub fn using(comptime config: ModuleConfig) type {
         };
 
         const buffers = @import("buffers.zig").using_backend(Backend);
+        pub const VertexBufferStatic = buffers.VertexBufferStatic;
         pub const VertexBufferDynamic = buffers.VertexBufferDynamic;
 
         const textures = @import("textures.zig").using_backend(Backend);

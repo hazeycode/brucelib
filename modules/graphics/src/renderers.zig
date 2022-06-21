@@ -54,13 +54,22 @@ pub fn using(comptime config: Config) type {
                             .handle = try Backend.create_vertex_layout(vertex_layout_desc),
                             .desc = vertex_layout_desc,
                         },
-                        .rasteriser_state = try Backend.create_raster_state(),
+                        .rasteriser_state = try Backend.create_rasteriser_state(),
                         .blend_state = try Backend.create_blend_state(),
                         // TODO(hazeycode): create constant buffer of exactly the required size
                         .constant_buffer = try Backend.create_constant_buffer(0x1000),
                     },
                     .vertex_buffer = vertex_buffer,
                 };
+            }
+            
+            pub fn deinit(self: *@This()) void {
+                Backend.destroy_shader_program(self.pipeline_resources.program);
+                Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
+                Backend.destroy_rasteriser_state(self.pipeline_resources.rasteriser_state);
+                Backend.destroy_blend_state(self.pipeline_resources.blend_state);
+                Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
+                self.vertex_buffer.deinit();
             }
 
             pub fn render(
@@ -98,7 +107,7 @@ pub fn using(comptime config: Config) type {
                     .handle = try Backend.create_vertex_layout(vertex_layout_desc),
                     .desc = vertex_layout_desc,
                 };
-                const raster_state = try Backend.create_raster_state();
+                const raster_state = try Backend.create_rasteriser_state();
                 const blend_state = try Backend.create_blend_state();
                 const constant_buffer = try Backend.create_constant_buffer(0x1000); // TODO(hazeycode): create constant buffer of exactly the required size
                 return @This(){
@@ -118,6 +127,15 @@ pub fn using(comptime config: Config) type {
                     },
                     .vertex_buffer = vertex_buffer,
                 };
+            }
+            
+            pub fn deinit(self: *@This()) void {
+                Backend.destroy_shader_program(self.pipeline_resources.program);
+                Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
+                Backend.destroy_rasteriser_state(self.pipeline_resources.rasteriser_state);
+                Backend.destroy_blend_state(self.pipeline_resources.blend_state);
+                Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
+                self.vertex_buffer.deinit();
             }
 
             pub fn render(

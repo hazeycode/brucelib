@@ -91,7 +91,7 @@ pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     return vbo;
 }
 
-pub fn destroy_buffer(buffer_handle: BufferHandle) !void {
+pub fn destroy_buffer(buffer_handle: BufferHandle) void {
     const buffer = @intCast(gl.GLenum, buffer_handle);
     gl.deleteBuffers(1, &buffer);
 }
@@ -155,6 +155,10 @@ pub fn create_vertex_layout(layout_desc: VertexLayoutDesc) !VertexLayoutHandle {
     }
 
     return vao;
+}
+
+pub fn destroy_vertex_layout(handle: VertexLayoutHandle) void {
+    gl.deleteVertexArrays(1, @intCast(gl.GLuint, handle));
 }
 
 pub fn bind_vertex_layout(layout_handle: VertexLayoutHandle) void {
@@ -225,8 +229,11 @@ pub fn set_constant_buffer(buffer_handle: BufferHandle) void {
     gl.bindBuffer(gl.UNIFORM_BUFFER, @intCast(gl.GLuint, buffer_handle));
 }
 
-pub fn create_raster_state() !RasteriserStateHandle {
+pub fn create_rasteriser_state() !RasteriserStateHandle {
     return 0;
+}
+
+pub fn destroy_rasteriser_state(_: RasteriserStateHandle) void {
 }
 
 pub fn set_raster_state(_: RasteriserStateHandle) void {
@@ -238,6 +245,9 @@ pub fn create_blend_state() !BlendStateHandle {
     return 0;
 }
 
+pub fn destroy_blend_state(_: BlendStateHandle) void {
+}
+
 pub fn set_blend_state(_: BlendStateHandle) void {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -245,6 +255,10 @@ pub fn set_blend_state(_: BlendStateHandle) void {
 
 pub fn set_shader_program(program_handle: ShaderProgramHandle) void {
     gl.useProgram(@intCast(gl.GLuint, program_handle));
+}
+
+pub fn destroy_shader_program(program_handle: ShaderProgramHandle) void {
+    gl.deleteProgram(@intCast(gl.GLuint, program_handle));
 }
 
 pub fn createUniformColourShader() !ShaderProgramHandle {

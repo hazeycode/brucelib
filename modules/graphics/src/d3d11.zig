@@ -248,9 +248,9 @@ pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
     return @ptrToInt(buffer.?);
 }
 
-pub fn destroy_buffer(buffer_handle: BufferHandle) !void {
+pub fn destroy_buffer(buffer_handle: BufferHandle) void {
     const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
-    vertex_buffer.Release();
+    _ = vertex_buffer.Release();
 }
 
 pub fn map_buffer_persistent(
@@ -459,7 +459,7 @@ pub fn set_constant_buffer(buffer_handle: BufferHandle) void {
     );
 }
 
-pub fn create_raster_state() !RasteriserStateHandle {
+pub fn create_rasteriser_state() !RasteriserStateHandle {
     var res: ?*d3d11.IRasterizerState = null;
     const desc = d3d11.RASTERIZER_DESC{
         .FrontCounterClockwise = TRUE,
@@ -468,8 +468,13 @@ pub fn create_raster_state() !RasteriserStateHandle {
     return @ptrToInt(res);
 }
 
-pub fn set_raster_state(state_handle: RasteriserStateHandle) void {
-    const state = @intToPtr(*d3d11.IRasterizerState, state_handle);
+pub fn destroy_rasteriser_state(handle: RasteriserStateHandle) !RasteriserStateHandle {
+    const state = @intToPtr(*d3d11.IRasterizerState, handle);
+    _ = state.Release();
+}
+
+pub fn set_raster_state(handle: RasteriserStateHandle) void {
+    const state = @intToPtr(*d3d11.IRasterizerState, handle);
     device_context.RSSetState(state);
 }
 
@@ -498,8 +503,13 @@ pub fn create_blend_state() !BlendStateHandle {
     return @ptrToInt(blend_state.?);
 }
 
-pub fn set_blend_state(blend_state_handle: BlendStateHandle) void {
-    const blend_state = @intToPtr(*d3d11.IBlendState, blend_state_handle);
+pub fn destroy_blend_state(handle: BlendStateHandle) void {
+    const blend_state = @intToPtr(*d3d11.IBlendState, handle);
+    _ = blend_state.Release();
+}
+
+pub fn set_blend_state(handle: BlendStateHandle) void {
+    const blend_state = @intToPtr(*d3d11.IBlendState, handle);
     device_context.OMSetBlendState(
         blend_state,
         null,
@@ -512,6 +522,11 @@ pub fn set_shader_program(program_handle: ShaderProgramHandle) void {
     device_context.IASetInputLayout(shader_program.input_layout);
     device_context.VSSetShader(shader_program.vs, null, 0);
     device_context.PSSetShader(shader_program.ps, null, 0);
+}
+
+pub fn destroy_shader_program(handle: ShaderProgramHandle) void {
+    const shader_program = shader_programs.items[handle];
+    _ = shader_program.Release();
 }
 
 pub fn createUniformColourShader() !ShaderProgramHandle {
