@@ -26,7 +26,6 @@ pub fn using(comptime config: Config) type {
     return struct {
         pub const Entry = union(enum) {
             set_viewport: Viewport,
-            clear_viewport: Colour,
             bind_pipeline_resources: PipelineResources,
             set_projection_transform: Matrix,
             set_view_transform: Matrix,
@@ -53,12 +52,6 @@ pub fn using(comptime config: Config) type {
         pub fn set_viewport(self: *@This(), viewport: Viewport) !void {
             try self.entries.append(.{
                 .set_viewport = viewport,
-            });
-        }
-
-        pub fn clear_viewport(self: *@This(), colour: Colour) !void {
-            try self.entries.append(.{
-                .clear_viewport = colour,
             });
         }
 
@@ -128,9 +121,6 @@ pub fn using(comptime config: Config) type {
                 switch (entry) {
                     .set_viewport => |viewport| {
                         Backend.set_viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-                    },
-                    .clear_viewport => |colour| {
-                        Backend.clear_with_colour(colour.r, colour.g, colour.b, colour.a);
                     },
                     .set_projection_transform => |transform| {
                         projection = transform;
