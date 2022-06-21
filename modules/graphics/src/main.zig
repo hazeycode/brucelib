@@ -94,17 +94,23 @@ pub fn using(comptime config: ModuleConfig) type {
         }
 
         pub fn sync() void {
+            const trace_zone = Profiler.zone_name_colour(
+                @src(),
+                "sync",
+                config.profile_marker_colour,
+            );
+            defer trace_zone.End();
             Backend.sync();
         }
 
         pub fn begin_frame(clear_colour: Colour) void {
-            const bind_trace_zone = Profiler.zone_name_colour(
+            const trace_zone = Profiler.zone_name_colour(
                 @src(),
                 "begin_frame",
                 config.profile_marker_colour,
             );
 
-            defer bind_trace_zone.End();
+            defer trace_zone.End();
             Backend.clear_with_colour(
                 clear_colour.r,
                 clear_colour.g,

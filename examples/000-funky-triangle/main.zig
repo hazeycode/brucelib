@@ -40,7 +40,6 @@ var state: struct {
 
 var colour_verts_renderer: graphics.UniformColourVertsRenderer = undefined;
 
-
 /// Called before the platform event loop begins
 fn init(allocator: std.mem.Allocator) !void {
     try graphics.init(allocator, platform);
@@ -61,7 +60,7 @@ fn frame(input: platform.FrameInput) !bool {
     if (input.quit_requested) {
         return false;
     }
-    
+
     graphics.begin_frame(graphics.Colour.black);
 
     var render_list = try graphics.RenderList.init(input.frame_arena_allocator);
@@ -74,7 +73,7 @@ fn frame(input: platform.FrameInput) !bool {
     });
 
     try funky_triangle(input, &render_list);
-    
+
     try debug_overlay(input, &render_list);
 
     try render_list.submit();
@@ -121,19 +120,19 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
         "{d:.2} ms frame, {d:.0} FPS",
         .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
     );
-    
+
     graphics.debug_gui.separator();
-    
+
     if (audio_enabled) {
         try graphics.debug_gui.text_field(f32, "{d:.2} Hz", &state.tone_hz);
         graphics.debug_gui.same_line();
         try graphics.debug_gui.toggle_button("mute", .{}, &state.mute);
-    
+
         // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz, 200);
-    
+
         graphics.debug_gui.separator();
     }
-    
+
     try graphics.debug_gui.label(
         "Mouse pos = ({}, {})",
         .{ input.user_input.mouse_position.x, input.user_input.mouse_position.y },

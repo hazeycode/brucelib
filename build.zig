@@ -55,7 +55,7 @@ pub fn build(b: *std.build.Builder) !void {
                     platform.link(example);
                     graphics.link(example);
                     util.link(example, ztracy_options);
-                    
+
                     example.install();
 
                     const example_runstep = example.run();

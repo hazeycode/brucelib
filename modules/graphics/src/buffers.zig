@@ -5,19 +5,18 @@ const BufferHandle = common.BufferHandle;
 
 pub fn using_backend(comptime Backend: type) type {
     return struct {
-        
         pub fn VertexBufferStatic(comptime vertex_type: type) type {
             return struct {
                 pub const VertexType: type = vertex_type;
-                
+
                 handle: BufferHandle,
-                
+
                 pub fn init(vertices: []VertexType) !@This() {
                     return @This(){
                         .handle = try Backend.create_vertex_buffer_with_bytes(std.mem.sliceAsBytes(vertices)),
                     };
                 }
-                
+
                 pub fn deinit(self: *@This()) void {
                     Backend.destroy_vertex_buffer(self.handle);
                     self.handle = 0;

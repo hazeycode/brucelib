@@ -1,6 +1,7 @@
 const common = @import("common.zig");
 const PipelineResources = common.PipelineResources;
 const Vertex = common.Vertex;
+const ColouredVertex = common.ColouredVertex;
 const TexturedVertex = common.TexturedVertex;
 const VertexLayout = common.VertexLayout;
 const VertexLayoutDesc = common.VertexLayoutDesc;
@@ -137,7 +138,7 @@ pub fn using(comptime config: Config) type {
                 try render_list.draw(vert_offset, @intCast(u32, vertices.len));
             }
 
-            pub fn render_quad(
+            pub fn render_sprite(
                 self: *@This(),
                 render_list: *RenderList,
                 resources: PipelineResources,

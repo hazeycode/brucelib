@@ -7,6 +7,7 @@ const orthographic = common.orthographic;
 const translation = common.translation;
 const scaling = common.scaling;
 const mul = common.mul;
+const WindingOrder = common.WindingOrder;
 const Vertex = common.Vertex;
 const TexturedVertex = common.TexturedVertex;
 const Rect = common.Rect;
@@ -64,6 +65,8 @@ pub fn using(comptime config: Config) type {
         const line_height = glyph_height + glyph_height / 5;
         const text_y_inset = glyph_height / 10;
 
+        const winding_order = WindingOrder.counter_clockwise;
+    
         pub const ElemId = u32;
 
         pub const State = struct {
@@ -136,10 +139,15 @@ pub fn using(comptime config: Config) type {
             canvas_height: f32,
             state: *State,
         ) !void {
-            try render_list.set_projection_transform(mul(
-                translation(-canvas_width / 2, -canvas_height / 2, 0),
-                orthographic(canvas_width, -canvas_height, 0, 1),
-            ));
+            try render_list.set_projection_transform(
+                orthographic(canvas_width, canvas_height, 0, 1),
+            );
+            
+            try render_list.set_view_transform(
+                translation(-canvas_width / 2, canvas_height / 2, 0),            
+            );
+            
+            try render_list.set_model_transform(scaling(1, -1, 1));
 
             self.render_list = render_list;
             self.canvas_width = canvas_width;
@@ -157,14 +165,14 @@ pub fn using(comptime config: Config) type {
             var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
             for (self.text_verts.items) |v| {
                 if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
-                if (v.pos[1] > rect.max_y) rect.max_y = v.pos[1];
+                if (v.pos[1] > rect.min_y) rect.min_y = v.pos[1];
             }
             for (self.uniform_colour_verts.items) |v| {
-                if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
-                if (v.pos[1] > rect.max_y) rect.max_y = v.pos[0];
+                if (v.pos[0] > rect.min_y) rect.max_x = v.pos[0];
+                if (v.pos[1] > rect.min_y) rect.min_y = v.pos[0];
             }
             rect.max_x += @intToFloat(f32, margin);
-            rect.max_y += @intToFloat(f32, margin);
+            rect.min_y += @intToFloat(f32, margin);
 
             // draw background
             try self.draw_colour_rect(Colour.from_rgba(0.13, 0.13, 0.13, 0.13), rect);
@@ -182,9 +190,9 @@ pub fn using(comptime config: Config) type {
                     Colour.white,
                     .{
                         .min_x = self.state.text_cur_x - 1,
-                        .min_y = self.state.text_cur_y,
+                        .min_y = self.state.text_cur_y + line_height,
                         .max_x = self.state.text_cur_x + 1,
-                        .max_y = self.state.text_cur_y + line_height,
+                        .max_y = self.state.text_cur_y,
                     },
                 );
             }
@@ -368,7 +376,7 @@ pub fn using(comptime config: Config) type {
             var verts = try self.allocator.alloc(Vertex, 6);
             errdefer self.allocator.free(verts);
 
-            std.mem.copy(Vertex, verts, &rect.vertices());
+            std.mem.copy(Vertex, verts, &rect.vertices(winding_order));
 
             try self.colour_verts_renderer.render(
                 self.render_list,
@@ -395,7 +403,7 @@ pub fn using(comptime config: Config) type {
                 std.mem.copy(
                     Vertex,
                     verts[offset..(offset + num_verts)],
-                    &side_rect.vertices(),
+                    &side_rect.vertices(winding_order),
                 );
             }
 
@@ -410,7 +418,7 @@ pub fn using(comptime config: Config) type {
                 std.mem.copy(
                     Vertex,
                     verts[offset..(offset + num_verts)],
-                    &side_rect.vertices(),
+                    &side_rect.vertices(winding_order),
                 );
             }
 
@@ -425,7 +433,7 @@ pub fn using(comptime config: Config) type {
                 std.mem.copy(
                     Vertex,
                     verts[offset..(offset + num_verts)],
-                    &side_rect.vertices(),
+                    &side_rect.vertices(winding_order),
                 );
             }
 
@@ -440,7 +448,7 @@ pub fn using(comptime config: Config) type {
                 std.mem.copy(
                     Vertex,
                     verts[offset..(offset + num_verts)],
-                    &side_rect.vertices(),
+                    &side_rect.vertices(winding_order),
                 );
             }
 
@@ -493,9 +501,9 @@ pub fn using(comptime config: Config) type {
                     const y = self.cur_y + @intToFloat(f32, cur_line * line_height);
                     const rect = Rect{
                         .min_x = x,
-                        .min_y = y + text_y_inset,
+                        .min_y = y + text_y_inset + glyph_height + text_y_inset,
                         .max_x = x + glyph_width,
-                        .max_y = y + text_y_inset + glyph_height + text_y_inset,
+                        .max_y = y + text_y_inset,
                     };
 
                     // TODO(hazeycode): yank uv mapping out of here
@@ -509,7 +517,7 @@ pub fn using(comptime config: Config) type {
                         .max_y = (v + glyph_height) / @intToFloat(f32, self.font_texture.height),
                     };
 
-                    try verts.appendSlice(&rect.textured_vertices(uv_rect));
+                    try verts.appendSlice(&rect.textured_vertices(winding_order, uv_rect));
 
                     column += 1;
                     if (column > max_column) max_column = column;
