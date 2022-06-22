@@ -19,7 +19,7 @@ pub const Config = struct {
     profile_marker_colour: u32 = 0x00_00_AA_AA,
 };
 
-pub fn using(comptime config: Config) type {
+pub fn using(comptime config: Config) type {    
     const Backend = config.Backend;
     const Profiler = config.Profiler;
 
@@ -41,6 +41,8 @@ pub fn using(comptime config: Config) type {
     const TexturedVertsRenderer = renderers.TexturedVertsRenderer;
 
     return struct {
+        const log = std.log.scoped(.@"graphics.DebugGui");
+    
         allocator: std.mem.Allocator,
         text_verts: std.ArrayList(TexturedVertex),
         uniform_colour_verts: std.ArrayList(Vertex),
@@ -532,7 +534,9 @@ pub fn using(comptime config: Config) type {
                         if (column > max_column) max_column = column;
                     },
                     else => {
-                        std.debug.panic("graphics.@This() unmapped character {}", .{c});
+                        column += 1;
+                        if (column > max_column) max_column = column;
+                        log.warn("graphics.debug_gui unmapped character {}", .{c});
                     },
                 }
             }
