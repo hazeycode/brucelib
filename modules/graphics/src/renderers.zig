@@ -20,7 +20,11 @@ pub fn using(comptime config: Config) type {
     const Backend = config.Backend;
     const Profiler = config.Profiler;
 
-    const buffers = @import("buffers.zig").using_backend(Backend);
+    const buffers = @import("buffers.zig").using(.{
+        .Backend = Backend,
+        .Profiler = Profiler,
+        .profile_marker_colour = config.profile_marker_colour,
+    });
     const VertexBufferStatic = buffers.VertexBufferStatic;
     const VertexBufferDynamic = buffers.VertexBufferDynamic;
 
@@ -159,7 +163,7 @@ pub fn using(comptime config: Config) type {
                 colour: Colour,
                 vertices: []const Vertex,
             ) !void {
-                const vert_offset = self.vertex_buffer.push(vertices);
+                const vert_offset = try self.vertex_buffer.push(vertices);
 
                 try render_list.bind_pipeline_resources(self.pipeline_resources);
                 try render_list.set_colour(colour);
@@ -225,7 +229,7 @@ pub fn using(comptime config: Config) type {
                 texture: Texture2d,
                 vertices: []const TexturedVertex,
             ) !void {
-                const vert_offset = self.vertex_buffer.push(vertices);
+                const vert_offset = try self.vertex_buffer.push(vertices);
 
                 const resources = switch (texture.format) {
                     .uint8 => self.pipeline_resources_mono,

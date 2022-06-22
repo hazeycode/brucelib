@@ -39,7 +39,11 @@ pub fn using(comptime config: ModuleConfig) type {
             .d3d11 => @import("d3d11.zig"),
         };
 
-        const buffers = @import("buffers.zig").using_backend(Backend);
+        const buffers = @import("buffers.zig").using(.{
+            .Backend = Backend,
+            .Profiler = Profiler,
+            .profiler_marker_colour = config.profile_marker_colour,    
+        });
         pub const VertexBufferStatic = buffers.VertexBufferStatic;
         pub const VertexBufferDynamic = buffers.VertexBufferDynamic;
 
@@ -67,11 +71,6 @@ pub fn using(comptime config: ModuleConfig) type {
         pub var debug_gui: DebugGui = undefined;
 
         // Module initilisation
-
-        pub const ShaderConstants = extern struct {
-            mvp: Matrix,
-            colour: Colour,
-        };
 
         pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
             const trace_zone = Profiler.zone_name_colour(

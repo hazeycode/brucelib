@@ -2,9 +2,20 @@ const std = @import("std");
 
 const common = @import("common.zig");
 const BufferHandle = common.BufferHandle;
+const FenceHandle = common.FenceHandle;
 
-pub fn using_backend(comptime Backend: type) type {
+pub const Config = struct {
+    Backend: type,
+    Profiler: type = @import("NullProfiler.zig"),
+    profile_marker_colour: u32 = 0x00_00_AA_AA,
+};
+
+pub fn using(comptime config: Config) type {
+    const Backend = config.Backend;
+    const Profiler = config.Profiler;
+    
     return struct {
+        /// Use this kind of vertex buffer for vertex data that doesn't change
         pub fn VertexBufferStatic(comptime vertex_type: type) type {
             return struct {
                 pub const VertexType: type = vertex_type;
@@ -12,8 +23,16 @@ pub fn using_backend(comptime Backend: type) type {
                 handle: BufferHandle,
 
                 pub fn init(vertices: []VertexType) !@This() {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferStatic.init",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
                     return @This(){
-                        .handle = try Backend.create_vertex_buffer_with_bytes(std.mem.sliceAsBytes(vertices)),
+                        .handle = try Backend.create_vertex_buffer_with_bytes(
+                            std.mem.sliceAsBytes(vertices),
+                        ),
                     };
                 }
 
@@ -24,6 +43,8 @@ pub fn using_backend(comptime Backend: type) type {
             };
         }
 
+        /// A persistently mapped vertex ring-buffer
+        /// Use this kind of vertex buffer for vertex data that changes frequently
         pub fn VertexBufferDynamic(comptime vertex_type: type) type {
             return struct {
                 pub const VertexType: type = vertex_type;
@@ -32,8 +53,16 @@ pub fn using_backend(comptime Backend: type) type {
                 capacity: u32,
                 write_cursor: u32,
                 mapped: []VertexType,
+                maybe_fence: ?FenceHandle,
 
                 pub fn init(capacity: u32) !@This() {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.init",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+                    
                     const size = capacity * @sizeOf(VertexType);
                     const handle = try Backend.create_vertex_buffer_persistent(size);
                     const bytes = try Backend.map_buffer_persistent(handle, size, @alignOf(VertexType));
@@ -42,6 +71,7 @@ pub fn using_backend(comptime Backend: type) type {
                         .capacity = capacity,
                         .write_cursor = 0,
                         .mapped = std.mem.bytesAsSlice(VertexType, bytes),
+                        .maybe_fence = null,
                     };
                 }
 
@@ -56,8 +86,19 @@ pub fn using_backend(comptime Backend: type) type {
 
                 /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
                 /// Returns the offset in the buffer of the first vertex that was written
-                pub fn push(self: *@This(), vertices: []const VertexType) u32 {
+                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {                    
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.push",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+                    
                     std.debug.assert(vertices.len <= self.mapped.len);
+                    
+                    if (self.maybe_fence) |fence| {
+                        _ = try Backend.wait_fence(fence, 0);
+                    }
 
                     const remaining = self.mapped.len - self.write_cursor;
                     if (remaining < vertices.len) {
@@ -73,9 +114,12 @@ pub fn using_backend(comptime Backend: type) type {
                     );
 
                     self.write_cursor += @intCast(u32, vertices.len);
+                    
+                    self.maybe_fence = Backend.fence();
 
                     return position;
                 }
+                
             };
         }
     };
