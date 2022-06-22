@@ -18,7 +18,7 @@ pub fn using_backend(comptime Backend: type) type {
                 }
 
                 pub fn deinit(self: *@This()) void {
-                    Backend.destroy_vertex_buffer(self.handle);
+                    Backend.destroy_buffer(self.handle);
                     self.handle = 0;
                 }
             };

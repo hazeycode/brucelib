@@ -9,6 +9,7 @@ const identity_matrix = common.identity_matrix;
 const mul = common.mul;
 const Colour = common.Colour;
 const BufferHandle = common.BufferHandle;
+const Topology = common.Topology;
 
 pub const Config = struct {
     Backend: type,
@@ -36,6 +37,7 @@ pub fn using(comptime config: Config) type {
                 texture: Texture2d,
             },
             draw: struct {
+                topology: Topology,
                 vertex_offset: u32,
                 vertex_count: u32,
             },
@@ -94,9 +96,10 @@ pub fn using(comptime config: Config) type {
             });
         }
 
-        pub fn draw(self: *@This(), vertex_offset: u32, vertex_count: u32) !void {
+        pub fn draw(self: *@This(), topology: Topology, vertex_offset: u32, vertex_count: u32) !void {
             try self.entries.append(.{
                 .draw = .{
+                    .topology = topology,
                     .vertex_offset = vertex_offset,
                     .vertex_count = vertex_count,
                 },
@@ -154,7 +157,7 @@ pub fn using(comptime config: Config) type {
                             }),
                         );
 
-                        Backend.draw(desc.vertex_offset, desc.vertex_count);
+                        Backend.draw(desc.topology, desc.vertex_offset, desc.vertex_count);
                     },
                 }
             }

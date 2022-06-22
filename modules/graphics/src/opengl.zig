@@ -14,6 +14,7 @@ const BlendStateHandle = common.BlendStateHandle;
 const ShaderProgramHandle = common.ShaderProgramHandle;
 const FenceHandle = common.FenceHandle;
 const FenceState = common.FenceState;
+const Topology = common.Topology;
 
 var allocator: std.mem.Allocator = undefined;
 
@@ -62,9 +63,12 @@ pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {
     gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
-pub fn draw(offset: u32, count: u32) void {
+pub fn draw(topology: Topology, offset: u32, count: u32) void {
     gl.drawArrays(
-        gl.TRIANGLES,
+        switch (topology) {
+            .lines => gl.LINES,
+            .triangles => gl.TRIANGLES,
+        },
         @intCast(gl.GLint, offset),
         @intCast(gl.GLsizei, count),
     );
@@ -74,7 +78,7 @@ pub fn create_vertex_buffer_with_bytes(vertices: []const u8) !BufferHandle {
     var vbo: gl.GLuint = undefined;
     gl.genBuffers(1, &vbo);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices.len, vertices.ptr, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, @intCast(gl.GLsizei,  vertices.len), vertices.ptr, gl.STATIC_DRAW);
     return vbo;
 }
 

@@ -14,6 +14,7 @@ const BlendStateHandle = common.BlendStateHandle;
 const ShaderProgramHandle = common.ShaderProgramHandle;
 const FenceHandle = common.FenceHandle;
 const FenceState = common.FenceState;
+const Topology = common.Topology;
 
 const win32 = @import("zwin32");
 const SIZE_T = win32.base.SIZE_T;
@@ -208,9 +209,12 @@ pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {
     device_context.ClearRenderTargetView(render_target_view, &colour);
 }
 
-pub fn draw(offset: u32, count: u32) void {
+pub fn draw(topology: Topology, offset: u32, count: u32) void {
     const device_ctx = device_context;
-    device_ctx.IASetPrimitiveTopology(d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST);
+    device_ctx.IASetPrimitiveTopology(switch (topology) {
+        .lines => d3d11.PRIMITIVE_TOPOLOGY.LINELIST,
+        .triangles => d3d11.PRIMITIVE_TOPOLOGY.TRIANGLELIST,
+    });
     device_ctx.Draw(count, offset);
 }
 
@@ -303,8 +307,16 @@ pub fn create_vertex_layout(vertex_layout_desc: VertexLayoutDesc) !VertexLayoutH
     return (vertex_layouts.items.len - 1);
 }
 
-pub fn bind_vertex_layout(vertex_layout_handle: VertexLayoutHandle) void {
-    const vertex_layout = vertex_layouts.items[vertex_layout_handle];
+pub fn destroy_vertex_layout(handle: VertexLayoutHandle) void {
+    const vertex_layout = &vertex_layouts.items[handle];
+    allocator.free(vertex_layout.buffers);
+    allocator.free(vertex_layout.strides);
+    allocator.free(vertex_layout.offsets);
+    _ = vertex_layouts.orderedRemove(handle);
+}
+
+pub fn bind_vertex_layout(handle: VertexLayoutHandle) void {
+    const vertex_layout = vertex_layouts.items[handle];
     device_context.IASetVertexBuffers(
         0,
         1,
@@ -468,7 +480,7 @@ pub fn create_rasteriser_state() !RasteriserStateHandle {
     return @ptrToInt(res);
 }
 
-pub fn destroy_rasteriser_state(handle: RasteriserStateHandle) !RasteriserStateHandle {
+pub fn destroy_rasteriser_state(handle: RasteriserStateHandle) void {
     const state = @intToPtr(*d3d11.IRasterizerState, handle);
     _ = state.Release();
 }
@@ -526,7 +538,9 @@ pub fn set_shader_program(program_handle: ShaderProgramHandle) void {
 
 pub fn destroy_shader_program(handle: ShaderProgramHandle) void {
     const shader_program = shader_programs.items[handle];
-    _ = shader_program.Release();
+    _ = shader_program.ps.Release();
+    _ = shader_program.vs.Release();
+    _ = shader_program.input_layout.Release();
 }
 
 pub fn createUniformColourShader() !ShaderProgramHandle {

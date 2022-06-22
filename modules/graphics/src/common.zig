@@ -18,6 +18,11 @@ pub const TextureHandle = u64;
 pub const SamplerStateHandle = u64;
 pub const FenceHandle = u64;
 
+pub const Topology = enum {
+    lines,
+    triangles,
+};
+
 pub const FenceState = enum {
     already_signaled,
     timeout_expired,

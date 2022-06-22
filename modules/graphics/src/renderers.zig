@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const common = @import("common.zig");
 const PipelineResources = common.PipelineResources;
 const Vertex = common.Vertex;
@@ -19,6 +21,7 @@ pub fn using(comptime config: Config) type {
     const Profiler = config.Profiler;
 
     const buffers = @import("buffers.zig").using_backend(Backend);
+    const VertexBufferStatic = buffers.VertexBufferStatic;
     const VertexBufferDynamic = buffers.VertexBufferDynamic;
 
     const textures = @import("textures.zig").using_backend(Backend);
@@ -31,6 +34,84 @@ pub fn using(comptime config: Config) type {
     });
 
     return struct {
+        ///
+        pub const GridLinesRenderer = struct {
+            pipeline_resources: PipelineResources,
+            vertex_buffer: VertexBufferStatic(Vertex),
+            columns: u32,
+            rows: u32,
+            
+            pub fn init(allocator: std.mem.Allocator, columns: u32, rows: u32) !@This() {                
+                const vertex_count = (columns+1)*2 + (rows+1)*2;
+                
+                var vertices = try allocator.alloc(Vertex, vertex_count);
+                defer allocator.free(vertices);
+                
+                {
+                    var i: u32 = 0;
+                    {
+                        var j: u32 = 0;
+                        while (j <= rows) : (j += 1) {
+                            const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows);
+                            vertices[i] = .{ .pos = .{ 0, y, 0 } };
+                            vertices[i+1] = .{ .pos = .{ 1, y, 0 } };
+                            i += 2;
+                        }
+                    }
+                    {
+                        var j: u32 = 0;
+                        while (j <= columns) : (j += 1) {
+                            const x = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, columns);
+                            vertices[i] = .{ .pos = .{ x, 0, 0 } };
+                            vertices[i+1] = .{ .pos = .{ x, 1, 0 } };
+                            i += 2;
+                        }
+                    }
+                }
+                const vertex_buffer = try VertexBufferStatic(Vertex).init(vertices);
+                const vertex_layout_desc = VertexLayoutDesc{
+                    .entries = &[_]VertexLayoutDesc.Entry{
+                        .{
+                            .buffer_handle = vertex_buffer.handle,
+                            .attributes = Vertex.get_layout_attributes(),
+                            .offset = 0,
+                        },
+                    },
+                };
+                return @This(){
+                    .pipeline_resources = .{
+                        .program = try Backend.createUniformColourShader(), // TODO(hazeycode): shader cacheing
+                        .vertex_layout = .{
+                            .handle = try Backend.create_vertex_layout(vertex_layout_desc),
+                            .desc = vertex_layout_desc,
+                        },
+                        .rasteriser_state = try Backend.create_rasteriser_state(),
+                        .blend_state = try Backend.create_blend_state(),
+                        // TODO(hazeycode): create constant buffer of exactly the required size
+                        .constant_buffer = try Backend.create_constant_buffer(0x1000),
+                    },
+                    .vertex_buffer = vertex_buffer,
+                    .columns = columns,
+                    .rows = rows,
+                };
+            }
+            
+            pub fn deinit(self: *@This()) void {
+                Backend.destroy_shader_program(self.pipeline_resources.program);
+                Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
+                Backend.destroy_rasteriser_state(self.pipeline_resources.rasteriser_state);
+                Backend.destroy_blend_state(self.pipeline_resources.blend_state);
+                Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
+                self.vertex_buffer.deinit();
+            }
+            
+            pub fn render(self: *@This(), render_list: *RenderList, colour: Colour) !void {
+                try render_list.bind_pipeline_resources(self.pipeline_resources);
+                try render_list.set_colour(colour);
+                try render_list.draw(.lines, 0, (self.columns+1)*2 + (self.rows+1)*2);
+            }
+        };
+        
         ///
         pub const UniformColourVertsRenderer = struct {
             pipeline_resources: PipelineResources,
@@ -82,7 +163,7 @@ pub fn using(comptime config: Config) type {
 
                 try render_list.bind_pipeline_resources(self.pipeline_resources);
                 try render_list.set_colour(colour);
-                try render_list.draw(vert_offset, @intCast(u32, vertices.len));
+                try render_list.draw(.triangles, vert_offset, @intCast(u32, vertices.len));
             }
         };
 
@@ -153,7 +234,7 @@ pub fn using(comptime config: Config) type {
 
                 try render_list.bind_pipeline_resources(resources);
                 try render_list.bind_texture(0, texture);
-                try render_list.draw(vert_offset, @intCast(u32, vertices.len));
+                try render_list.draw(.triangles, vert_offset, @intCast(u32, vertices.len));
             }
 
             pub fn render_sprite(
