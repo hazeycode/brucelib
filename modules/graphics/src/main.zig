@@ -42,7 +42,7 @@ pub fn using(comptime config: ModuleConfig) type {
         const buffers = @import("buffers.zig").using(.{
             .Backend = Backend,
             .Profiler = Profiler,
-            .profiler_marker_colour = config.profile_marker_colour,    
+            .profile_marker_colour = config.profile_marker_colour,
         });
         pub const VertexBufferStatic = buffers.VertexBufferStatic;
         pub const VertexBufferDynamic = buffers.VertexBufferDynamic;

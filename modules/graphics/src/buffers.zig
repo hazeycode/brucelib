@@ -20,25 +20,37 @@ pub fn using(comptime config: Config) type {
             return struct {
                 pub const VertexType: type = vertex_type;
 
+                staging: std.ArrayList(VertexType),
                 handle: BufferHandle,
 
-                pub fn init(vertices: []VertexType) !@This() {
-                    const trace_zone = Profiler.zone_name_colour(
-                        @src(),
-                        "graphics.VertexBufferStatic.init",
-                        config.profile_marker_colour,
-                    );
-                    defer trace_zone.End();
+                pub fn init(allocator: std.mem.Allocator) @This() {
                     return @This(){
-                        .handle = try Backend.create_vertex_buffer_with_bytes(
-                            std.mem.sliceAsBytes(vertices),
-                        ),
+                        .staging = std.ArrayList(VertexType).init(allocator),
+                        .handle = undefined,
                     };
                 }
 
                 pub fn deinit(self: *@This()) void {
                     Backend.destroy_buffer(self.handle);
                     self.handle = 0;
+                }
+                
+                pub fn stage(self: *@This(), vertices: []VertexType) !usize {
+                    const offset = self.staging.items.len;
+                    try self.staging.appendSlice(vertices);
+                    return offset;
+                }
+                
+                pub fn commit(self: *@This()) void {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferStatic.commit",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+                    self.handle = try Backend.create_vertex_buffer_with_bytes(
+                        std.mem.sliceAsBytes(self.staging.items),
+                    );
                 }
             };
         }

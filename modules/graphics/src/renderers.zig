@@ -38,63 +38,46 @@ pub fn using(comptime config: Config) type {
     });
 
     return struct {
-        ///
         pub const GridLinesRenderer = struct {
             pipeline_resources: PipelineResources,
-            vertex_buffer: VertexBufferStatic(Vertex),
+            vertex_buffer: *VertexBufferStatic(Vertex),
+            vertex_offset: u32,
+            vertex_count: u32,
             columns: u32,
             rows: u32,
             
-            pub fn init(allocator: std.mem.Allocator, columns: u32, rows: u32) !@This() {                
+            pub fn init(
+                vertex_buffer: *VertexBufferStatic(Vertex),
+                columns: u32,
+                rows: u32,
+            ) !@This() {                
                 const vertex_count = (columns+1)*2 + (rows+1)*2;
-                
-                var vertices = try allocator.alloc(Vertex, vertex_count);
-                defer allocator.free(vertices);
-                
+                const vertex_offset = @intCast(u32, vertex_buffer.staging.items.len);         
                 {
-                    var i: u32 = 0;
-                    {
-                        var j: u32 = 0;
-                        while (j <= rows) : (j += 1) {
-                            const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows) * 2 - 1.0;
-                            vertices[i] = .{ .pos = .{ -1, y, 0 } };
-                            vertices[i+1] = .{ .pos = .{ 1, y, 0 } };
-                            i += 2;
-                        }
-                    }
-                    {
-                        var j: u32 = 0;
-                        while (j <= columns) : (j += 1) {
-                            const x = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, columns) * 2 - 1.0;
-                            vertices[i] = .{ .pos = .{ x, -1, 0 } };
-                            vertices[i+1] = .{ .pos = .{ x, 1, 0 } };
-                            i += 2;
-                        }
+                    var j: u32 = 0;
+                    while (j <= rows) : (j += 1) {
+                        const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows) * 2 - 1.0;
+                        _ = try vertex_buffer.stage(&[2]Vertex{
+                             .{ .pos = .{ -1, y, 0 } },
+                             .{ .pos = .{ 1, y, 0 } },
+                        });
                     }
                 }
-                const vertex_buffer = try VertexBufferStatic(Vertex).init(vertices);
-                const vertex_layout_desc = VertexLayoutDesc{
-                    .entries = &[_]VertexLayoutDesc.Entry{
-                        .{
-                            .buffer_handle = vertex_buffer.handle,
-                            .attributes = Vertex.get_layout_attributes(),
-                            .offset = 0,
-                        },
-                    },
-                };
+                {
+                    var j: u32 = 0;
+                    while (j <= columns) : (j += 1) {
+                        const x = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, columns) * 2 - 1.0;
+                        _ = try vertex_buffer.stage(&[2]Vertex{
+                            .{ .pos = .{ x, -1, 0 } },
+                            .{ .pos = .{ x, 1, 0 } },
+                        });
+                    }
+                }
                 return @This(){
-                    .pipeline_resources = .{
-                        .program = try Backend.createUniformColourShader(), // TODO(hazeycode): shader cacheing
-                        .vertex_layout = .{
-                            .handle = try Backend.create_vertex_layout(vertex_layout_desc),
-                            .desc = vertex_layout_desc,
-                        },
-                        .rasteriser_state = try Backend.create_rasteriser_state(),
-                        .blend_state = try Backend.create_blend_state(),
-                        // TODO(hazeycode): create constant buffer of exactly the required size
-                        .constant_buffer = try Backend.create_constant_buffer(0x1000),
-                    },
+                    .pipeline_resources = undefined,
                     .vertex_buffer = vertex_buffer,
+                    .vertex_offset = vertex_offset,
+                    .vertex_count = vertex_count,
                     .columns = columns,
                     .rows = rows,
                 };
@@ -106,7 +89,30 @@ pub fn using(comptime config: Config) type {
                 Backend.destroy_rasteriser_state(self.pipeline_resources.rasteriser_state);
                 Backend.destroy_blend_state(self.pipeline_resources.blend_state);
                 Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
-                self.vertex_buffer.deinit();
+            }
+            
+            /// Call this *after* the vertex buffer has been commited
+            pub fn prepare(self: *@This()) !void {
+                const vertex_layout_desc = VertexLayoutDesc{
+                    .entries = &[_]VertexLayoutDesc.Entry{
+                        .{
+                            .buffer_handle = self.vertex_buffer.handle,
+                            .attributes = Vertex.get_layout_attributes(),
+                            .offset = 0,
+                        },
+                    },
+                };
+                self.pipeline_resources = .{
+                    .program = try Backend.createUniformColourShader(), // TODO(hazeycode): shader cacheing
+                    .vertex_layout = .{
+                        .handle = try Backend.create_vertex_layout(vertex_layout_desc),
+                        .desc = vertex_layout_desc,
+                    },
+                    .rasteriser_state = try Backend.create_rasteriser_state(),
+                    .blend_state = try Backend.create_blend_state(),
+                    // TODO(hazeycode): create constant buffer of exactly the required size
+                    .constant_buffer = try Backend.create_constant_buffer(0x1000),
+                };
             }
             
             pub fn render(self: *@This(), render_list: *RenderList, colour: Colour) !void {
