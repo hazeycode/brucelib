@@ -52,8 +52,8 @@ pub fn using(comptime config: Config) type {
                     {
                         var j: u32 = 0;
                         while (j <= rows) : (j += 1) {
-                            const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows);
-                            vertices[i] = .{ .pos = .{ 0, y, 0 } };
+                            const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows) * 2 - 1.0;
+                            vertices[i] = .{ .pos = .{ -1, y, 0 } };
                             vertices[i+1] = .{ .pos = .{ 1, y, 0 } };
                             i += 2;
                         }
@@ -61,8 +61,8 @@ pub fn using(comptime config: Config) type {
                     {
                         var j: u32 = 0;
                         while (j <= columns) : (j += 1) {
-                            const x = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, columns);
-                            vertices[i] = .{ .pos = .{ x, 0, 0 } };
+                            const x = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, columns) * 2 - 1.0;
+                            vertices[i] = .{ .pos = .{ x, -1, 0 } };
                             vertices[i+1] = .{ .pos = .{ x, 1, 0 } };
                             i += 2;
                         }
