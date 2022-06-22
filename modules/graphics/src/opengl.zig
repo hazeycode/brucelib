@@ -78,7 +78,7 @@ pub fn create_vertex_buffer_with_bytes(vertices: []const u8) !BufferHandle {
     var vbo: gl.GLuint = undefined;
     gl.genBuffers(1, &vbo);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, @intCast(gl.GLsizei,  vertices.len), vertices.ptr, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, @intCast(gl.GLsizei, vertices.len), vertices.ptr, gl.STATIC_DRAW);
     return vbo;
 }
 
@@ -237,8 +237,7 @@ pub fn create_rasteriser_state() !RasteriserStateHandle {
     return 0;
 }
 
-pub fn destroy_rasteriser_state(_: RasteriserStateHandle) void {
-}
+pub fn destroy_rasteriser_state(_: RasteriserStateHandle) void {}
 
 pub fn set_raster_state(_: RasteriserStateHandle) void {
     gl.enable(gl.CULL_FACE);
@@ -249,8 +248,7 @@ pub fn create_blend_state() !BlendStateHandle {
     return 0;
 }
 
-pub fn destroy_blend_state(_: BlendStateHandle) void {
-}
+pub fn destroy_blend_state(_: BlendStateHandle) void {}
 
 pub fn set_blend_state(_: BlendStateHandle) void {
     gl.enable(gl.BLEND);

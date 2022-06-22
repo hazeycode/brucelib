@@ -1,12 +1,14 @@
-//! builtin immediate mode gui for quick and dirty debugging. TODO(hazeycode): this code is messy and bad, give it some love 
+//! builtin immediate mode gui for quick and dirty debugging. TODO(hazeycode): this code is messy and bad, give it some love
 
 const std = @import("std");
 
+const zmath = @import("zmath");
+const orthographic = zmath.orthographicLh;
+const translation = zmath.translation;
+const scaling = zmath.scaling;
+const mul = zmath.mul;
+
 const common = @import("common.zig");
-const orthographic = common.orthographic;
-const translation = common.translation;
-const scaling = common.scaling;
-const mul = common.mul;
 const WindingOrder = common.WindingOrder;
 const Vertex = common.Vertex;
 const TexturedVertex = common.TexturedVertex;
@@ -19,7 +21,7 @@ pub const Config = struct {
     profile_marker_colour: u32 = 0x00_00_AA_AA,
 };
 
-pub fn using(comptime config: Config) type {    
+pub fn using(comptime config: Config) type {
     const Backend = config.Backend;
     const Profiler = config.Profiler;
 
@@ -42,7 +44,7 @@ pub fn using(comptime config: Config) type {
 
     return struct {
         const log = std.log.scoped(.@"graphics.DebugGui");
-    
+
         allocator: std.mem.Allocator,
         text_verts: std.ArrayList(TexturedVertex),
         uniform_colour_verts: std.ArrayList(Vertex),
@@ -68,7 +70,7 @@ pub fn using(comptime config: Config) type {
         const text_y_inset = glyph_height / 10;
 
         const winding_order = WindingOrder.counter_clockwise;
-    
+
         pub const ElemId = u32;
 
         pub const State = struct {
@@ -128,7 +130,7 @@ pub fn using(comptime config: Config) type {
                 .font_texture = debugfont_texture,
             };
         }
-        
+
         pub fn deinit(self: *@This()) void {
             self.text_verts.deinit();
             self.uniform_colour_verts.deinit();
@@ -144,11 +146,11 @@ pub fn using(comptime config: Config) type {
             try render_list.set_projection_transform(
                 orthographic(canvas_width, canvas_height, 0, 1),
             );
-            
+
             try render_list.set_view_transform(
-                translation(-canvas_width / 2, canvas_height / 2, 0),            
+                translation(-canvas_width / 2, canvas_height / 2, 0),
             );
-            
+
             try render_list.set_model_transform(scaling(1, -1, 1));
 
             self.render_list = render_list;
@@ -199,14 +201,14 @@ pub fn using(comptime config: Config) type {
                 );
             }
         }
-        
+
         pub fn same_line(self: *@This()) void {
             self.cur_y -= line_height;
             self.prev_cur_x = self.cur_x;
             self.cur_x = self.prev_x_end + glyph_width;
             self.same_line_set = true;
         }
-        
+
         pub fn separator(self: *@This()) void {
             self.cur_y += line_height / 2;
         }
@@ -226,13 +228,13 @@ pub fn using(comptime config: Config) type {
 
             self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
             self.prev_x_end = text_rect.max_x;
-            
+
             if (self.same_line_set) {
                 self.cur_x = self.prev_cur_x;
                 self.same_line_set = false;
             }
         }
-        
+
         pub fn toggle_button(self: *@This(), comptime fmt: []const u8, args: anytype, value_ptr: *bool) !void {
             const id = 1; // TODO(hazeycode): obtain some sort of unique identifier
 
@@ -241,16 +243,16 @@ pub fn using(comptime config: Config) type {
             const temp_allocator = temp_arena.allocator();
 
             const string = try std.fmt.allocPrint(temp_allocator, fmt, args);
-            
+
             const text_rect = try self.draw_text(string, &self.text_verts);
-            
+
             const bounding_rect = text_rect.inset(
                 -@divFloor(glyph_width, 2),
                 -@divFloor(glyph_width, 2),
                 -text_y_inset,
                 -text_y_inset,
             );
-            
+
             const input = self.state.input;
             const mouse_over = text_rect.contains_point(input.mouse_x, input.mouse_y);
 
@@ -273,7 +275,7 @@ pub fn using(comptime config: Config) type {
                     self.state.hover_id = id;
                 }
             }
-            
+
             try self.draw_colour_rect(
                 colour: {
                     if (id == self.state.active_id) {
@@ -287,7 +289,7 @@ pub fn using(comptime config: Config) type {
 
             self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
             self.prev_x_end = text_rect.max_x;
-            
+
             if (self.same_line_set) {
                 self.cur_x = self.prev_cur_x;
                 self.same_line_set = false;
@@ -367,7 +369,7 @@ pub fn using(comptime config: Config) type {
 
             self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
             self.prev_x_end = text_rect.max_x;
-            
+
             if (self.same_line_set) {
                 self.cur_x = self.prev_cur_x;
                 self.same_line_set = false;

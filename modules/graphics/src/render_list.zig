@@ -4,12 +4,14 @@ const builtin = @import("builtin");
 const common = @import("common.zig");
 const Viewport = common.Viewport;
 const PipelineResources = common.PipelineResources;
-const Matrix = common.Matrix;
-const identity_matrix = common.identity_matrix;
-const mul = common.mul;
 const Colour = common.Colour;
 const BufferHandle = common.BufferHandle;
 const Topology = common.Topology;
+
+const zmath = @import("zmath");
+const Matrix = zmath.Mat;
+const identity_matrix = zmath.identity;
+const mul = zmath.mul;
 
 pub const Config = struct {
     Backend: type,

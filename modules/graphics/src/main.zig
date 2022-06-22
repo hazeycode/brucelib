@@ -17,13 +17,9 @@ pub fn using(comptime config: ModuleConfig) type {
     const Profiler = config.Profiler;
 
     return struct {
+        pub const zmath = @import("zmath");
+        
         const common = @import("common.zig");
-        pub const Matrix = common.Matrix;
-        pub const identity_matrix = common.identity_matrix;
-        pub const orthographic = common.orthographic;
-        pub const translation = common.translation;
-        pub const scaling = common.scaling;
-        pub const mul = common.mul;
         pub const Colour = common.Colour;
         pub const Rect = common.Rect;
         pub const Vertex = common.Vertex;

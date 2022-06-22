@@ -13,7 +13,7 @@ pub const Config = struct {
 pub fn using(comptime config: Config) type {
     const Backend = config.Backend;
     const Profiler = config.Profiler;
-    
+
     return struct {
         /// Use this kind of vertex buffer for vertex data that doesn't change
         pub fn VertexBufferStatic(comptime vertex_type: type) type {
@@ -34,13 +34,13 @@ pub fn using(comptime config: Config) type {
                     Backend.destroy_buffer(self.handle);
                     self.handle = 0;
                 }
-                
+
                 pub fn stage(self: *@This(), vertices: []VertexType) !usize {
                     const offset = self.staging.items.len;
                     try self.staging.appendSlice(vertices);
                     return offset;
                 }
-                
+
                 pub fn commit(self: *@This()) void {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
@@ -74,7 +74,7 @@ pub fn using(comptime config: Config) type {
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-                    
+
                     const size = capacity * @sizeOf(VertexType);
                     const handle = try Backend.create_vertex_buffer_persistent(size);
                     const bytes = try Backend.map_buffer_persistent(handle, size, @alignOf(VertexType));
@@ -98,16 +98,16 @@ pub fn using(comptime config: Config) type {
 
                 /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
                 /// Returns the offset in the buffer of the first vertex that was written
-                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {                    
+                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
                         "graphics.VertexBufferDynamic.push",
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-                    
+
                     std.debug.assert(vertices.len <= self.mapped.len);
-                    
+
                     if (self.maybe_fence) |fence| {
                         _ = try Backend.wait_fence(fence, 0);
                     }
@@ -126,12 +126,11 @@ pub fn using(comptime config: Config) type {
                     );
 
                     self.write_cursor += @intCast(u32, vertices.len);
-                    
+
                     self.maybe_fence = Backend.fence();
 
                     return position;
                 }
-                
             };
         }
     };

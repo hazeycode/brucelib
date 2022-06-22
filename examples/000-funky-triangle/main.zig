@@ -9,6 +9,8 @@ const platform = @import("brucelib.platform").using(.{
 const graphics = @import("brucelib.graphics").using(.{
     .Profiler = util.ZtracyProfiler,
 });
+const identity_matrix = graphics.zmath.identity;
+const orthographic = graphics.zmath.orthographicLh;
 
 const audio_enabled = false;
 
@@ -87,7 +89,7 @@ fn funky_triangle(input: platform.FrameInput, render_list: *graphics.RenderList)
         1.0,
     );
 
-    try render_list.set_projection_transform(graphics.identity_matrix());
+    try render_list.set_projection_transform(identity_matrix());
 
     try colour_verts_renderer.render(
         render_list,

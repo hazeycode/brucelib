@@ -1,14 +1,5 @@
 const std = @import("std");
 
-pub const zmath = @import("zmath");
-pub const F32x4 = zmath.F32x4;
-pub const Matrix = zmath.Mat;
-pub const identity_matrix = zmath.identity;
-pub const orthographic = zmath.orthographicLh;
-pub const translation = zmath.translation;
-pub const scaling = zmath.scaling;
-pub const mul = zmath.mul;
-
 pub const ShaderProgramHandle = u64;
 pub const BufferHandle = u64;
 pub const VertexLayoutHandle = u64;

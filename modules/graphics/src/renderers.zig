@@ -45,21 +45,21 @@ pub fn using(comptime config: Config) type {
             vertex_count: u32,
             columns: u32,
             rows: u32,
-            
+
             pub fn init(
                 vertex_buffer: *VertexBufferStatic(Vertex),
                 columns: u32,
                 rows: u32,
-            ) !@This() {                
-                const vertex_count = (columns+1)*2 + (rows+1)*2;
-                const vertex_offset = @intCast(u32, vertex_buffer.staging.items.len);         
+            ) !@This() {
+                const vertex_count = (columns + 1) * 2 + (rows + 1) * 2;
+                const vertex_offset = @intCast(u32, vertex_buffer.staging.items.len);
                 {
                     var j: u32 = 0;
                     while (j <= rows) : (j += 1) {
                         const y = @intToFloat(f32, j) * 1.0 / @intToFloat(f32, rows) * 2 - 1.0;
                         _ = try vertex_buffer.stage(&[2]Vertex{
-                             .{ .pos = .{ -1, y, 0 } },
-                             .{ .pos = .{ 1, y, 0 } },
+                            .{ .pos = .{ -1, y, 0 } },
+                            .{ .pos = .{ 1, y, 0 } },
                         });
                     }
                 }
@@ -82,7 +82,7 @@ pub fn using(comptime config: Config) type {
                     .rows = rows,
                 };
             }
-            
+
             pub fn deinit(self: *@This()) void {
                 Backend.destroy_shader_program(self.pipeline_resources.program);
                 Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
@@ -90,7 +90,7 @@ pub fn using(comptime config: Config) type {
                 Backend.destroy_blend_state(self.pipeline_resources.blend_state);
                 Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
             }
-            
+
             /// Call this *after* the vertex buffer has been commited
             pub fn prepare(self: *@This()) !void {
                 const vertex_layout_desc = VertexLayoutDesc{
@@ -114,14 +114,14 @@ pub fn using(comptime config: Config) type {
                     .constant_buffer = try Backend.create_constant_buffer(0x1000),
                 };
             }
-            
+
             pub fn render(self: *@This(), render_list: *RenderList, colour: Colour) !void {
                 try render_list.bind_pipeline_resources(self.pipeline_resources);
                 try render_list.set_colour(colour);
-                try render_list.draw(.lines, 0, (self.columns+1)*2 + (self.rows+1)*2);
+                try render_list.draw(.lines, 0, (self.columns + 1) * 2 + (self.rows + 1) * 2);
             }
         };
-        
+
         ///
         pub const UniformColourVertsRenderer = struct {
             pipeline_resources: PipelineResources,
@@ -153,7 +153,7 @@ pub fn using(comptime config: Config) type {
                     .vertex_buffer = vertex_buffer,
                 };
             }
-            
+
             pub fn deinit(self: *@This()) void {
                 Backend.destroy_shader_program(self.pipeline_resources.program);
                 Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
@@ -219,7 +219,7 @@ pub fn using(comptime config: Config) type {
                     .vertex_buffer = vertex_buffer,
                 };
             }
-            
+
             pub fn deinit(self: *@This()) void {
                 Backend.destroy_shader_program(self.pipeline_resources.program);
                 Backend.destroy_vertex_layout(self.pipeline_resources.vertex_layout.handle);
