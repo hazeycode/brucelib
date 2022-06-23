@@ -14,6 +14,8 @@
           nativeBuildInputs = [
             zig.packages."${system}".master.latest
             buildPackages.xlibsWrapper
+            buildPackages.xorg.libX11
+            buildPackages.xorg.libXrandr
             buildPackages.libGL
             buildPackages.alsa-lib
           ];

@@ -30,6 +30,7 @@ pub fn link(obj: *std.build.LibExeObjStep) void {
         obj.linkSystemLibrary("X11");
         obj.linkSystemLibrary("xcb");
         obj.linkSystemLibrary("X11-xcb");
+        obj.linkSystemLibrary("Xrandr");
         obj.linkSystemLibrary("GL");
     } else if (obj.target.isWindows()) {
         obj.linkSystemLibrary("Kernel32");
