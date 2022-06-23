@@ -33,6 +33,13 @@ pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.Cros
     return ts;
 }
 
+pub fn add_to(obj: *std.build.LibExeObjStep, dependencies: *std.StringHashMap(std.build.Pkg)) !void {
+    obj.addPackage(pkg);
+    link(obj);
+    obj.addIncludeDir(stb_image.include_dir);
+    for (pkg.dependencies.?) |dep| try dependencies.put(dep.name, dep);
+}
+
 pub fn link(obj: *std.build.LibExeObjStep) void {
     obj.linkLibC();
     if (obj.target.isLinux()) {

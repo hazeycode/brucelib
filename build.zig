@@ -46,15 +46,17 @@ pub fn build(b: *std.build.Builder) !void {
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
 
-                    example.addPackage(platform.pkg);
-                    example.addPackage(graphics.pkg);
-                    example.addPackage(audio.pkg);
-                    example.addPackage(algo.pkg);
-                    example.addPackage(util.getPkg(ztracy_options));
-
-                    platform.link(example);
-                    graphics.link(example);
-                    util.link(example, ztracy_options);
+                    var dependencies = std.StringHashMap(std.build.Pkg).init(b.allocator);
+                    defer dependencies.deinit();
+                    
+                    try platform.add_to(example, &dependencies);
+                    try graphics.add_to(example, &dependencies);
+                    try audio.add_to(example, &dependencies);
+                    try algo.add_to(example, &dependencies);
+                    try util.add_to(example, ztracy_options, &dependencies);
+                    
+                    var dep_iterator = dependencies.valueIterator();
+                    while (dep_iterator.next()) |pkg| example.addPackage(pkg.*);
 
                     example.install();
 

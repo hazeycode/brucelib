@@ -10,6 +10,16 @@ pub fn getPkg(ztracy_options: ztracy.BuildOptionsStep) std.build.Pkg {
     };
 }
 
+pub fn add_to(
+    obj: *std.build.LibExeObjStep,
+    ztracy_options: ztracy.BuildOptionsStep,
+    dependencies: *std.StringHashMap(std.build.Pkg),
+) !void {
+    obj.addPackage(getPkg(ztracy_options));
+    link(obj, ztracy_options);
+    _ = dependencies;
+}
+
 pub fn link(obj: *std.build.LibExeObjStep, ztracy_options: ztracy.BuildOptionsStep) void {
     ztracy.link(obj, ztracy_options);
 }

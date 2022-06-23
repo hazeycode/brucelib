@@ -27,6 +27,11 @@ pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.Cros
     return ts;
 }
 
+pub fn add_to(obj: *std.build.LibExeObjStep, dependencies: *std.StringHashMap(std.build.Pkg)) !void {
+    obj.addPackage(pkg);
+    for (pkg.dependencies.?) |dep| try dependencies.put(dep.name, dep);
+}
+
 pub fn build(b: *std.build.Builder) void {
     const build_mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
