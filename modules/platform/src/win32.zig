@@ -191,9 +191,9 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     config.profile_marker_colour,
                 );
                 defer trace_zone.End();
-                
+
                 args.frame_prepare_fn();
-                
+
                 var cpu_frame_timer = try std.time.Timer.start();
 
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
@@ -249,12 +249,12 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     defer trace_zone_present.End();
 
                     try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
-                    
+
                     args.frame_end_fn();
                 }
-                
+
                 prev_frame_elapsed = timer.lap();
-                
+
                 Profiler.frame_mark();
             }
         }

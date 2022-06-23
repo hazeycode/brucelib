@@ -59,7 +59,7 @@ pub fn using(comptime config: Config) type {
                 .set_viewport = viewport,
             });
         }
-        
+
         pub fn clear_viewport(self: *@This(), colour: Colour) !void {
             try self.entries.append(.{
                 .clear_viewport = colour,

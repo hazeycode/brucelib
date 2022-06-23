@@ -54,7 +54,7 @@ fn deinit(_: std.mem.Allocator) void {
 
 /// Called before each frame. Use to flush and pending gpu submissions
 fn frame_prepare() void {
-   graphics.begin_frame();
+    graphics.begin_frame();
 }
 
 /// Called every time the platform module wants a new frame to display to meet the target
@@ -75,15 +75,15 @@ fn frame(input: platform.FrameInput) !bool {
         .width = input.window_size.width,
         .height = input.window_size.height,
     });
-    
+
     try render_list.clear_viewport(graphics.Colour.black);
 
     try funky_triangle(input, &render_list);
 
     try debug_overlay(input, &render_list);
-    
+
     try render_list.submit();
-    
+
     return true;
 }
 

@@ -18,7 +18,7 @@ pub fn using(comptime config: ModuleConfig) type {
 
     return struct {
         pub const zmath = @import("zmath");
-        
+
         const common = @import("common.zig");
         pub const FenceHandle = common.FenceHandle;
         pub const FenceState = common.FenceState;
@@ -100,7 +100,7 @@ pub fn using(comptime config: ModuleConfig) type {
             defer trace_zone.End();
             Backend.flush();
         }
-        
+
         pub fn end_frame() void {
             const trace_zone = Profiler.zone_name_colour(
                 @src(),

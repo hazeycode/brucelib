@@ -7,9 +7,9 @@ pub const ModuleConfig = struct {
 
 pub const InitFn = fn (std.mem.Allocator) anyerror!void;
 pub const DeinitFn = fn (std.mem.Allocator) void;
-pub const FramePrepareFn = fn() void;
+pub const FramePrepareFn = fn () void;
 pub const FrameFn = fn (FrameInput) anyerror!bool;
-pub const FrameEndFn = fn() void;
+pub const FrameEndFn = fn () void;
 pub const AudioPlaybackFn = fn (AudioPlaybackStream) anyerror!u32;
 
 /// Defines the structure that is passed to the audio playback fn by the platform layer
