@@ -17,6 +17,7 @@ const FenceState = common.FenceState;
 const Topology = common.Topology;
 
 const win32 = @import("zwin32");
+const RECT = win32.base.RECT;
 const SIZE_T = win32.base.SIZE_T;
 const UINT64 = win32.base.UINT64;
 const BOOL = win32.base.BOOL;
@@ -127,6 +128,10 @@ pub fn deinit() void {
     shader_programs.deinit();
 }
 
+pub fn flush() void {
+    // TODO(hazeycode): impl this
+}
+
 pub fn sync() void {
     // TODO(hazeycode): impl this
     return;
@@ -204,6 +209,18 @@ pub fn set_viewport(x: i32, y: i32, width: u16, height: u16) void {
         @ptrCast([*]const d3d11.IRenderTargetView, &render_target_views),
         null,
     );
+}
+
+pub fn set_scissor(x: i32, y: i32, width: u16, height: u16) void {
+    const rects = [_]RECT{
+        .{
+            .left = x,
+            .top = y,
+            .right = x + width,
+            .bottom = y + height,
+        },
+    };
+    device_context.RSSetScissorRects(1, &rects);
 }
 
 pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {
