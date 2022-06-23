@@ -345,7 +345,7 @@ pub fn bind_vertex_layout(handle: VertexLayoutHandle) void {
     );
 }
 
-pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
+pub fn create_texture2d_with_bytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
     var texture: ?*d3d11.ITexture2D = null;
     {
         const desc = d3d11.TEXTURE2D_DESC{

@@ -41,7 +41,7 @@ pub fn using(comptime config: Config) type {
                     return offset;
                 }
 
-                pub fn commit(self: *@This()) void {
+                pub fn commit(self: *@This()) !void {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
                         "graphics.VertexBufferStatic.commit",
