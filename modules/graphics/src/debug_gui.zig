@@ -117,7 +117,7 @@ pub fn using(comptime config: Config) type {
         };
 
         pub fn init(allocator: std.mem.Allocator) !@This() {
-            const debugfont_texture = try Texture2d.fromPBM(
+            const debugfont_texture = try Texture2d.from_pbm(
                 allocator,
                 @embedFile("../data/debugfont.pbm"),
             );

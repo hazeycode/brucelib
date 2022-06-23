@@ -177,7 +177,7 @@ pub fn bind_vertex_layout(layout_handle: VertexLayoutHandle) void {
     gl.bindVertexArray(@intCast(gl.GLuint, layout_handle));
 }
 
-pub fn createTexture2dWithBytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
+pub fn create_texture2d_with_bytes(bytes: []const u8, width: u32, height: u32, format: TextureFormat) !TextureHandle {
     var texture: gl.GLuint = undefined;
     gl.genTextures(1, &texture);
     gl.bindTexture(gl.TEXTURE_2D, texture);

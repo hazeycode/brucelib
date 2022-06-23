@@ -14,13 +14,13 @@ pub fn using_backend(comptime Backend: anytype) type {
             width: u32,
             height: u32,
 
-            pub fn fromRawBytes(
+            pub fn from_raw_bytes(
                 format: TextureFormat,
                 width: u32,
                 height: u32,
                 bytes: []const u8,
             ) !Texture2d {
-                const handle = try Backend.createTexture2dWithBytes(
+                const handle = try Backend.create_texture2d_with_bytes(
                     bytes,
                     width,
                     height,
@@ -34,7 +34,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                 };
             }
 
-            pub fn fromBytes(bytes: []const u8) !Texture2d {
+            pub fn from_bytes(bytes: []const u8) !Texture2d {
                 var width: u32 = undefined;
                 var height: u32 = undefined;
                 var channels: u32 = 1;
@@ -58,7 +58,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                     else => unreachable,
                 };
 
-                const handle = try Backend.createTexture2dWithBytes(
+                const handle = try Backend.create_texture2d_with_bytes(
                     texture_bytes[0..texture_bytes_size],
                     width,
                     height,
@@ -73,7 +73,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                 };
             }
 
-            pub fn fromPBM(
+            pub fn from_pbm(
                 allocator: std.mem.Allocator,
                 pbm_bytes: []const u8,
             ) !Texture2d {
@@ -97,7 +97,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                     cur: usize,
 
                     fn parse(self: *@This(), allocator: std.mem.Allocator) !Texture2d {
-                        const magic_number = try self.magicNumber();
+                        const magic = try self.magic_number();
                         self.whitespace();
 
                         const width = self.integer();
@@ -121,13 +121,13 @@ pub fn using_backend(comptime Backend: anytype) type {
                         var texture_bytes = try allocator.alloc(u8, width * height);
                         defer allocator.free(texture_bytes);
 
-                        switch (magic_number) {
+                        switch (magic) {
                             .p1 => {
                                 const format = TextureFormat.uint8;
 
                                 var i: usize = 0;
                                 for (self.bytes[self.cur..]) |c| {
-                                    if (isWhitespace(c)) continue;
+                                    if (is_whitespace(c)) continue;
                                     texture_bytes[i] = switch (c) {
                                         '1' => 255,
                                         else => 0,
@@ -135,7 +135,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                                     i += 1;
                                 }
 
-                                const handle = try Backend.createTexture2dWithBytes(
+                                const handle = try Backend.create_texture2d_with_bytes(
                                     texture_bytes,
                                     width,
                                     height,
@@ -153,7 +153,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                         }
                     }
 
-                    fn magicNumber(self: *@This()) !enum { p1, p4 } {
+                    fn magic_number(self: *@This()) !enum { p1, p4 } {
                         if (self.bytes[self.cur] != 'P') return error.BadFormat;
                         self.cur += 1;
                         defer self.cur += 1;
@@ -165,12 +165,12 @@ pub fn using_backend(comptime Backend: anytype) type {
                     }
 
                     fn whitespace(self: *@This()) void {
-                        while (isWhitespace(self.bytes[self.cur])) {
+                        while (is_whitespace(self.bytes[self.cur])) {
                             self.cur += 1;
                         }
                     }
 
-                    inline fn isWhitespace(char: u8) bool {
+                    inline fn is_whitespace(char: u8) bool {
                         const whitespace_chars = " \t\n\r";
                         inline for (whitespace_chars) |wsc| if (wsc == char) return true;
                         return false;
@@ -180,7 +180,7 @@ pub fn using_backend(comptime Backend: anytype) type {
                         var res: u32 = 0;
                         for (self.bytes[self.cur..]) |c| {
                             self.cur += 1;
-                            if (isWhitespace(c)) break;
+                            if (is_whitespace(c)) break;
                             res = (res << 3) +% (res << 1) +% (c -% '0');
                         }
                         return res;
