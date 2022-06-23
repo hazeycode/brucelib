@@ -1,14 +1,11 @@
 const std = @import("std");
 
 const util = @import("brucelib.util");
+const Profiler = util.ZtracyProfiler;
 
-const platform = @import("brucelib.platform").using(.{
-    .Profiler = util.ZtracyProfiler,
-});
+const platform = @import("brucelib.platform").using(.{ .Profiler = Profiler });
 
-const graphics = @import("brucelib.graphics").using(.{
-    .Profiler = util.ZtracyProfiler,
-});
+const graphics = @import("brucelib.graphics").using(.{ .Profiler = Profiler });
 const identity_matrix = graphics.zmath.identity;
 const orthographic = graphics.zmath.orthographicLh;
 
@@ -23,6 +20,7 @@ pub fn main() anyerror!void {
         },
         .init_fn = init,
         .deinit_fn = deinit,
+        .frame_prepare_fn = frame_prepare,
         .frame_fn = frame,
         .frame_end_fn = frame_end,
         .audio_playback = if (audio_enabled) .{
@@ -40,6 +38,7 @@ var state: struct {
     debug_gui: graphics.DebugGui.State = .{},
 } = .{};
 
+var maybe_frame_fence: ?graphics.FenceHandle = undefined;
 var colour_verts_renderer: graphics.UniformColourVertsRenderer = undefined;
 
 /// Called before the platform event loop begins
@@ -53,6 +52,11 @@ fn deinit(_: std.mem.Allocator) void {
     graphics.deinit();
 }
 
+/// Called before each frame. Use to flush and pending gpu submissions
+fn frame_prepare() void {
+   graphics.begin_frame();
+}
+
 /// Called every time the platform module wants a new frame to display to meet the target
 /// framerate. The target framerate is determined by the platform layer using the display
 /// refresh rate, frame metrics and the optional user set arg of `platform.run`:
@@ -63,8 +67,6 @@ fn frame(input: platform.FrameInput) !bool {
         return false;
     }
 
-    graphics.begin_frame(graphics.Colour.black);
-
     var render_list = try graphics.RenderList.init(input.frame_arena_allocator);
 
     try render_list.set_viewport(.{
@@ -73,14 +75,21 @@ fn frame(input: platform.FrameInput) !bool {
         .width = input.window_size.width,
         .height = input.window_size.height,
     });
+    
+    try render_list.clear_viewport(graphics.Colour.black);
 
     try funky_triangle(input, &render_list);
 
     try debug_overlay(input, &render_list);
-
+    
     try render_list.submit();
-
+    
     return true;
+}
+
+/// Called after the frame is presented
+fn frame_end() void {
+    graphics.end_frame();
 }
 
 fn funky_triangle(input: platform.FrameInput, render_list: *graphics.RenderList) !void {
@@ -141,12 +150,6 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
     );
 
     try graphics.debug_gui.end();
-}
-
-/// Called after `frame`, just before the frame is commited, gives us a chance to sync gpu and/or
-/// schedule work to do ahead of the next frame
-fn frame_end() void {
-    graphics.sync();
 }
 
 /// Optional audio playback callback. If set it can be called at any time by the platform module

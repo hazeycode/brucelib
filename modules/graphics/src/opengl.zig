@@ -29,6 +29,10 @@ pub fn init(comptime platform: anytype, _allocator: std.mem.Allocator) !void {
 
 pub fn deinit() void {}
 
+pub fn flush() void {
+    gl.flush();
+}
+
 pub fn sync() void {
     gl.finish();
 }
@@ -56,6 +60,10 @@ pub fn log_debug_messages() !void {}
 
 pub fn set_viewport(x: i32, y: i32, width: u16, height: u16) void {
     gl.viewport(x, y, width, height);
+}
+
+pub fn set_scissor(x: i32, y: i32, width: u16, height: u16) void {
+    gl.scissor(x, y, width, height);
 }
 
 pub fn clear_with_colour(r: f32, g: f32, b: f32, a: f32) void {

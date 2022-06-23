@@ -20,6 +20,8 @@ pub fn using(comptime config: ModuleConfig) type {
         pub const zmath = @import("zmath");
         
         const common = @import("common.zig");
+        pub const FenceHandle = common.FenceHandle;
+        pub const FenceState = common.FenceState;
         pub const Colour = common.Colour;
         pub const Rect = common.Rect;
         pub const Vertex = common.Vertex;
@@ -89,30 +91,24 @@ pub fn using(comptime config: ModuleConfig) type {
             Backend.deinit();
         }
 
-        pub fn sync() void {
+        pub fn begin_frame() void {
             const trace_zone = Profiler.zone_name_colour(
                 @src(),
-                "sync",
+                "graphics.begin_frame",
+                config.profile_marker_colour,
+            );
+            defer trace_zone.End();
+            Backend.flush();
+        }
+        
+        pub fn end_frame() void {
+            const trace_zone = Profiler.zone_name_colour(
+                @src(),
+                "graphics.end_frame",
                 config.profile_marker_colour,
             );
             defer trace_zone.End();
             Backend.sync();
-        }
-
-        pub fn begin_frame(clear_colour: Colour) void {
-            const trace_zone = Profiler.zone_name_colour(
-                @src(),
-                "begin_frame",
-                config.profile_marker_colour,
-            );
-
-            defer trace_zone.End();
-            Backend.clear_with_colour(
-                clear_colour.r,
-                clear_colour.g,
-                clear_colour.b,
-                clear_colour.a,
-            );
         }
     };
 }

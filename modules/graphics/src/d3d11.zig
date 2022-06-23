@@ -128,6 +128,7 @@ pub fn deinit() void {
 }
 
 pub fn sync() void {
+    // TODO(hazeycode): impl this
     return;
 }
 
@@ -135,8 +136,9 @@ pub fn fence() FenceHandle {
     return 0; // TODO(hazeycode): implement this
 }
 
-pub fn wait_fence(_: FenceHandle) !FenceState {
+pub fn wait_fence(_: FenceHandle, timeout: u64) !FenceState {
     // TODO(hazeycode): implement this
+    _ = timeout;
     return FenceState.already_signaled;
 }
 

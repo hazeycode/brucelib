@@ -246,7 +246,7 @@ pub fn deinit(self: *@This()) void {
     c.xcb_disconnect(self.connection);
 }
 
-pub fn swap_buffers(self: *@This()) void {
+pub fn present(self: *@This()) void {
     c.glXSwapBuffers(self.display, self.window);
 }
 

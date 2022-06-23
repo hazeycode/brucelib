@@ -52,12 +52,18 @@ pub fn main() anyerror!void {
         /// Called before the program terminates, after the `frame_fn` returns false
         .deinit_fn = deinit,
 
+        /// Called at the before each frame
+        .frame_prepare_fn = frame_prepare,
+
         /// Called every time the platform module wants a new frame to display to meet the target
         /// framerate. The target framerate is determined by the platform layer using the display
         /// refresh rate, frame metrics and the optional user set arg of `platform.run`:
         /// `.requested_framerate`. `FrameInput` is passed as an argument, containing events and
         /// other data used to produce the next frame.
         .frame_fn = frame,
+
+        /// Called after the frame has been presented
+        .frame_end_fn = frame_end,
 
         /// Optional audio playback config
         .audio_playback = .{
@@ -73,8 +79,18 @@ fn init(_: std.mem.Allocator) !void {
 fn deinit(_: std.mem.Allocator) void {
 }
 
+fn frame_prepare() void {
+    // use this to flush any gpu submissions that were submitted after the last frame
+    // was presented
+}
+
 fn frame(input: platform.Input) !bool {
     return (input.quit_requested == false);
+}
+
+fn frame_end() void {
+    // schedule work ahead of the next frame
+    // and do any nessesary synchronisation
 }
 
 fn audioPlayback(_: platform.AudioPlaybackStream) !u32 {

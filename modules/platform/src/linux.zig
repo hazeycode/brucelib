@@ -11,6 +11,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
     return struct {
         pub const InitFn = common.InitFn;
         pub const DeinitFn = common.DeinitFn;
+        pub const FramePrepareFn = common.FramePrepareFn;
         pub const FrameFn = common.FrameFn;
         pub const FrameEndFn = common.FrameEndFn;
         pub const AudioPlaybackFn = common.AudioPlaybackFn;
@@ -62,6 +63,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
             },
             init_fn: InitFn,
             deinit_fn: DeinitFn,
+            frame_prepare_fn: FramePrepareFn,
             frame_fn: FrameFn,
             frame_end_fn: FrameEndFn,
             audio_playback: ?struct {
@@ -131,17 +133,19 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
             var timer = try std.time.Timer.start();
             while (true) {
-                defer Profiler.frame_mark();
-
-                const outer_trace_zone = Profiler.zone_name_colour(
+                const trace_zone = Profiler.zone_name_colour(
                     @src(),
-                    "platform main loop",
+                    "platform.linux main loop",
                     config.profile_marker_colour,
                 );
-                defer outer_trace_zone.End();
-
-                prev_frame_elapsed = timer.lap();
-
+                defer trace_zone.End();
+                
+                args.frame_prepare_fn();
+                
+                var cpu_frame_timer = try std.time.Timer.start();
+                
+                const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+                                            
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
 
@@ -166,62 +170,47 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
 
                 const mouse_pos = windowing.get_mouse_pos();
-
-                const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
-
+                
+                quit = !(try args.frame_fn(.{
+                    .frame_arena_allocator = arena_allocator,
+                    .quit_requested = window_closed,
+                    .target_frame_dt = target_frame_dt,
+                    .prev_frame_elapsed = prev_frame_elapsed,
+                    .user_input = .{
+                        .key_events = key_events.items,
+                        .mouse_button_events = mouse_button_events.items,
+                        .mouse_position = .{
+                            .x = mouse_pos.x,
+                            .y = mouse_pos.y,
+                        },
+                    },
+                    .window_size = .{
+                        .width = windowing.window_width,
+                        .height = windowing.window_height,
+                    },
+                    .debug_stats = .{
+                        .prev_cpu_elapsed = prev_cpu_elapsed,
+                    },
+                }));
+                
+                prev_cpu_elapsed = cpu_frame_timer.read();
+                
                 {
-                    const frame_trace_zone = Profiler.zone_name_colour(
+                    const trace_zone_present = Profiler.zone_name_colour(
                         @src(),
-                        "platform request frame",
+                        "platform.linux present",
                         config.profile_marker_colour,
                     );
-                    defer frame_trace_zone.End();
-
-                    quit = !(try args.frame_fn(.{
-                        .frame_arena_allocator = arena_allocator,
-                        .quit_requested = window_closed,
-                        .target_frame_dt = target_frame_dt,
-                        .prev_frame_elapsed = prev_frame_elapsed,
-                        .user_input = .{
-                            .key_events = key_events.items,
-                            .mouse_button_events = mouse_button_events.items,
-                            .mouse_position = .{
-                                .x = mouse_pos.x,
-                                .y = mouse_pos.y,
-                            },
-                        },
-                        .window_size = .{
-                            .width = windowing.window_width,
-                            .height = windowing.window_height,
-                        },
-                        .debug_stats = .{
-                            .prev_cpu_elapsed = prev_cpu_elapsed,
-                        },
-                    }));
-                }
-
-                prev_cpu_elapsed = timer.read();
-
-                {
-                    const trace_zone = Profiler.zone_name_colour(
-                        @src(),
-                        "frame commit",
-                        config.profile_marker_colour,
-                    );
-                    defer trace_zone.End();
+                    defer trace_zone_present.End();
+                    windowing.present();
+                    
                     args.frame_end_fn();
                 }
 
-                {
-                    const trace_zone = Profiler.zone_name_colour(
-                        @src(),
-                        "platform swap_buffers",
-                        config.profile_marker_colour,
-                    );
-                    defer trace_zone.End();
-                    windowing.swap_buffers();
-                }
-
+                prev_frame_elapsed = timer.lap();
+                
+                Profiler.frame_mark();
+                
                 if (quit) break;
             }
         }
