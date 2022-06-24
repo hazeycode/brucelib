@@ -71,6 +71,8 @@ var textures: TextureResourcesList = undefined;
 
 var debug_info_queue: *d3d11d.IInfoQueue = undefined;
 
+pub const supports_persistently_mapped_buffers = false;
+
 pub fn init(platform: anytype, _allocator: std.mem.Allocator) !void {
     device = @ptrCast(*d3d11.IDevice, platform.getD3D11Device());
     device_context = @ptrCast(*d3d11.IDeviceContext, platform.getD3D11DeviceContext());
@@ -255,7 +257,7 @@ pub fn create_vertex_buffer_with_bytes(vertices: []const u8) !BufferHandle {
     return @ptrToInt(buffer.?);
 }
 
-pub fn create_vertex_buffer_persistent(size: u32) !BufferHandle {
+pub fn create_vertex_buffer_dynamic(size: u32) !BufferHandle {
     var buffer: ?*d3d11.IBuffer = null;
     const desc = d3d11.BUFFER_DESC{
         .ByteWidth = @intCast(UINT, size),
@@ -276,7 +278,7 @@ pub fn destroy_buffer(buffer_handle: BufferHandle) void {
     _ = vertex_buffer.Release();
 }
 
-pub fn map_buffer_persistent(
+pub fn map_buffer(
     buffer_handle: BufferHandle,
     size: usize,
     comptime alignment: u7,

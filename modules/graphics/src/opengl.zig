@@ -18,6 +18,8 @@ const Topology = common.Topology;
 
 var allocator: std.mem.Allocator = undefined;
 
+pub const supports_persistently_mapped_buffers = true;
+
 pub fn init(comptime platform: anytype, _allocator: std.mem.Allocator) !void {
     allocator = _allocator;
 

@@ -57,8 +57,9 @@ pub fn using(comptime config: Config) type {
 
         /// A persistently mapped vertex ring-buffer
         /// Use this kind of vertex buffer for vertex data that changes frequently
+        /// Has fallbacks for backends that do not support persistently mapped buffers
         pub fn VertexBufferDynamic(comptime vertex_type: type) type {
-            return struct {
+            return if (Backend.supports_persistently_mapped_buffers) struct {
                 pub const VertexType: type = vertex_type;
 
                 handle: BufferHandle,
@@ -128,6 +129,74 @@ pub fn using(comptime config: Config) type {
                     self.write_cursor += @intCast(u32, vertices.len);
 
                     self.maybe_fence = Backend.fence();
+
+                    return position;
+                }
+            } else struct {
+                pub const VertexType: type = vertex_type;
+
+                handle: BufferHandle,
+                capacity: u32,
+                write_cursor: u32,
+
+                pub fn init(capacity: u32) !@This() {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.init",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+
+                    const size = capacity * @sizeOf(VertexType);
+                    const handle = try Backend.create_vertex_buffer_dynamic(size);
+                    return @This(){
+                        .handle = handle,
+                        .capacity = capacity,
+                        .write_cursor = 0,
+                    };
+                }
+
+                pub fn deinit(self: *@This()) void {
+                    Backend.destroy_buffer(self.handle);
+                    self.handle = 0;
+                    self.capacity = 0;
+                    self.write_cursor = 0;
+                }
+
+                /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
+                /// Returns the offset in the buffer of the first vertex that was written
+                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.push",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+
+                    var mapped = std.mem.bytesAsSlice(
+                        VertexType,
+                        try Backend.map_buffer(
+                            self.handle,
+                            self.capacity * @sizeOf(VertexType),
+                            @alignOf(VertexType),
+                        ),
+                    );
+                    defer Backend.unmap_buffer(self.handle);
+
+                    const remaining = mapped.len - self.write_cursor;
+                    if (remaining < vertices.len) {
+                        self.write_cursor = 0;
+                    }
+
+                    const position = self.write_cursor;
+
+                    std.mem.copy( // TODO(hazeycode): investigate/profile 16-byte aligned mem copy
+                        VertexType,
+                        mapped[self.write_cursor..],
+                        vertices[0..],
+                    );
+
+                    self.write_cursor += @intCast(u32, vertices.len);
 
                     return position;
                 }
