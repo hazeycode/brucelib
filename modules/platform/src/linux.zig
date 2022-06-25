@@ -50,27 +50,30 @@ pub fn using(comptime config: common.ModuleConfig) type {
             return audio_playback.interface.sample_rate;
         }
 
-        pub fn run(args: struct {
-            graphics_api: GraphicsAPI = .opengl,
-            requested_framerate: u16 = 0,
-            title: []const u8 = "",
-            window_size: struct {
-                width: u16,
-                height: u16,
-            } = .{
-                .width = 854,
-                .height = 480,
+        pub fn run(
+            args: struct {
+                graphics_api: GraphicsAPI = .opengl,
+                requested_framerate: u16 = 0,
+                title: []const u8 = "",
+                window_size: struct {
+                    width: u16,
+                    height: u16,
+                } = .{
+                    .width = 854,
+                    .height = 480,
+                },
+                target_input_poll_rate: u32 = 1000, // 1 kHz is USB1 max poll rate, which is a 1 ms input frame, plenty
+                init_fn: InitFn,
+                deinit_fn: DeinitFn,
+                frame_prepare_fn: FramePrepareFn,
+                frame_fn: FrameFn,
+                frame_end_fn: FrameEndFn,
+                audio_playback: ?struct {
+                    request_sample_rate: u32 = 48000,
+                    callback: AudioPlaybackFn = null,
+                },
             },
-            init_fn: InitFn,
-            deinit_fn: DeinitFn,
-            frame_prepare_fn: FramePrepareFn,
-            frame_fn: FrameFn,
-            frame_end_fn: FrameEndFn,
-            audio_playback: ?struct {
-                request_sample_rate: u32 = 48000,
-                callback: AudioPlaybackFn = null,
-            },
-        }) !void {
+        ) !void {
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer _ = gpa.deinit();
 
