@@ -3,6 +3,32 @@ const builtin = @import("builtin");
 
 const log = std.log.scoped(.@"brucelib.platform.win32");
 
+const zwin32 = @import("zwin32");
+const BYTE = zwin32.base.BYTE;
+const UINT = zwin32.base.UINT;
+const DWORD = zwin32.base.DWORD;
+const BOOL = zwin32.base.BOOL;
+const TRUE = zwin32.base.TRUE;
+const FALSE = zwin32.base.FALSE;
+const LPCWSTR = zwin32.base.LPCWSTR;
+const WPARAM = zwin32.base.WPARAM;
+const LPARAM = zwin32.base.LPARAM;
+const LRESULT = zwin32.base.LRESULT;
+const HRESULT = zwin32.base.HRESULT;
+const HINSTANCE = zwin32.base.HINSTANCE;
+const HWND = zwin32.base.HWND;
+const RECT = zwin32.base.RECT;
+const kernel32 = zwin32.base.kernel32;
+const user32 = zwin32.base.user32;
+const dxgi = zwin32.dxgi;
+const d3d = zwin32.d3d;
+const d3d11 = zwin32.d3d11;
+const d3dcompiler = zwin32.d3dcompiler;
+const xinput = zwin32.xinput;
+const hrErrorOnFail = zwin32.hrErrorOnFail;
+
+const L = std.unicode.utf8ToUtf16LeStringLiteral;
+
 const common = @import("common.zig");
 
 pub fn using(comptime config: common.ModuleConfig) type {
@@ -25,31 +51,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
         const WasapiInterface = @import("win32/WasapiInterface.zig");
         const AudioPlaybackInterface = WasapiInterface;
 
-        const zwin32 = @import("zwin32");
-        const BYTE = zwin32.base.BYTE;
-        const UINT = zwin32.base.UINT;
-        const DWORD = zwin32.base.DWORD;
-        const BOOL = zwin32.base.BOOL;
-        const TRUE = zwin32.base.TRUE;
-        const FALSE = zwin32.base.FALSE;
-        const LPCWSTR = zwin32.base.LPCWSTR;
-        const WPARAM = zwin32.base.WPARAM;
-        const LPARAM = zwin32.base.LPARAM;
-        const LRESULT = zwin32.base.LRESULT;
-        const HRESULT = zwin32.base.HRESULT;
-        const HINSTANCE = zwin32.base.HINSTANCE;
-        const HWND = zwin32.base.HWND;
-        const RECT = zwin32.base.RECT;
-        const kernel32 = zwin32.base.kernel32;
-        const user32 = zwin32.base.user32;
-        const dxgi = zwin32.dxgi;
-        const d3d = zwin32.d3d;
-        const d3d11 = zwin32.d3d11;
-        const d3dcompiler = zwin32.d3dcompiler;
-        const hrErrorOnFail = zwin32.hrErrorOnFail;
-
-        const L = std.unicode.utf8ToUtf16LeStringLiteral;
-
         pub const Error = error{
             FailedToGetModuleHandle,
         };
@@ -66,10 +67,17 @@ pub fn using(comptime config: common.ModuleConfig) type {
         var mouse_y: i32 = undefined;
         var key_events: std.ArrayList(KeyEvent) = undefined;
         var mouse_button_events: std.ArrayList(MouseButtonEvent) = undefined;
+        var frame_prepare_fn: FramePrepareFn = undefined;
+        var frame_fn: FrameFn = undefined;
+        var frame_end_fn: FrameEndFn = undefined;
 
         pub var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
             interface: AudioPlaybackInterface = undefined,
+            thread: std.Thread = undefined,
+        }{};
+
+        pub var display = struct {
             thread: std.Thread = undefined,
         }{};
 
@@ -104,6 +112,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     .width = 854,
                     .height = 480,
                 },
+                target_input_poll_rate: u32 = 1000, // 1 kHz is USB1 max poll rate, which is a 1 ms input frame, plenty
                 init_fn: InitFn,
                 deinit_fn: DeinitFn,
                 frame_prepare_fn: FramePrepareFn,
@@ -120,6 +129,10 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
             var allocator = gpa.allocator();
 
+            frame_prepare_fn = args.frame_prepare_fn;
+            frame_fn = args.frame_fn;
+            frame_end_fn = args.frame_end_fn;
+
             // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
             target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
 
@@ -135,7 +148,21 @@ pub fn using(comptime config: common.ModuleConfig) type {
             _ = try std.unicode.utf8ToUtf16Le(utf16_title[0..], args.title);
             const utf16_title_ptr = @ptrCast([*:0]const u16, &utf16_title);
 
-            try registerClass(hinstance, utf16_title_ptr);
+            var wndclass = user32.WNDCLASSEXW{
+                .cbSize = @sizeOf(user32.WNDCLASSEXW),
+                .style = 0,
+                .lpfnWndProc = wnd_proc,
+                .cbClsExtra = 0,
+                .cbWndExtra = 0,
+                .hInstance = hinstance,
+                .hIcon = null,
+                .hCursor = null,
+                .hbrBackground = null,
+                .lpszMenuName = null,
+                .lpszClassName = utf16_title_ptr,
+                .hIconSm = null,
+            };
+            _ = try user32.registerClassExW(&wndclass);
 
             const hwnd = try createWindow(
                 hinstance,
@@ -176,23 +203,62 @@ pub fn using(comptime config: common.ModuleConfig) type {
             defer args.deinit_fn(allocator);
 
             if (audio_enabled) {
-                audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{});
+                audio_playback.thread = try std.Thread.spawn(.{}, audio_thread, .{});
                 audio_playback.thread.detach();
             }
+
+            display.thread = try std.Thread.spawn(.{}, display_thread, .{allocator});
+
+            var timer = try std.time.Timer.start();
+            while (quit == false) {
+                {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "platform.win32 main thread loop",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+
+                    var controller_state: xinput.STATE = undefined;
+                    _ = xinput.XInputGetState(@as(DWORD, 0), &controller_state);
+
+                    var msg: user32.MSG = undefined;
+                    while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
+                        _ = user32.translateMessage(&msg);
+                        _ = user32.dispatchMessageW(&msg);
+                        if (msg.message == user32.WM_QUIT) {
+                            quit = true;
+                        }
+                    }
+                }
+
+                const elapsed = timer.lap();
+                const target = @floatToInt(u64, 1.0 / @intToFloat(f32, args.target_input_poll_rate) * 1e9);
+                if (elapsed < target) {
+                    const remain = target - elapsed;
+                    std.time.sleep(remain);
+                }
+            }
+
+            display.thread.join();
+        }
+
+        fn display_thread(allocator: std.mem.Allocator) !void {
+            Profiler.set_thread_name("Display thread");
 
             var prev_frame_elapsed: u64 = 0;
             var prev_cpu_elapsed: u64 = 0;
 
             var timer = try std.time.Timer.start();
-            while (quit == false) main_loop: {
+            while (quit == false) {
                 const trace_zone = Profiler.zone_name_colour(
                     @src(),
-                    "platform.win32 main loop",
+                    "platform.win32 display thread loop",
                     config.profile_marker_colour,
                 );
                 defer trace_zone.End();
 
-                args.frame_prepare_fn();
+                frame_prepare_fn();
 
                 var cpu_frame_timer = try std.time.Timer.start();
 
@@ -204,19 +270,11 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 key_events = std.ArrayList(KeyEvent).init(frame_arena_allocator);
                 mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
 
-                var msg: user32.MSG = undefined;
-                while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
-                    _ = user32.translateMessage(&msg);
-                    _ = user32.dispatchMessageW(&msg);
-                    if (msg.message == user32.WM_QUIT) {
-                        quit = true;
-                        break :main_loop;
-                    }
-                }
+                // TODO: process queued events
 
                 target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
-                quit = !(try args.frame_fn(.{
+                quit = !(try frame_fn(.{
                     .frame_arena_allocator = frame_arena_allocator,
                     .quit_requested = window_closed,
                     .target_frame_dt = target_frame_dt,
@@ -250,7 +308,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
                     try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
 
-                    args.frame_end_fn();
+                    frame_end_fn();
                 }
 
                 prev_frame_elapsed = timer.lap();
@@ -259,11 +317,13 @@ pub fn using(comptime config: common.ModuleConfig) type {
             }
         }
 
-        fn audioThread() !void {
+        fn audio_thread() !void {
+            Profiler.set_thread_name("Audio playback thread");
+
             { // write some silence before starting the stream
                 var buffer_frames: UINT = 0;
                 hrErrorOnFail(audio_playback.interface.client.GetBufferSize(&buffer_frames)) catch {
-                    std.debug.panic("audioThread: failed to prefill silence", .{});
+                    std.debug.panic("audio_thread: failed to prefill silence", .{});
                 };
                 log.debug("audio stream buffer size = {} frames", .{buffer_frames});
 
@@ -272,14 +332,14 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     buffer_frames,
                     @ptrCast(*?[*]BYTE, &ptr),
                 )) catch {
-                    std.debug.panic("audioThread: failed to prefill silence", .{});
+                    std.debug.panic("audio_thread: failed to prefill silence", .{});
                 };
 
                 hrErrorOnFail(audio_playback.interface.render_client.ReleaseBuffer(
                     @intCast(UINT, buffer_frames),
                     zwin32.wasapi.AUDCLNT_BUFFERFLAGS_SILENT,
                 )) catch {
-                    std.debug.panic("audioThread: failed to prefill silence", .{});
+                    std.debug.panic("audio_thread: failed to prefill silence", .{});
                 };
             }
 
@@ -328,7 +388,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
             }
         }
 
-        fn wndProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
+        fn wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
             switch (msg) {
                 user32.WM_CLOSE => {
                     window_closed = true;
@@ -359,25 +419,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 else => {},
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
-        }
-
-        fn registerClass(hinstance: HINSTANCE, name: LPCWSTR) !void {
-            var wndclass = user32.WNDCLASSEXW{
-                .cbSize = @sizeOf(user32.WNDCLASSEXW),
-                .style = 0,
-                .lpfnWndProc = wndProc,
-                .cbClsExtra = 0,
-                .cbWndExtra = 0,
-                .hInstance = hinstance,
-                .hIcon = null,
-                .hCursor = null,
-                .hbrBackground = null,
-                .lpszMenuName = null,
-                .lpszClassName = name,
-                .hIconSm = null,
-            };
-
-            _ = try user32.registerClassExW(&wndclass);
         }
 
         fn createWindow(

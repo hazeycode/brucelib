@@ -43,6 +43,7 @@ pub fn link(obj: *std.build.LibExeObjStep) void {
         obj.linkSystemLibrary("User32");
         obj.linkSystemLibrary("d3d11");
         obj.linkSystemLibrary("dxgi");
+        obj.linkSystemLibrary("xinput1_4");
     } else {
         std.debug.panic("Unsupported target!", .{});
     }
