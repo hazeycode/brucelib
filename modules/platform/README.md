@@ -46,17 +46,20 @@ pub fn main() anyerror!void {
         /// according to performance metrics and/or display changes.
         .requested_framerate = null,
 
-        /// Optionally specify a target input polling rate (Hz), the default is 1000 Hz, which is a 1 ms
-        /// input frame, and the max poll rate of USB 1
+        /// Optionally specify a target input polling rate (Hz), the default is 1000 Hz, which is a
+        /// 1 ms input frame, and the max poll rate of USB 1
         .target_input_poll_rate = 1000,
 
-        /// Called before the platform event loop begins
+        /// Called on the main thread before the platform event loop begins
         .init_fn = init,
         
-        /// Called before the program terminates, after the `frame_fn` returns false
+        /// Called before the program terminates, on the main thread, sometime after the `frame_fn`
+        /// returns false
         .deinit_fn = deinit,
 
         /// Called at the before each frame
+        /// May be called either on the main thread or on a separate display thread depending on
+        /// the target platform
         .frame_prepare_fn = frame_prepare,
 
         /// Called every time the platform module wants a new frame to display to meet the target
@@ -64,15 +67,21 @@ pub fn main() anyerror!void {
         /// refresh rate, frame metrics and the optional user set arg of `platform.run`:
         /// `.requested_framerate`. `FrameInput` is passed as an argument, containing events and
         /// other data used to produce the next frame.
+        /// May be called either on the main thread or on a separate display thread depending on
+        /// the target platform
         .frame_fn = frame,
 
         /// Called after the frame has been presented
+        /// May be called either on the main thread or on a separate display thread depending on
+        /// the target platform
         .frame_end_fn = frame_end,
 
-        /// Optional audio playback config
+        /// Optional audio playback config, specify playback device options and a callback that
+        /// may be called on the main thread or a dedicated audio thread depending on the target
+        /// platform
         .audio_playback = .{
             .request_sample_rate = 44100,
-            .callback = audioPlayback,
+            .callback = audio_playback,
         },
     });
 }
@@ -97,7 +106,7 @@ fn frame_end() void {
     // and do any nessesary synchronisation
 }
 
-fn audioPlayback(_: platform.AudioPlaybackStream) !u32 {
+fn audio_playback(_: platform.AudioPlaybackStream) !u32 {
     // return the number of audio frames that were written to the stream
 }
 ```
