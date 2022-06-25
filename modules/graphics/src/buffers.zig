@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const log = std.log.scoped(.@"graphics.buffers");
+
 const common = @import("common.zig");
 const BufferHandle = common.BufferHandle;
 const FenceHandle = common.FenceHandle;
@@ -140,6 +142,8 @@ pub fn using(comptime config: Config) type {
                 write_cursor: u32,
 
                 pub fn init(capacity: u32) !@This() {
+                    log.debug("Persistently mapped buffers not supported by backend; using fallback", .{});
+
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
                         "graphics.VertexBufferDynamic.init",
