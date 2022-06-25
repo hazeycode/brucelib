@@ -83,7 +83,9 @@ pub const WindowResizeEvent = struct {
 pub const MouseButton = enum(u8) { left = 1, middle = 2, right = 3 };
 
 pub const MouseButtonEvent = struct {
-    action: enum { press, release },
+    pub const Action = enum { press, release };
+
+    action: Action,
     button: MouseButton,
     x: i32,
     y: i32,

@@ -18,6 +18,7 @@ const HRESULT = zwin32.base.HRESULT;
 const HINSTANCE = zwin32.base.HINSTANCE;
 const HWND = zwin32.base.HWND;
 const RECT = zwin32.base.RECT;
+const POINT = zwin32.base.POINT;
 const kernel32 = zwin32.base.kernel32;
 const user32 = zwin32.base.user32;
 const dxgi = zwin32.dxgi;
@@ -413,10 +414,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
         fn wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
             switch (msg) {
-                user32.WM_CLOSE => {
-                    window_closed = true;
-                    return 0;
-                },
+                user32.WM_CLOSE => window_closed = true,
                 user32.WM_DESTROY => user32.postQuitMessage(0),
                 user32.WM_MOUSEMOVE => {
                     const scale: f32 = 1;
@@ -424,25 +422,40 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
                     // TODO(hazeycode): Also track mouse position even when it's outside the window
                 },
-                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN, user32.WM_KEYUP, user32.WM_SYSKEYUP => {
-                    const key = translateKey(wparam);
-                    queue_event(.{
-                        .key = .{
-                            .action = switch (msg) {
-                                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => .press,
-                                user32.WM_KEYUP, user32.WM_SYSKEYUP => .release,
-                                else => unreachable,
-                                // TODO(hazeycode): key repeat events
-                            },
-                            .key = key,
-                        },
-                    }) catch |err| {
-                        log.warn("Failed to queue event {} with error: {}", .{ wparam, err });
-                    };
-                },
+                user32.WM_LBUTTONDOWN => process_mouse_btn_event(.press, .left),
+                user32.WM_LBUTTONUP => process_mouse_btn_event(.release, .left),
+                user32.WM_MBUTTONDOWN => process_mouse_btn_event(.press, .middle),
+                user32.WM_MBUTTONUP => process_mouse_btn_event(.release, .middle),
+                user32.WM_RBUTTONDOWN => process_mouse_btn_event(.press, .right),
+                user32.WM_RBUTTONUP => process_mouse_btn_event(.release, .right),
+                user32.WM_XBUTTONDOWN, user32.WM_XBUTTONUP => {},
+                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => process_key_event(.press, wparam),
+                user32.WM_KEYUP, user32.WM_SYSKEYUP => process_key_event(.release, wparam), // TODO(hazeycode): key repeat events
                 else => {},
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
+        }
+
+        fn process_key_event(action: KeyEvent.Action, keycode: WPARAM) void {
+            queue_event(.{
+                .key = .{
+                    .action = action,
+                    .key = translate_keycode(keycode),
+                },
+            }) catch |err| log.warn("Failed to queue key event with error: {}", .{err});
+        }
+
+        fn process_mouse_btn_event(action: MouseButtonEvent.Action, button: MouseButton) void {
+            var pos: POINT = undefined;
+            _ = zwin32.base.GetCursorPos(&pos);
+            queue_event(.{
+                .mouse_button = .{
+                    .action = action,
+                    .button = button,
+                    .x = pos.x,
+                    .y = pos.y,
+                },
+            }) catch |err| log.warn("Failed to queue mouse button event with error: {}", .{err});
         }
 
         fn queue_event(event: Event) !void {
@@ -565,7 +578,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
             _ = framebuffer.Release();
         }
 
-        fn translateKey(wparam: WPARAM) Key {
+        fn translate_keycode(wparam: WPARAM) Key {
             return switch (wparam) {
                 zwin32.base.VK_ESCAPE => .escape,
                 zwin32.base.VK_TAB => .tab,
