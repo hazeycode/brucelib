@@ -2,7 +2,7 @@
 
 **WARNING: WORK IN PROGRESS**
 
-A monorepo of [modules](#modules) for programming cross-platform, interactive, real-time applications such as games, simulations, engines and editors.
+A monorepo of [modules](#modules) for programming portable, high-performance, soft-real-time applications.
 
 The planned scope of this project is to target all the popular desktop, mobile and console platforms. While most modules have no system dependencies; the [platform](modules/platform) module is currently limted to Linux and Windows and the [graphics](modules/graphics) module is limited to OpenGL 4.4+ and D3D11. More backends are planned and the modules are designed to make adding new backends fairly trivial.
 
@@ -41,7 +41,7 @@ To use the [Tracy Profiler](https://github.com/wolfpld/tracy) integration via [z
 | Example | Screen capture |
 | ------- | -------------- |
 | [000-funky-triangle](examples/000-funky-triangle/): A basic demonstration of how to use the [platform](modules/platform/) and [graphics](modules/graphics/) modules to open a window, draw stuff in it and output some audio | <img src="examples/000-funky-triangle/screencap.gif" width=213/> |
-| 001-2d-tile-platformer: A simple 2d game and introduces the [audio module](modules/audio/) which is used to play SFX and music | in-progress |
+| 001-2d-tile-platformer: A simple 2d game demonstrating some simple rendering and audio mixing using the [audio module](modules/audio/) | in-progress |
 
 ## Contributing
 
