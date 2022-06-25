@@ -163,6 +163,14 @@ pub fn using(comptime config: Config) type {
                 self.vertex_buffer.deinit();
             }
 
+            pub fn prepare(self: *@This()) !void {
+                try self.vertex_buffer.prepare();
+            }
+
+            pub fn commit(self: *@This()) void {
+                self.vertex_buffer.commit();
+            }
+
             pub fn render(
                 self: *@This(),
                 render_list: *RenderList,
@@ -227,6 +235,14 @@ pub fn using(comptime config: Config) type {
                 Backend.destroy_blend_state(self.pipeline_resources.blend_state);
                 Backend.destroy_buffer(self.pipeline_resources.constant_buffer);
                 self.vertex_buffer.deinit();
+            }
+
+            pub fn prepare(self: *@This()) !void {
+                try self.vertex_buffer.prepare();
+            }
+
+            pub fn commit(self: *@This()) void {
+                self.vertex_buffer.commit();
             }
 
             pub fn render(

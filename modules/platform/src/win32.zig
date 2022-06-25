@@ -286,6 +286,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
             hrErrorOnFail(audio_playback.interface.client.Start()) catch {};
             defer _ = audio_playback.interface.client.Stop();
 
+            log.debug("audio playback started", .{});
+
             while (quit == false) {
                 zwin32.base.WaitForSingleObject(audio_playback.interface.buffer_ready_event, zwin32.base.INFINITE) catch {
                     continue;

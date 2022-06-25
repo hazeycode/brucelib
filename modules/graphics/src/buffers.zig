@@ -99,21 +99,25 @@ pub fn using(comptime config: Config) type {
                     self.mapped = &.{};
                 }
 
-                /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
-                /// Returns the offset in the buffer of the first vertex that was written
-                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
+                /// Indicates that we intend to push vertices into the buffer
+                pub fn prepare(self: *@This()) !void {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
-                        "graphics.VertexBufferDynamic.push",
+                        "graphics.VertexBufferDynamic.prepare",
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
 
-                    std.debug.assert(vertices.len <= self.mapped.len);
-
                     if (self.maybe_fence) |fence| {
                         _ = try Backend.wait_fence(fence, 0);
                     }
+                }
+
+                /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
+                /// Returns the offset in the buffer of the first vertex that was written
+                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
+                    std.debug.assert(self.mapped.len > 0);
+                    std.debug.assert(vertices.len <= self.mapped.len);
 
                     const remaining = self.mapped.len - self.write_cursor;
                     if (remaining < vertices.len) {
@@ -130,9 +134,18 @@ pub fn using(comptime config: Config) type {
 
                     self.write_cursor += @intCast(u32, vertices.len);
 
-                    self.maybe_fence = Backend.fence();
-
                     return position;
+                }
+
+                /// Indicates that we are finised pushing vertices into the buffer for now
+                pub fn commit(self: *@This()) void {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.commit",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+                    self.maybe_fence = Backend.fence();
                 }
             } else struct {
                 pub const VertexType: type = vertex_type;
@@ -140,9 +153,10 @@ pub fn using(comptime config: Config) type {
                 handle: BufferHandle,
                 capacity: u32,
                 write_cursor: u32,
+                mapped: []VertexType,
 
                 pub fn init(capacity: u32) !@This() {
-                    log.debug("Persistently mapped buffers not supported by backend; using fallback", .{});
+                    log.warn("Persistently mapped buffers not supported by backend; using fallback", .{});
 
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
@@ -157,6 +171,7 @@ pub fn using(comptime config: Config) type {
                         .handle = handle,
                         .capacity = capacity,
                         .write_cursor = 0,
+                        .mapped = &.{},
                     };
                 }
 
@@ -167,17 +182,15 @@ pub fn using(comptime config: Config) type {
                     self.write_cursor = 0;
                 }
 
-                /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
-                /// Returns the offset in the buffer of the first vertex that was written
-                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
+                /// Indicates that we intend to push vertices into the buffer
+                pub fn prepare(self: *@This()) !void {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
-                        "graphics.VertexBufferDynamic.push",
+                        "graphics.VertexBufferDynamic.prepare",
                         config.profile_marker_colour,
                     );
                     defer trace_zone.End();
-
-                    var mapped = std.mem.bytesAsSlice(
+                    self.mapped = std.mem.bytesAsSlice(
                         VertexType,
                         try Backend.map_buffer(
                             self.handle,
@@ -185,9 +198,15 @@ pub fn using(comptime config: Config) type {
                             @alignOf(VertexType),
                         ),
                     );
-                    defer Backend.unmap_buffer(self.handle);
+                }
 
-                    const remaining = mapped.len - self.write_cursor;
+                /// Pushes vertices into the ring buffer at the write cursor and moves the cursor forward
+                /// Returns the offset in the buffer of the first vertex that was written
+                pub fn push(self: *@This(), vertices: []const VertexType) !u32 {
+                    std.debug.assert(self.mapped.len > 0);
+                    std.debug.assert(vertices.len <= self.mapped.len);
+
+                    const remaining = self.mapped.len - self.write_cursor;
                     if (remaining < vertices.len) {
                         self.write_cursor = 0;
                     }
@@ -196,13 +215,24 @@ pub fn using(comptime config: Config) type {
 
                     std.mem.copy( // TODO(hazeycode): investigate/profile 16-byte aligned mem copy
                         VertexType,
-                        mapped[self.write_cursor..],
+                        self.mapped[self.write_cursor..],
                         vertices[0..],
                     );
 
                     self.write_cursor += @intCast(u32, vertices.len);
 
                     return position;
+                }
+
+                /// Indicates that we are finised pushing vertices into the buffer for now
+                pub fn commit(self: *@This()) void {
+                    const trace_zone = Profiler.zone_name_colour(
+                        @src(),
+                        "graphics.VertexBufferDynamic.commit",
+                        config.profile_marker_colour,
+                    );
+                    defer trace_zone.End();
+                    Backend.unmap_buffer(self.handle);
                 }
             };
         }

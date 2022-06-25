@@ -183,28 +183,28 @@ pub const Rect = extern struct {
     max_y: f32,
 
     pub fn vertices(self: Rect, winding_order: WindingOrder) [6]Vertex {
-        const top_left = Vertex{ .pos = .{ self.min_x, self.max_y, 0.0 } };
-        const bottom_left = Vertex{ .pos = .{ self.min_x, self.min_y, 0.0 } };
-        const bottom_right = Vertex{ .pos = .{ self.max_x, self.min_y, 0.0 } };
-        const top_right = Vertex{ .pos = .{ self.max_x, self.max_y, 0.0 } };
+        const top_left = Vertex{ .pos = .{ self.min_x, self.min_y, 0.0 } };
+        const bottom_left = Vertex{ .pos = .{ self.min_x, self.max_y, 0.0 } };
+        const bottom_right = Vertex{ .pos = .{ self.max_x, self.max_y, 0.0 } };
+        const top_right = Vertex{ .pos = .{ self.max_x, self.min_y, 0.0 } };
         return _vertices(Vertex, winding_order, top_left, bottom_left, bottom_right, top_right);
     }
 
     pub fn textured_vertices(self: Rect, winding_order: WindingOrder, uv_rect: Rect) [6]TexturedVertex {
         const top_left = TexturedVertex{
-            .pos = .{ self.min_x, self.max_y, 0.0 },
+            .pos = .{ self.min_x, self.min_y, 0.0 },
             .uv = .{ uv_rect.min_x, uv_rect.min_y },
         };
         const bottom_left = TexturedVertex{
-            .pos = .{ self.min_x, self.min_y, 0.0 },
+            .pos = .{ self.min_x, self.max_y, 0.0 },
             .uv = .{ uv_rect.min_x, uv_rect.max_y },
         };
         const bottom_right = TexturedVertex{
-            .pos = .{ self.max_x, self.min_y, 0.0 },
+            .pos = .{ self.max_x, self.max_y, 0.0 },
             .uv = .{ uv_rect.max_x, uv_rect.max_y },
         };
         const top_right = TexturedVertex{
-            .pos = .{ self.max_x, self.max_y, 0.0 },
+            .pos = .{ self.max_x, self.min_y, 0.0 },
             .uv = .{ uv_rect.max_x, uv_rect.min_y },
         };
         return _vertices(TexturedVertex, winding_order, top_left, bottom_left, bottom_right, top_right);

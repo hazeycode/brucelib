@@ -143,6 +143,9 @@ pub fn using(comptime config: Config) type {
             canvas_height: f32,
             state: *State,
         ) !void {
+            try self.colour_verts_renderer.prepare();
+            try self.textured_verts_renderer.prepare();
+
             try render_list.set_projection_transform(
                 orthographic(canvas_width, canvas_height, 0, 1),
             );
@@ -169,14 +172,14 @@ pub fn using(comptime config: Config) type {
             var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
             for (self.text_verts.items) |v| {
                 if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
-                if (v.pos[1] > rect.min_y) rect.min_y = v.pos[1];
+                if (v.pos[1] > rect.max_y) rect.max_y = v.pos[1];
             }
             for (self.uniform_colour_verts.items) |v| {
-                if (v.pos[0] > rect.min_y) rect.max_x = v.pos[0];
-                if (v.pos[1] > rect.min_y) rect.min_y = v.pos[0];
+                if (v.pos[0] > rect.max_x) rect.max_x = v.pos[0];
+                if (v.pos[1] > rect.max_y) rect.max_y = v.pos[0];
             }
             rect.max_x += @intToFloat(f32, margin);
-            rect.min_y += @intToFloat(f32, margin);
+            rect.max_y += @intToFloat(f32, margin);
 
             // draw background
             try self.draw_colour_rect(Colour.from_rgba(0.13, 0.13, 0.13, 0.13), rect);
@@ -194,12 +197,15 @@ pub fn using(comptime config: Config) type {
                     Colour.white,
                     .{
                         .min_x = self.state.text_cur_x - 1,
-                        .min_y = self.state.text_cur_y + line_height,
+                        .min_y = self.state.text_cur_y,
                         .max_x = self.state.text_cur_x + 1,
-                        .max_y = self.state.text_cur_y,
+                        .max_y = self.state.text_cur_y + line_height,
                     },
                 );
             }
+
+            self.colour_verts_renderer.commit();
+            self.textured_verts_renderer.commit();
         }
 
         pub fn same_line(self: *@This()) void {
@@ -254,7 +260,7 @@ pub fn using(comptime config: Config) type {
             );
 
             const input = self.state.input;
-            const mouse_over = text_rect.contains_point(input.mouse_x, input.mouse_y);
+            const mouse_over = bounding_rect.contains_point(input.mouse_x, input.mouse_y);
 
             if (id == self.state.active_id) {
                 if (input.mouse_btn_was_released) {
@@ -287,8 +293,8 @@ pub fn using(comptime config: Config) type {
             );
             try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
 
-            self.cur_y += (text_rect.max_y - text_rect.min_y) + text_y_inset;
-            self.prev_x_end = text_rect.max_x;
+            self.cur_y += (bounding_rect.max_y - bounding_rect.min_y) + text_y_inset;
+            self.prev_x_end = bounding_rect.max_x;
 
             if (self.same_line_set) {
                 self.cur_x = self.prev_cur_x;
@@ -505,9 +511,9 @@ pub fn using(comptime config: Config) type {
                     const y = self.cur_y + @intToFloat(f32, cur_line * line_height);
                     const rect = Rect{
                         .min_x = x,
-                        .min_y = y + text_y_inset + glyph_height + text_y_inset,
+                        .min_y = y + text_y_inset,
                         .max_x = x + glyph_width,
-                        .max_y = y + text_y_inset,
+                        .max_y = y + text_y_inset + glyph_height + text_y_inset,
                     };
 
                     // TODO(hazeycode): yank uv mapping out of here

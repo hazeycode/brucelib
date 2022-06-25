@@ -38,7 +38,6 @@ var state: struct {
     debug_gui: graphics.DebugGui.State = .{},
 } = .{};
 
-var maybe_frame_fence: ?graphics.FenceHandle = undefined;
 var colour_verts_renderer: graphics.UniformColourVertsRenderer = undefined;
 
 /// Called before the platform event loop begins
@@ -67,6 +66,8 @@ fn frame(input: platform.FrameInput) !bool {
         return false;
     }
 
+    try colour_verts_renderer.prepare();
+
     var render_list = try graphics.RenderList.init(input.frame_arena_allocator);
 
     try render_list.set_viewport(.{
@@ -81,6 +82,8 @@ fn frame(input: platform.FrameInput) !bool {
     try funky_triangle(input, &render_list);
 
     try debug_overlay(input, &render_list);
+
+    colour_verts_renderer.commit();
 
     try render_list.submit();
 
