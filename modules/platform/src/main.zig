@@ -9,8 +9,6 @@ const backend = switch (builtin.os.tag) {
 
 pub usingnamespace backend;
 
-pub usingnamespace @import("common.zig");
-
 test {
     std.testing.refAllDecls(@This());
 }

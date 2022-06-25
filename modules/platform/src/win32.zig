@@ -43,6 +43,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
         pub const AudioPlaybackFn = common.AudioPlaybackFn;
         pub const FrameInput = common.FrameInput;
         pub const AudioPlaybackStream = common.AudioPlaybackStream;
+        pub const Event = common.Event;
         pub const KeyEvent = common.KeyEvent;
         pub const MouseButton = common.MouseButton;
         pub const MouseButtonEvent = common.MouseButtonEvent;
@@ -60,29 +61,32 @@ pub fn using(comptime config: common.ModuleConfig) type {
         };
 
         pub var target_framerate: u16 = undefined;
-        var target_frame_dt: u64 = undefined;
-        var window_width: u16 = undefined;
-        var window_height: u16 = undefined;
-        var mouse_x: i32 = undefined;
-        var mouse_y: i32 = undefined;
-        var key_events: std.ArrayList(KeyEvent) = undefined;
-        var mouse_button_events: std.ArrayList(MouseButtonEvent) = undefined;
+
         var frame_prepare_fn: FramePrepareFn = undefined;
         var frame_fn: FrameFn = undefined;
         var frame_end_fn: FrameEndFn = undefined;
 
-        pub var audio_playback = struct {
+        var window_closed = false;
+        var quit = false;
+        var window_width: u16 = undefined;
+        var window_height: u16 = undefined;
+        var mouse_x: i32 = undefined;
+        var mouse_y: i32 = undefined;
+
+        var pending_events: []Event = undefined;
+        var pending_events_read_cur: usize = 0;
+        var pending_events_write_cur: usize = 0;
+        var pending_events_count = std.atomic.Atomic(usize).init(0);
+
+        var display = struct {
+            thread: std.Thread = undefined,
+        }{};
+
+        var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
             interface: AudioPlaybackInterface = undefined,
             thread: std.Thread = undefined,
         }{};
-
-        pub var display = struct {
-            thread: std.Thread = undefined,
-        }{};
-
-        var window_closed = false;
-        var quit = false;
 
         pub fn getD3D11Device() *d3d11.IDevice {
             return d3d11_device.?;
@@ -127,7 +131,10 @@ pub fn using(comptime config: common.ModuleConfig) type {
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer _ = gpa.deinit();
 
-            var allocator = gpa.allocator();
+            var main_mem_arena = std.heap.ArenaAllocator.init(gpa.allocator());
+            defer main_mem_arena.deinit();
+
+            var allocator = main_mem_arena.allocator();
 
             frame_prepare_fn = args.frame_prepare_fn;
             frame_fn = args.frame_fn;
@@ -138,6 +145,9 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
             window_width = args.window_size.width;
             window_height = args.window_size.height;
+
+            pending_events = try allocator.alloc(Event, args.target_input_poll_rate / target_framerate * 3);
+            defer allocator.free(pending_events);
 
             const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
                 log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
@@ -267,12 +277,25 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
                 var frame_arena_allocator = frame_mem_arena.allocator();
 
-                key_events = std.ArrayList(KeyEvent).init(frame_arena_allocator);
-                mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
+                var key_event_list = std.ArrayList(KeyEvent).init(frame_arena_allocator);
+                var mouse_btn_event_list = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
 
-                // TODO: process queued events
+                var event_count = pending_events_count.load(.Acquire);
+                while (event_count > 0) {
+                    switch (pending_events[pending_events_read_cur]) {
+                        .key => |key_ev| try key_event_list.append(key_ev),
+                        .mouse_button => |mouse_btn_ev| try mouse_btn_event_list.append(mouse_btn_ev),
+                        else => {},
+                    }
+                    pending_events_read_cur += 1;
+                    if (pending_events_read_cur >= pending_events.len) pending_events_read_cur = 0;
+                    while (pending_events_count.compareAndSwap(event_count, event_count - 1, .AcqRel, .Acquire)) |new_val| {
+                        event_count = new_val;
+                        if (new_val == 0) break;
+                    }
+                }
 
-                target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
+                const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
                 quit = !(try frame_fn(.{
                     .frame_arena_allocator = frame_arena_allocator,
@@ -280,8 +303,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
                     .user_input = .{
-                        .key_events = key_events.items,
-                        .mouse_button_events = mouse_button_events.items,
+                        .key_events = key_event_list.items,
+                        .mouse_button_events = mouse_btn_event_list.items,
                         .mouse_position = .{
                             .x = mouse_x,
                             .y = mouse_y,
@@ -396,7 +419,6 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 },
                 user32.WM_DESTROY => user32.postQuitMessage(0),
                 user32.WM_MOUSEMOVE => {
-                    // TODO(hazeycode): Scale mouse using dpi
                     const scale: f32 = 1;
                     mouse_x = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_X_LPARAM(lparam)) * scale);
                     mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
@@ -404,21 +426,34 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 },
                 user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN, user32.WM_KEYUP, user32.WM_SYSKEYUP => {
                     const key = translateKey(wparam);
-                    key_events.append(.{
-                        .action = switch (msg) {
-                            user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => .press,
-                            user32.WM_KEYUP, user32.WM_SYSKEYUP => .release,
-                            else => unreachable,
-                            // TODO(hazeycode): key repeat events
+                    queue_event(.{
+                        .key = .{
+                            .action = switch (msg) {
+                                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => .press,
+                                user32.WM_KEYUP, user32.WM_SYSKEYUP => .release,
+                                else => unreachable,
+                                // TODO(hazeycode): key repeat events
+                            },
+                            .key = key,
                         },
-                        .key = key,
                     }) catch |err| {
-                        log.warn("Failed to translate key {} with error: {}", .{ wparam, err });
+                        log.warn("Failed to queue event {} with error: {}", .{ wparam, err });
                     };
                 },
                 else => {},
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
+        }
+
+        fn queue_event(event: Event) !void {
+            var count = pending_events_count.load(.Acquire);
+            if (count + 1 >= pending_events.len) return error.QueueFull;
+            pending_events[pending_events_write_cur] = event;
+            pending_events_write_cur += 1;
+            if (pending_events_write_cur >= pending_events.len) pending_events_write_cur = 0;
+            while (pending_events_count.compareAndSwap(count, count + 1, .AcqRel, .Acquire)) |new_val| {
+                count = new_val;
+            }
         }
 
         fn createWindow(
