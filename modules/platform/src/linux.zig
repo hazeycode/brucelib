@@ -1,9 +1,11 @@
 const std = @import("std");
 
-const common = @import("common.zig");
-const X11 = @import("linux/X11.zig");
-
 const log = std.log.scoped(.@"brucelib.platform.linux");
+
+const common = @import("common.zig");
+const ring_buffers = @import("ring_buffers.zig");
+
+const X11 = @import("linux/X11.zig");
 
 pub fn using(comptime module_config: common.ModuleConfig) type {
     const Profiler = module_config.Profiler;
@@ -17,10 +19,13 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         pub const AudioPlaybackFn = common.AudioPlaybackFn;
         pub const FrameInput = common.FrameInput;
         pub const AudioPlaybackStream = common.AudioPlaybackStream;
+        pub const WindowEvent = common.WindowEvent;
         pub const KeyEvent = common.KeyEvent;
+        pub const MouseEvent = common.MouseEvent;
+        pub const GamepadEvent = common.GamepadEvent;
         pub const MouseButton = common.MouseButton;
-        pub const MouseButtonEvent = common.MouseButtonEvent;
         pub const Key = common.Key;
+        pub const GamepadState = common.GamepadState;
 
         const num_keys = std.meta.fields(Key).len;
 
@@ -41,6 +46,11 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             interface: AudioPlaybackInterface = undefined,
             thread: std.Thread = undefined,
         }{};
+
+        var window_events_buffer = ring_buffers.RingBufferStatic(WindowEvent, 256){};
+        var key_events_buffer = ring_buffers.RingBufferStatic(KeyEvent, 256){};
+        var mouse_events_buffer = ring_buffers.RingBufferStatic(MouseEvent, 256){};
+        var gamepad_events_buffer = ring_buffers.RingBufferStatic(GamepadEvent, 1024){};
 
         pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
             return X11.glx_get_proc_addr(?*const anyopaque, entry_point.ptr) catch null;
@@ -63,7 +73,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     .width = 854,
                     .height = 480,
                 },
-                target_input_poll_rate: u32 = 1000, // 1 kHz is USB1 max poll rate, which is a 1 ms input frame, plenty
+                target_input_poll_rate: u32 = 200,
                 init_fn: InitFn,
                 deinit_fn: DeinitFn,
                 frame_prepare_fn: FramePrepareFn,
@@ -78,8 +88,11 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             var main_mem_arena = std.heap.ArenaAllocator.init(allocator);
             defer main_mem_arena.deinit();
 
-            // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-            target_framerate = if (run_config.requested_framerate == 0) 60 else run_config.requested_framerate;
+            // TODO(hazeycode): downgrade target framerate if we miss alot
+            target_framerate = if (run_config.requested_framerate == 0)
+                60 // TODO(hazeycode): get monitor refresh rate
+            else
+                run_config.requested_framerate;
 
             var windowing = try X11.init_and_create_window(.{
                 .title = run_config.title,
@@ -151,39 +164,21 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 var frame_mem_arena = std.heap.ArenaAllocator.init(main_mem_arena.allocator());
                 defer frame_mem_arena.deinit();
 
-                var key_events = std.ArrayList(KeyEvent).init(frame_mem_arena.allocator());
-                var mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_mem_arena.allocator());
+                try windowing.poll_events(&window_events_buffer, &key_events_buffer, &mouse_events_buffer);
 
-                while (windowing.next_event()) |event| {
-                    switch (event) {
-                        .window_closed => {
-                            window_closed = true;
-                        },
-                        .window_resize => {},
-                        .key => |key_event| {
-                            try key_events.append(key_event);
-                        },
-                        .mouse_button => |mouse_button_event| {
-                            try mouse_button_events.append(mouse_button_event);
-                        },
-                    }
-                }
-
-                const mouse_pos = windowing.get_mouse_pos();
+                const window_events = try window_events_buffer.drain(frame_mem_arena.allocator());
+                const key_events = try key_events_buffer.drain(frame_mem_arena.allocator());
+                const mouse_events = try mouse_events_buffer.drain(frame_mem_arena.allocator());
+                const gamepad_events = try gamepad_events_buffer.drain(frame_mem_arena.allocator());
 
                 quit = !(try run_config.frame_fn(.{
                     .frame_arena_allocator = frame_mem_arena.allocator(),
-                    .quit_requested = window_closed,
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
-                    .user_input = .{
-                        .key_events = key_events.items,
-                        .mouse_button_events = mouse_button_events.items,
-                        .mouse_position = .{
-                            .x = mouse_pos.x,
-                            .y = mouse_pos.y,
-                        },
-                    },
+                    .window_events = window_events,
+                    .key_events = key_events,
+                    .mouse_events = mouse_events,
+                    .gamepad_events = gamepad_events,
                     .window_size = .{
                         .width = windowing.window_width,
                         .height = windowing.window_height,

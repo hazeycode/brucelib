@@ -65,9 +65,10 @@ fn frame_prepare() void {
 /// `.requested_framerate`. `FrameInput` is passed as an argument, containing events and
 /// other data used to produce the next frame.
 fn frame(input: platform.FrameInput) !bool {
-    if (input.quit_requested) {
-        return false;
-    }
+    for (input.window_events) |event| switch (event.action) {
+        .closed => return false,
+        else => {},
+    };
 
     try colour_verts_renderer.prepare();
 
@@ -117,8 +118,26 @@ fn funky_triangle(input: platform.FrameInput, render_list: *graphics.RenderList)
     );
 }
 
+fn map_debug_gui_input(debug_gui: *graphics.DebugGui, input: platform.FrameInput) void {
+    for (input.mouse_events) |event| {
+        switch (event.action) {
+            .button_pressed => {
+                debug_gui.state.input.mouse_btn_was_pressed = true;
+                debug_gui.state.input.mouse_btn_down = true;
+            },
+            .button_released => {
+                debug_gui.state.input.mouse_btn_was_released = true;
+                debug_gui.state.input.mouse_btn_down = false;
+            },
+            .moved => {},
+        }
+        debug_gui.state.input.mouse_x = @intToFloat(f32, event.x);
+        debug_gui.state.input.mouse_y = @intToFloat(f32, event.y);
+    }
+}
+
 fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) !void {
-    state.debug_gui.input.map_platform_input(input.user_input);
+    map_debug_gui_input(&graphics.debug_gui, input);
 
     try graphics.debug_gui.begin(
         render_list,
@@ -150,10 +169,10 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
         graphics.debug_gui.separator();
     }
 
-    try graphics.debug_gui.label(
-        "Mouse pos = ({}, {})",
-        .{ input.user_input.mouse_position.x, input.user_input.mouse_position.y },
-    );
+    try graphics.debug_gui.label("Mouse pos = ({}, {})", .{
+        @floatToInt(u16, graphics.debug_gui.state.input.mouse_x),
+        @floatToInt(u16, graphics.debug_gui.state.input.mouse_y),
+    });
 
     try graphics.debug_gui.end();
 }

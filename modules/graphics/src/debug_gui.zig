@@ -1,4 +1,7 @@
-//! builtin immediate mode gui for quick and dirty debugging. TODO(hazeycode): this code is messy and bad, give it some love
+//! builtin immediate mode gui for quick and dirty debugging
+//! TODO:
+//!     - UUIDs
+//!     - Layout improvements
 
 const std = @import("std");
 
@@ -88,32 +91,6 @@ pub fn using(comptime config: Config) type {
             mouse_btn_was_released: bool = false,
             mouse_x: f32 = undefined,
             mouse_y: f32 = undefined,
-
-            // TODO(hazeycode): pass mapping function and provide default
-            /// Optional helper fn for mapping brucelib.platform.FrameInput to graphics.DebugGUI.Input
-            /// `user_input` can be any weakly conforming type
-            pub fn map_platform_input(self: *Input, user_input: anytype) void {
-                self.mouse_x = @intToFloat(f32, user_input.mouse_position.x);
-                self.mouse_y = @intToFloat(f32, user_input.mouse_position.y);
-
-                self.mouse_btn_was_pressed = false;
-                self.mouse_btn_was_released = false;
-
-                for (user_input.mouse_button_events) |mouse_ev| {
-                    if (mouse_ev.button != .left) continue;
-
-                    switch (mouse_ev.action) {
-                        .press => {
-                            self.mouse_btn_was_pressed = true;
-                            self.mouse_btn_down = true;
-                        },
-                        .release => {
-                            self.mouse_btn_was_released = true;
-                            self.mouse_btn_down = false;
-                        },
-                    }
-                }
-            }
         };
 
         pub fn init(allocator: std.mem.Allocator) !@This() {
@@ -261,6 +238,7 @@ pub fn using(comptime config: Config) type {
 
             const input = self.state.input;
             const mouse_over = bounding_rect.contains_point(input.mouse_x, input.mouse_y);
+            // if (mouse_over) log.debug("{},{} in {}", .{ input.mouse_x, input.mouse_y, bounding_rect });
 
             if (id == self.state.active_id) {
                 if (input.mouse_btn_was_released) {

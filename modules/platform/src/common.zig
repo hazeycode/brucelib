@@ -32,10 +32,6 @@ pub const FrameInput = struct {
     /// Temporary allocator whose memory is valid for the duration of the current frame
     frame_arena_allocator: std.mem.Allocator,
 
-    /// True if the user tried to close the window, gives us a chance to save state,
-    /// present a quit dialog, etc.
-    quit_requested: bool,
-
     /// This is the estimated interval (nanoseconds) until the next frame is displayed.
     /// NOTE: This will not necessarily reflect the requested refresh rate and may be
     /// adjusted up or down depending on the user's display and whether we are missing
@@ -46,12 +42,17 @@ pub const FrameInput = struct {
     /// previous to that.
     prev_frame_elapsed: u64,
 
-    /// All user input events that happened before the current frame
-    user_input: struct {
-        key_events: []KeyEvent,
-        mouse_button_events: []MouseButtonEvent,
-        mouse_position: struct { x: i32, y: i32 },
-    },
+    /// Window events that happened before the current frame
+    window_events: []WindowEvent,
+
+    /// Keyboard events that happened before the current frame
+    key_events: []KeyEvent,
+
+    /// Mouse events that happened before the current frame
+    mouse_events: []MouseEvent,
+
+    /// Gamepad events that happened before the current frame
+    gamepad_events: []GamepadEvent,
 
     /// The current window size / framebuffer dimensions
     window_size: struct { width: u16, height: u16 },
@@ -63,32 +64,11 @@ pub const FrameInput = struct {
     },
 };
 
-pub const Event = union(enum) {
-    window_closed: WindowClosedEvent,
-    window_resize: WindowResizeEvent,
-    key: KeyEvent,
-    mouse_button: MouseButtonEvent,
-};
-
-pub const WindowClosedEvent = struct {
+pub const WindowEvent = struct {
     window_id: u32,
-};
-
-pub const WindowResizeEvent = struct {
-    window_id: u32,
+    action: enum { resized, closed },
     width: u16,
     height: u16,
-};
-
-pub const MouseButton = enum(u8) { left = 1, middle = 2, right = 3 };
-
-pub const MouseButtonEvent = struct {
-    pub const Action = enum { press, release };
-
-    action: Action,
-    button: MouseButton,
-    x: i32,
-    y: i32,
 };
 
 pub const KeyEvent = struct {
@@ -97,10 +77,53 @@ pub const KeyEvent = struct {
         release: void,
         repeat: u32,
     };
-
     action: Action,
     key: Key,
 };
+
+pub const MouseEvent = struct {
+    // TODO(hazeycode): Scroll wheel
+    pub const Action = enum { moved, button_pressed, button_released };
+    action: Action,
+    button: MouseButton,
+    x: i32,
+    y: i32,
+};
+
+pub const GamepadEvent = struct {
+    pub const Action = enum { none, connected, disconnected };
+    user_index: u32,
+    action: Action,
+    state: GamepadState,
+};
+
+/// Represents the state of a gamepad with the canonical Xbox 360 layout and precision
+pub const GamepadState = struct {
+    buttons: packed struct {
+        dpad_up: u1 = 0,
+        dpad_down: u1 = 0,
+        dpad_left: u1 = 0,
+        dpad_right: u1 = 0,
+        start: u1 = 0,
+        back: u1 = 0,
+        left_thumb: u1 = 0,
+        right_thumb: u1 = 0,
+        left_shoulder: u1 = 0,
+        right_shoulder: u1 = 0,
+        a: u1 = 0,
+        b: u1 = 0,
+        x: u1 = 0,
+        y: u1 = 0,
+    } = .{},
+    left_thumb_x: i16 = 0,
+    left_thumb_y: i16 = 0,
+    right_thumb_x: i16 = 0,
+    right_thumb_y: i16 = 0,
+    left_trigger: u8 = 0,
+    right_trigger: u8 = 0,
+};
+
+pub const MouseButton = enum(u8) { none = 0, left = 1, middle = 2, right = 3, };
 
 pub const KeyReleaseEvent = Key;
 

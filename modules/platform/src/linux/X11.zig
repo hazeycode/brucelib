@@ -3,12 +3,9 @@ const std = @import("std");
 const log = std.log.scoped(.@"brucelib.platform.linux.X11");
 
 const common = @import("../common.zig");
-const Event = common.Event;
-const WindowClosedEvent = common.WindowClosedEvent;
-const WindowResizedEvent = common.WindowResizedEvent;
+const WindowEvent = common.WindowEvent;
 const KeyEvent = common.KeyEvent;
 const MouseButton = common.MouseButton;
-const MouseButtonEvent = common.MouseButtonEvent;
 const Key = common.Key;
 
 const num_keys = std.meta.fields(Key).len;
@@ -154,7 +151,8 @@ pub fn init_and_create_window(window_properties: struct {
                     c.XCB_EVENT_MASK_KEY_PRESS |
                     c.XCB_EVENT_MASK_KEY_RELEASE |
                     c.XCB_EVENT_MASK_BUTTON_PRESS |
-                    c.XCB_EVENT_MASK_BUTTON_RELEASE,
+                    c.XCB_EVENT_MASK_BUTTON_RELEASE |
+                    c.XCB_EVENT_MASK_POINTER_MOTION | c.XCB_EVENT_MASK_BUTTON_MOTION,
                 colour_map,
                 0,
             },
@@ -275,7 +273,16 @@ pub fn get_mouse_pos(self: *@This()) struct { x: i32, y: i32 } {
     };
 }
 
-pub fn next_event(self: *@This()) ?Event {
+pub fn poll_events(
+    self: *@This(),
+    window_events_buffer: anytype,
+    key_events_buffer: anytype,
+    mouse_events_buffer: anytype,
+) !void {
+    if (@typeInfo(@TypeOf(window_events_buffer)) != .Pointer) @compileError("window_events_buffer must be a pointer");
+    if (@typeInfo(@TypeOf(key_events_buffer)) != .Pointer) @compileError("key_events_buffer must be a pointer");
+    if (@typeInfo(@TypeOf(mouse_events_buffer)) != .Pointer) @compileError("mouse_events_buffer must be a pointer");
+
     var xcb_event = c.xcb_poll_for_event(self.connection);
     while (@ptrToInt(xcb_event) > 0) : (xcb_event = c.xcb_poll_for_event(self.connection)) {
         defer _ = c.XFree(xcb_event);
@@ -286,7 +293,12 @@ pub fn next_event(self: *@This()) ?Event {
             c.XCB_CLIENT_MESSAGE => {
                 const xcb_client_message_event = @ptrCast(*c.xcb_client_message_event_t, xcb_event);
                 if (xcb_client_message_event.data.data32[0] == self.atom_delete_window.*.atom) {
-                    return Event{ .window_closed = .{ .window_id = xcb_client_message_event.window } };
+                    try window_events_buffer.push(.{
+                        .window_id = xcb_client_message_event.window,
+                        .action = .closed,
+                        .width = self.window_width,
+                        .height = self.window_height,
+                    });
                 }
             },
             c.XCB_CONFIGURE_NOTIFY => {
@@ -296,11 +308,12 @@ pub fn next_event(self: *@This()) ?Event {
                 {
                     self.window_width = xcb_config_event.width;
                     self.window_height = xcb_config_event.height;
-                    return Event{ .window_resize = .{
+                    try window_events_buffer.push(.{
                         .window_id = xcb_config_event.window,
+                        .action = .resized,
                         .width = self.window_width,
                         .height = self.window_height,
-                    } };
+                    });
                 }
             },
             c.XCB_KEY_PRESS => {
@@ -316,7 +329,7 @@ pub fn next_event(self: *@This()) ?Event {
                         action = .{ .repeat = self.key_repeats[@enumToInt(key)] };
                     }
                     self.key_states[@enumToInt(key)] = true;
-                    return Event{ .key = .{ .action = action, .key = key } };
+                    try key_events_buffer.push(.{ .action = action, .key = key });
                 }
             },
             c.XCB_KEY_RELEASE => {
@@ -324,7 +337,7 @@ pub fn next_event(self: *@This()) ?Event {
                 if (translateKey(self.display, xcb_key_release_event.detail)) |key| {
                     self.key_repeats[@enumToInt(key)] = 0;
                     self.key_states[@enumToInt(key)] = false;
-                    return Event{ .key = .{ .action = .release, .key = key } };
+                    try key_events_buffer.push(.{ .action = .release, .key = key });
                 }
             },
             c.XCB_BUTTON_PRESS => {
@@ -336,12 +349,12 @@ pub fn next_event(self: *@This()) ?Event {
                     else => null,
                 };
                 if (maybe_mouse_button) |mouse_button| {
-                    return Event{ .mouse_button = .{
-                        .action = .press,
+                    try mouse_events_buffer.push(.{
+                        .action = .button_pressed,
                         .button = mouse_button,
                         .x = xcb_button_press_event.event_x,
                         .y = xcb_button_press_event.event_y,
-                    } };
+                    });
                 } else {
                     log.info("Pressed unmapped mouse button {}", .{xcb_button_press_event.detail});
                 }
@@ -355,21 +368,28 @@ pub fn next_event(self: *@This()) ?Event {
                     else => null,
                 };
                 if (maybe_mouse_button) |mouse_button| {
-                    return Event{ .mouse_button = .{
-                        .action = .release,
+                    try mouse_events_buffer.push(.{
+                        .action = .button_released,
                         .button = mouse_button,
                         .x = xcb_button_release_event.event_x,
                         .y = xcb_button_release_event.event_y,
-                    } };
+                    });
                 } else {
                     log.info("Released unmapped mouse button {}", .{xcb_button_release_event.detail});
                 }
             },
+            c.XCB_MOTION_NOTIFY => {
+                const xcb_motion_notify_event = @ptrCast(*c.xcb_motion_notify_event_t, xcb_event);
+                try mouse_events_buffer.push(.{
+                    .action = .moved,
+                    .button = .none,
+                    .x = xcb_motion_notify_event.event_x,
+                    .y = xcb_motion_notify_event.event_y,
+                });
+            },
             else => {},
         }
     }
-
-    return null;
 }
 
 fn translateKey(display: *c.Display, keycode: u8) ?Key {

@@ -50,9 +50,9 @@ pub fn main() anyerror!void {
         /// according to performance metrics and/or display changes.
         .requested_framerate = null,
 
-        /// Optionally specify a target input polling rate (Hz), the default is 1000 Hz, which is a
-        /// 1 ms input frame, and the max poll rate of USB 1
-        .target_input_poll_rate = 1000,
+        /// Optionally specify a target input polling rate (Hz), the default is 200 Hz.
+        /// For reference 1000 Hz is the max poll rate of USB 1
+        .target_input_poll_rate = 200,
 
         /// Called on the main thread before the platform event loop begins
         .init_fn = init,
