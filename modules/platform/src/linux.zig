@@ -5,8 +5,8 @@ const X11 = @import("linux/X11.zig");
 
 const log = std.log.scoped(.@"brucelib.platform.linux");
 
-pub fn using(comptime config: common.ModuleConfig) type {
-    const Profiler = config.Profiler;
+pub fn using(comptime module_config: common.ModuleConfig) type {
+    const Profiler = module_config.Profiler;
 
     return struct {
         pub const InitFn = common.InitFn;
@@ -51,7 +51,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
         }
 
         pub fn run(
-            args: struct {
+            allocator: std.mem.Allocator,
+            run_config: struct {
                 graphics_api: GraphicsAPI = .opengl,
                 requested_framerate: u16 = 0,
                 title: []const u8 = "",
@@ -74,33 +75,31 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 },
             },
         ) !void {
-            var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-            defer _ = gpa.deinit();
-
-            var allocator = gpa.allocator();
+            var main_mem_arena = std.heap.ArenaAllocator.init(allocator);
+            defer main_mem_arena.deinit();
 
             // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-            target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
+            target_framerate = if (run_config.requested_framerate == 0) 60 else run_config.requested_framerate;
 
             var windowing = try X11.init_and_create_window(.{
-                .title = args.title,
-                .width = args.window_size.width,
-                .height = args.window_size.height,
+                .title = run_config.title,
+                .width = run_config.window_size.width,
+                .height = run_config.window_size.height,
             });
             defer windowing.deinit();
 
-            const audio_enabled = (args.audio_playback != null);
+            const audio_enabled = (run_config.audio_playback != null);
 
             if (audio_enabled) {
-                audio_playback.user_cb = args.audio_playback.?.callback;
+                audio_playback.user_cb = run_config.audio_playback.?.callback;
 
                 const buffer_size_frames = std.math.ceilPowerOfTwoAssert(
                     u32,
-                    3 * args.audio_playback.?.request_sample_rate / target_framerate,
+                    3 * run_config.audio_playback.?.request_sample_rate / target_framerate,
                 );
 
                 audio_playback.interface = try AudioPlaybackInterface.init(
-                    args.audio_playback.?.request_sample_rate,
+                    run_config.audio_playback.?.request_sample_rate,
                     buffer_size_frames,
                 );
 
@@ -123,11 +122,11 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
             }
 
-            try args.init_fn(allocator);
-            defer args.deinit_fn(allocator);
+            try run_config.init_fn(main_mem_arena.allocator());
+            defer run_config.deinit_fn(main_mem_arena.allocator());
 
             if (audio_enabled) {
-                audio_playback.thread = try std.Thread.spawn(.{}, audioThread, .{allocator});
+                audio_playback.thread = try std.Thread.spawn(.{}, audio_thread, .{main_mem_arena.allocator()});
                 audio_playback.thread.detach();
             }
 
@@ -139,23 +138,21 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 const trace_zone = Profiler.zone_name_colour(
                     @src(),
                     "platform.linux main loop",
-                    config.profile_marker_colour,
+                    module_config.profile_marker_colour,
                 );
                 defer trace_zone.End();
 
-                args.frame_prepare_fn();
+                run_config.frame_prepare_fn();
 
                 var cpu_frame_timer = try std.time.Timer.start();
 
                 const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
-                var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
+                var frame_mem_arena = std.heap.ArenaAllocator.init(main_mem_arena.allocator());
                 defer frame_mem_arena.deinit();
 
-                const arena_allocator = frame_mem_arena.allocator();
-
-                var key_events = std.ArrayList(KeyEvent).init(arena_allocator);
-                var mouse_button_events = std.ArrayList(MouseButtonEvent).init(arena_allocator);
+                var key_events = std.ArrayList(KeyEvent).init(frame_mem_arena.allocator());
+                var mouse_button_events = std.ArrayList(MouseButtonEvent).init(frame_mem_arena.allocator());
 
                 while (windowing.next_event()) |event| {
                     switch (event) {
@@ -174,8 +171,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
 
                 const mouse_pos = windowing.get_mouse_pos();
 
-                quit = !(try args.frame_fn(.{
-                    .frame_arena_allocator = arena_allocator,
+                quit = !(try run_config.frame_fn(.{
+                    .frame_arena_allocator = frame_mem_arena.allocator(),
                     .quit_requested = window_closed,
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
@@ -202,12 +199,12 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     const trace_zone_present = Profiler.zone_name_colour(
                         @src(),
                         "platform.linux present",
-                        config.profile_marker_colour,
+                        module_config.profile_marker_colour,
                     );
                     defer trace_zone_present.End();
                     windowing.present();
 
-                    args.frame_end_fn();
+                    run_config.frame_end_fn();
                 }
 
                 prev_frame_elapsed = timer.lap();
@@ -218,7 +215,9 @@ pub fn using(comptime config: common.ModuleConfig) type {
             }
         }
 
-        fn audioThread(allocator: std.mem.Allocator) !void {
+        fn audio_thread(allocator: std.mem.Allocator) !void {
+            Profiler.set_thread_name("Audio playback thread");
+
             var buffer = try allocator.alloc(
                 f32,
                 audio_playback.interface.buffer_frames * audio_playback.interface.num_channels,

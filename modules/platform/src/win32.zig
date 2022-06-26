@@ -32,8 +32,8 @@ const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const common = @import("common.zig");
 
-pub fn using(comptime config: common.ModuleConfig) type {
-    const Profiler = config.Profiler;
+pub fn using(comptime module_config: common.ModuleConfig) type {
+    const Profiler = module_config.Profiler;
 
     return struct {
         pub const InitFn = common.InitFn;
@@ -106,7 +106,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
         }
 
         pub fn run(
-            args: struct {
+            allocator: std.mem.Allocator,
+            run_config: struct {
                 graphics_api: GraphicsAPI = .d3d11,
                 requested_framerate: u16 = 0,
                 title: []const u8 = "",
@@ -129,26 +130,21 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 },
             },
         ) !void {
-            var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-            defer _ = gpa.deinit();
-
-            var main_mem_arena = std.heap.ArenaAllocator.init(gpa.allocator());
+            var main_mem_arena = std.heap.ArenaAllocator.init(allocator);
             defer main_mem_arena.deinit();
 
-            var allocator = main_mem_arena.allocator();
-
-            frame_prepare_fn = args.frame_prepare_fn;
-            frame_fn = args.frame_fn;
-            frame_end_fn = args.frame_end_fn;
+            frame_prepare_fn = run_config.frame_prepare_fn;
+            frame_fn = run_config.frame_fn;
+            frame_end_fn = run_config.frame_end_fn;
 
             // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-            target_framerate = if (args.requested_framerate == 0) 60 else args.requested_framerate;
+            target_framerate = if (run_config.requested_framerate == 0) 60 else run_config.requested_framerate;
 
-            window_width = args.window_size.width;
-            window_height = args.window_size.height;
+            window_width = run_config.window_size.width;
+            window_height = run_config.window_size.height;
 
-            pending_events = try allocator.alloc(Event, args.target_input_poll_rate / target_framerate * 3);
-            defer allocator.free(pending_events);
+            pending_events = try main_mem_arena.allocator().alloc(Event, run_config.target_input_poll_rate / target_framerate * 3);
+            defer main_mem_arena.allocator().free(pending_events);
 
             const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
                 log.err("GetModuleHandleW failed with error: {}", .{kernel32.GetLastError()});
@@ -156,7 +152,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
             });
 
             var utf16_title = [_]u16{0} ** 64;
-            _ = try std.unicode.utf8ToUtf16Le(utf16_title[0..], args.title);
+            _ = try std.unicode.utf8ToUtf16Le(utf16_title[0..], run_config.title);
             const utf16_title_ptr = @ptrCast([*:0]const u16, &utf16_title);
 
             var wndclass = user32.WNDCLASSEXW{
@@ -184,12 +180,12 @@ pub fn using(comptime config: common.ModuleConfig) type {
             try createDeviceAndSwapchain(hwnd);
             try createRenderTargetView();
 
-            const audio_enabled = (args.audio_playback != null);
+            const audio_enabled = (run_config.audio_playback != null);
 
             if (audio_enabled) {
-                audio_playback.user_cb = args.audio_playback.?.callback;
+                audio_playback.user_cb = run_config.audio_playback.?.callback;
                 audio_playback.interface = try AudioPlaybackInterface.init(
-                    args.audio_playback.?.request_sample_rate,
+                    run_config.audio_playback.?.request_sample_rate,
                 );
                 log.info(
                     \\Initilised audio playback (WASAPI):
@@ -210,15 +206,15 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
             }
 
-            try args.init_fn(allocator);
-            defer args.deinit_fn(allocator);
+            try run_config.init_fn(main_mem_arena.allocator());
+            defer run_config.deinit_fn(main_mem_arena.allocator());
 
             if (audio_enabled) {
                 audio_playback.thread = try std.Thread.spawn(.{}, audio_thread, .{});
                 audio_playback.thread.detach();
             }
 
-            display.thread = try std.Thread.spawn(.{}, display_thread, .{allocator});
+            display.thread = try std.Thread.spawn(.{}, display_thread, .{main_mem_arena.allocator()});
 
             var timer = try std.time.Timer.start();
             while (quit == false) {
@@ -226,7 +222,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
                         "platform.win32 main thread loop",
-                        config.profile_marker_colour,
+                        module_config.profile_marker_colour,
                     );
                     defer trace_zone.End();
 
@@ -244,7 +240,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 }
 
                 const elapsed = timer.lap();
-                const target = @floatToInt(u64, 1.0 / @intToFloat(f32, args.target_input_poll_rate) * 1e9);
+                const target = @floatToInt(u64, 1.0 / @intToFloat(f32, run_config.target_input_poll_rate) * 1e9);
                 if (elapsed < target) {
                     const remain = target - elapsed;
                     std.time.sleep(remain);
@@ -265,7 +261,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 const trace_zone = Profiler.zone_name_colour(
                     @src(),
                     "platform.win32 display thread loop",
-                    config.profile_marker_colour,
+                    module_config.profile_marker_colour,
                 );
                 defer trace_zone.End();
 
@@ -276,10 +272,8 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
 
-                var frame_arena_allocator = frame_mem_arena.allocator();
-
-                var key_event_list = std.ArrayList(KeyEvent).init(frame_arena_allocator);
-                var mouse_btn_event_list = std.ArrayList(MouseButtonEvent).init(frame_arena_allocator);
+                var key_event_list = std.ArrayList(KeyEvent).init(frame_mem_arena.allocator());
+                var mouse_btn_event_list = std.ArrayList(MouseButtonEvent).init(frame_mem_arena.allocator());
 
                 var event_count = pending_events_count.load(.Acquire);
                 while (event_count > 0) {
@@ -299,7 +293,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                 const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
                 quit = !(try frame_fn(.{
-                    .frame_arena_allocator = frame_arena_allocator,
+                    .frame_arena_allocator = frame_mem_arena.allocator(),
                     .quit_requested = window_closed,
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
@@ -326,7 +320,7 @@ pub fn using(comptime config: common.ModuleConfig) type {
                     const trace_zone_present = Profiler.zone_name_colour(
                         @src(),
                         "platform.win32 present",
-                        config.profile_marker_colour,
+                        module_config.profile_marker_colour,
                     );
                     defer trace_zone_present.End();
 

@@ -25,8 +25,12 @@ const platform = @import("brucelib.platform").using(.{});
 
 pub fn main() anyerror!void {
 
+    /// Initilise an allocator of your choice
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
     /// Initilise the platform module and run loop using the following configuration
-    try platform.run(.{
+    try platform.run(allocator, .{
 
         /// The application title and the window title if the target platform has those
         .title = "hello, world",

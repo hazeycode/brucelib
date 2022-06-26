@@ -12,7 +12,10 @@ const orthographic = graphics.zmath.orthographicLh;
 const audio_enabled = false;
 
 pub fn main() anyerror!void {
-    try platform.run(.{
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    try platform.run(gpa.allocator(), .{
         .title = "000-funky-triangle",
         .window_size = .{
             .width = 854,
