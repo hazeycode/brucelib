@@ -244,6 +244,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
 
                     var pos: POINT = undefined;
                     _ = zwin32.base.GetCursorPos(&pos);
+                    _ = zwin32.base.ScreenToClient(hwnd, &pos);
                     mouse_x = pos.x;
                     mouse_y = pos.y;
 
