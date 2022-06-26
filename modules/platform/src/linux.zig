@@ -36,10 +36,8 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             opengl,
         };
 
-        var target_framerate: u32 = undefined;
-
-        var window_closed = false;
         var quit = false;
+        var target_framerate: u32 = undefined;
 
         var audio_playback = struct {
             user_cb: ?fn (AudioPlaybackStream) anyerror!u32 = null,
@@ -52,11 +50,11 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         var mouse_events_buffer = ring_buffers.RingBufferStatic(MouseEvent, 256){};
         var gamepad_events_buffer = ring_buffers.RingBufferStatic(GamepadEvent, 1024){};
 
-        pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
+        pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
             return X11.glx_get_proc_addr(?*const anyopaque, entry_point.ptr) catch null;
         }
 
-        pub fn getSampleRate() u32 {
+        pub fn get_sample_rate() u32 {
             return audio_playback.interface.sample_rate;
         }
 

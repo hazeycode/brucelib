@@ -123,7 +123,12 @@ pub const GamepadState = struct {
     right_trigger: u8 = 0,
 };
 
-pub const MouseButton = enum(u8) { none = 0, left = 1, middle = 2, right = 3, };
+pub const MouseButton = enum(u8) {
+    none = 0,
+    left = 1,
+    middle = 2,
+    right = 3,
+};
 
 pub const KeyReleaseEvent = Key;
 

@@ -106,6 +106,8 @@ fn frame(input: platform.FrameInput) !bool {
         .closed => return false,
         else => {},
     };
+
+    // update & render
 }
 
 fn frame_end() void {

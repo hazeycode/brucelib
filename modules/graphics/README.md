@@ -68,19 +68,19 @@ const graphics = @import("brucelib.graphics").using(.{});
 
 // initilise graphics with a strucure that weakly specifies graphics context
 try graphics.init(allocator, .{
-    pub fn getOpenGlProcAddress(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
+    pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
         // call platform gl proc loader here
     }
 
-    pub fn getD3D11Device() *d3d11.IDevice {
+    pub fn get_d3d11_device() *d3d11.IDevice {
         // return d3d11 device here
     }
 
-    pub fn getD3D11DeviceContext() *d3d11.IDeviceContext {
+    pub fn get_d3d11_device_context() *d3d11.IDeviceContext {
         // return d3d11 device context here
     }
 
-    pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
+    pub fn get_d3d11_render_target_view() *d3d11.IRenderTargetView {
         // return d3d11 render target view here
     }
 });
@@ -96,7 +96,7 @@ loop {
    var render_list = try graphics.RenderList.init(frame_arena_allocator);
    try render_list.set_viewport(0, 0, viewport_width, viewport_height);
    
-   // prepare a solid orange triangle for renderering
+   // prepare a solid orange triangle for rendering
    try colour_verts_renderer.render(
       &render_list,
       graphics.Colour.orange,

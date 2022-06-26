@@ -24,7 +24,7 @@ pub fn init(comptime platform: anytype, _allocator: std.mem.Allocator) !void {
     allocator = _allocator;
 
     var null_context: ?*anyopaque = null;
-    try gl.load(null_context, platform.getOpenGlProcAddress);
+    try gl.load(null_context, platform.get_opengl_proc_address);
 
     gl.enable(gl.MULTISAMPLE);
 }

@@ -94,19 +94,19 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             thread: std.Thread = undefined,
         }{};
 
-        pub fn getD3D11Device() *d3d11.IDevice {
+        pub fn get_d3d11_device() *d3d11.IDevice {
             return d3d11_device.?;
         }
 
-        pub fn getD3D11DeviceContext() *d3d11.IDeviceContext {
+        pub fn get_d3d11_device_context() *d3d11.IDeviceContext {
             return d3d11_device_context.?;
         }
 
-        pub fn getD3D11RenderTargetView() *d3d11.IRenderTargetView {
+        pub fn get_d3d11_render_target_view() *d3d11.IRenderTargetView {
             return d3d11_render_target_view.?;
         }
 
-        pub fn getSampleRate() u32 {
+        pub fn get_sample_rate() u32 {
             return audio_playback.interface.sample_rate;
         }
 

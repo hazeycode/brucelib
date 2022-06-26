@@ -74,9 +74,9 @@ var debug_info_queue: *d3d11d.IInfoQueue = undefined;
 pub const supports_persistently_mapped_buffers = false;
 
 pub fn init(platform: anytype, _allocator: std.mem.Allocator) !void {
-    device = @ptrCast(*d3d11.IDevice, platform.getD3D11Device());
-    device_context = @ptrCast(*d3d11.IDeviceContext, platform.getD3D11DeviceContext());
-    render_target_view = @ptrCast(*d3d11.IRenderTargetView, platform.getD3D11RenderTargetView());
+    device = @ptrCast(*d3d11.IDevice, platform.get_d3d11_device());
+    device_context = @ptrCast(*d3d11.IDeviceContext, platform.get_d3d11_device_context());
+    render_target_view = @ptrCast(*d3d11.IRenderTargetView, platform.get_d3d11_render_target_view());
 
     allocator = _allocator;
     shader_programs = ShaderProgramList.init(allocator);
