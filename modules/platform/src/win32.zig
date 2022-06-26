@@ -292,8 +292,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     frame_mem_arena.allocator(),
                 );
 
-                var event_count = pending_events_count.load(.Acquire);
-                while (event_count > 0) {
+                while (pending_events_count.load(.Monotonic) > 0) {
                     switch (pending_events[pending_events_read_cur]) {
                         .key => |key_ev| try key_event_list.append(key_ev),
                         .mouse_button => |mouse_btn_ev| try mouse_btn_event_list.append(mouse_btn_ev),
@@ -301,14 +300,14 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     }
                     pending_events_read_cur += 1;
                     if (pending_events_read_cur >= pending_events.len) pending_events_read_cur = 0;
-                    while (pending_events_count.compareAndSwap(
-                        event_count,
-                        event_count - 1,
-                        .AcqRel,
-                        .Acquire,
+                    var count = pending_events_count.load(.Acquire);
+                    while (pending_events_count.tryCompareAndSwap(
+                        count,
+                        count - 1,
+                        .Release,
+                        .Monotonic,
                     )) |new_val| {
-                        event_count = new_val;
-                        if (new_val == 0) break;
+                        count = new_val;
                     }
                 }
 
@@ -481,12 +480,13 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         }
 
         fn queue_event(event: Event) !void {
-            var count = pending_events_count.load(.Acquire);
+            var count = pending_events_count.load(.Monotonic);
             if (count + 1 >= pending_events.len) return error.QueueFull;
             pending_events[pending_events_write_cur] = event;
             pending_events_write_cur += 1;
             if (pending_events_write_cur >= pending_events.len) pending_events_write_cur = 0;
-            while (pending_events_count.compareAndSwap(count, count + 1, .AcqRel, .Acquire)) |new_val| {
+            count = pending_events_count.load(.Acquire);
+            while (pending_events_count.tryCompareAndSwap(count, count + 1, .Release, .Monotonic)) |new_val| {
                 count = new_val;
             }
         }
