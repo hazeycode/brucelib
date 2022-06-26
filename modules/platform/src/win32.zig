@@ -226,9 +226,6 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     );
                     defer trace_zone.End();
 
-                    var controller_state: xinput.STATE = undefined;
-                    _ = xinput.XInputGetState(@as(DWORD, 0), &controller_state);
-
                     var msg: user32.MSG = undefined;
                     while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
                         _ = user32.translateMessage(&msg);
@@ -237,6 +234,14 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                             quit = true;
                         }
                     }
+
+                    var pos: POINT = undefined;
+                    _ = zwin32.base.GetCursorPos(&pos);
+                    mouse_x = pos.x;
+                    mouse_y = pos.y;
+
+                    var controller_state: xinput.STATE = undefined;
+                    _ = xinput.XInputGetState(@as(DWORD, 0), &controller_state);
                 }
 
                 const elapsed = timer.lap();
