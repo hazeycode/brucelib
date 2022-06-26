@@ -72,6 +72,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         var frame_end_fn: FrameEndFn = undefined;
 
         var quit = false;
+        var resize_swapchain_buffers = false;
         var window_width: u16 = undefined;
         var window_height: u16 = undefined;
         var mouse_x: i32 = undefined;
@@ -182,8 +183,8 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 utf16_title_ptr,
             );
 
-            try createDeviceAndSwapchain(hwnd);
-            try createRenderTargetView();
+            try create_device_and_swapchain(hwnd);
+            try create_render_target_view();
 
             const audio_enabled = (run_config.audio_playback != null);
 
@@ -331,6 +332,22 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 );
                 defer trace_zone.End();
 
+                if (resize_swapchain_buffers) {
+                    resize_swapchain_buffers = false;
+
+                    _ = d3d11_render_target_view.?.Release();
+
+                    try hrErrorOnFail(dxgi_swap_chain.?.ResizeBuffers(
+                        0, // preserves the existing number of buffers in the swap chain
+                        window_width,
+                        window_height,
+                        dxgi.FORMAT.UNKNOWN, // preserves the existing back buffer format
+                        0,
+                    ));
+
+                    try create_render_target_view();
+                }
+
                 frame_prepare_fn();
 
                 var cpu_frame_timer = try std.time.Timer.start();
@@ -459,6 +476,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 user32.WM_SIZE => {
                     window_width = zwin32.base.LOWORD(@intCast(DWORD, lparam));
                     window_height = zwin32.base.HIWORD(@intCast(DWORD, lparam));
+                    resize_swapchain_buffers = true;
                     window_events_buffer.push(.{
                         .window_id = 0, // TODO(hazeycode): support multiple windows
                         .action = .resized,
@@ -554,7 +572,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         var d3d11_device_context: ?*d3d11.IDeviceContext = null;
         var d3d11_render_target_view: ?*d3d11.IRenderTargetView = null;
 
-        fn createDeviceAndSwapchain(hwnd: HWND) zwin32.HResultError!void {
+        fn create_device_and_swapchain(hwnd: HWND) zwin32.HResultError!void {
             const STANDARD_MULTISAMPLE_QUALITY_LEVELS = enum(UINT) {
                 STANDARD_MULTISAMPLE_PATTERN = 0xffffffff,
                 CENTER_MULTISAMPLE_PATTERN = 0xfffffffe,
@@ -609,7 +627,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             ));
         }
 
-        fn createRenderTargetView() zwin32.HResultError!void {
+        fn create_render_target_view() zwin32.HResultError!void {
             var framebuffer: *d3d11.IResource = undefined;
             try hrErrorOnFail(dxgi_swap_chain.?.GetBuffer(
                 0,

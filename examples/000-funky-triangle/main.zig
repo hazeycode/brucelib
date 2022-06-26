@@ -5,7 +5,10 @@ const Profiler = util.ZtracyProfiler;
 
 const platform = @import("brucelib.platform").using(.{ .Profiler = Profiler });
 
-const graphics = @import("brucelib.graphics").using(.{ .Profiler = Profiler });
+const graphics = @import("brucelib.graphics").using(.{
+    .Platform = platform,
+    .Profiler = Profiler,
+});
 const identity_matrix = graphics.zmath.identity;
 const orthographic = graphics.zmath.orthographicLh;
 
@@ -45,7 +48,7 @@ var colour_verts_renderer: graphics.UniformColourVertsRenderer = undefined;
 
 /// Called before the platform event loop begins
 fn init(allocator: std.mem.Allocator) !void {
-    try graphics.init(allocator, platform);
+    try graphics.init(allocator);
     colour_verts_renderer = try graphics.UniformColourVertsRenderer.init(1000);
 }
 

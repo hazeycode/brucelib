@@ -57,33 +57,36 @@ As a matter of convenience, the following builtin Renderers are provided, which 
 
 - `UniformColourVertsRenderer`
 - `TexturedVertsRenderer`
+- `GridLinesRenderer`
 - (more planned)
 
 
 ### Example usage
 ```zig
-// import the graphics module, with the default configution (and backend)
-const graphics = @import("brucelib.graphics").using(.{});
+// import the graphics module, with the default configution (and backend).
+// A `Platform` interface is also specified, where the user can specify any or all of procs depending on
+// the target platform and graphics api. NOTE: brucelib.platform is a conforming interface
+const graphics = @import("brucelib.graphics").using(.{
+    .Platform = struct {
+        pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
+            // call platform gl proc loader here
+        }
 
+        pub fn get_d3d11_device() *d3d11.IDevice {
+            // return d3d11 device here
+        }
 
-// initilise graphics with a strucure that weakly specifies graphics context
-try graphics.init(allocator, .{
-    pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
-        // call platform gl proc loader here
-    }
+        pub fn get_d3d11_device_context() *d3d11.IDeviceContext {
+            // return d3d11 device context here
+        }
 
-    pub fn get_d3d11_device() *d3d11.IDevice {
-        // return d3d11 device here
-    }
-
-    pub fn get_d3d11_device_context() *d3d11.IDeviceContext {
-        // return d3d11 device context here
-    }
-
-    pub fn get_d3d11_render_target_view() *d3d11.IRenderTargetView {
-        // return d3d11 render target view here
-    }
+        pub fn get_d3d11_render_target_view() *d3d11.IRenderTargetView {
+            // return d3d11 render target view here
+        }
+    },
 });
+
+try graphics.init(allocator);
 
 // init a builtin renderer
 var renderer = try graphics.UniformColourVertsRenderer.init(1000);
@@ -109,6 +112,8 @@ loop {
 
    // submit the `RenderList` (this submits all the draw calls to GPU)
    try render_list.submit();
+
+   graphics.end_frame();
 }
 
 // cleanup

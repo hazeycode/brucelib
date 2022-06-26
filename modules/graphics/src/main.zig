@@ -4,6 +4,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"brucelib.graphics");
 
 pub const ModuleConfig = struct {
+    Platform: type,
     Profiler: type = @import("NullProfiler.zig"),
     profile_marker_colour: u32 = 0x00_00_AA_AA,
     backend_api: enum {
@@ -14,6 +15,7 @@ pub const ModuleConfig = struct {
 };
 
 pub fn using(comptime config: ModuleConfig) type {
+    const Platform = config.Platform;
     const Profiler = config.Profiler;
 
     return struct {
@@ -27,7 +29,7 @@ pub fn using(comptime config: ModuleConfig) type {
         pub const Vertex = common.Vertex;
         pub const TexturedVertex = common.TexturedVertex;
 
-        pub const Backend = switch (config.backend_api) {
+        pub const Backend = (switch (config.backend_api) {
             .default => switch (builtin.os.tag) {
                 .linux => @import("opengl.zig"),
                 .windows => @import("d3d11.zig"),
@@ -35,7 +37,7 @@ pub fn using(comptime config: ModuleConfig) type {
             },
             .opengl => @import("opengl.zig"),
             .d3d11 => @import("d3d11.zig"),
-        };
+        }).using_platform(Platform);
 
         const buffers = @import("buffers.zig").using(.{
             .Backend = Backend,
@@ -70,7 +72,7 @@ pub fn using(comptime config: ModuleConfig) type {
 
         // Module initilisation
 
-        pub fn init(allocator: std.mem.Allocator, platform: anytype) !void {
+        pub fn init(allocator: std.mem.Allocator) !void {
             const trace_zone = Profiler.zone_name_colour(
                 @src(),
                 "graphics.init",
@@ -78,7 +80,7 @@ pub fn using(comptime config: ModuleConfig) type {
             );
             defer trace_zone.End();
 
-            try Backend.init(platform, allocator);
+            try Backend.init(allocator);
             errdefer Backend.deinit();
 
             debug_gui = try DebugGui.init(allocator);
