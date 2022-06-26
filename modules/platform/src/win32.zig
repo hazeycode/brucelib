@@ -118,7 +118,8 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     .width = 854,
                     .height = 480,
                 },
-                target_input_poll_rate: u32 = 1000, // 1 kHz is USB1 max poll rate, which is a 1 ms input frame, plenty
+                // 1 kHz is USB1 max poll rate, which is a 1 ms input frame, plenty
+                target_input_poll_rate: u32 = 1000,
                 init_fn: InitFn,
                 deinit_fn: DeinitFn,
                 frame_prepare_fn: FramePrepareFn,
@@ -137,13 +138,19 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             frame_fn = run_config.frame_fn;
             frame_end_fn = run_config.frame_end_fn;
 
-            // TODO(hazeycode): get monitor refresh and shoot for that, downgrade if we miss alot
-            target_framerate = if (run_config.requested_framerate == 0) 60 else run_config.requested_framerate;
+            // TODO(hazeycode): downgrade target framerate if we miss alot
+            target_framerate = if (run_config.requested_framerate == 0)
+                60 // TODO(hazeycode): get monitor refresh and shoot for that
+            else
+                run_config.requested_framerate;
 
             window_width = run_config.window_size.width;
             window_height = run_config.window_size.height;
 
-            pending_events = try main_mem_arena.allocator().alloc(Event, run_config.target_input_poll_rate / target_framerate * 3);
+            pending_events = try main_mem_arena.allocator().alloc(
+                Event,
+                run_config.target_input_poll_rate / target_framerate * 3,
+            );
             defer main_mem_arena.allocator().free(pending_events);
 
             const hinstance = @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null) orelse {
@@ -245,7 +252,10 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 }
 
                 const elapsed = timer.lap();
-                const target = @floatToInt(u64, 1.0 / @intToFloat(f32, run_config.target_input_poll_rate) * 1e9);
+                const target = @floatToInt(
+                    u64,
+                    1.0 / @intToFloat(f32, run_config.target_input_poll_rate) * 1e9,
+                );
                 if (elapsed < target) {
                     const remain = target - elapsed;
                     std.time.sleep(remain);
@@ -278,7 +288,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 defer frame_mem_arena.deinit();
 
                 var key_event_list = std.ArrayList(KeyEvent).init(frame_mem_arena.allocator());
-                var mouse_btn_event_list = std.ArrayList(MouseButtonEvent).init(frame_mem_arena.allocator());
+                var mouse_btn_event_list = std.ArrayList(MouseButtonEvent).init(
+                    frame_mem_arena.allocator(),
+                );
 
                 var event_count = pending_events_count.load(.Acquire);
                 while (event_count > 0) {
@@ -289,7 +301,12 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     }
                     pending_events_read_cur += 1;
                     if (pending_events_read_cur >= pending_events.len) pending_events_read_cur = 0;
-                    while (pending_events_count.compareAndSwap(event_count, event_count - 1, .AcqRel, .Acquire)) |new_val| {
+                    while (pending_events_count.compareAndSwap(
+                        event_count,
+                        event_count - 1,
+                        .AcqRel,
+                        .Acquire,
+                    )) |new_val| {
                         event_count = new_val;
                         if (new_val == 0) break;
                     }
@@ -421,15 +438,17 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
                     // TODO(hazeycode): Also track mouse position even when it's outside the window
                 },
-                user32.WM_LBUTTONDOWN => process_mouse_btn_event(.press, .left),
-                user32.WM_LBUTTONUP => process_mouse_btn_event(.release, .left),
-                user32.WM_MBUTTONDOWN => process_mouse_btn_event(.press, .middle),
-                user32.WM_MBUTTONUP => process_mouse_btn_event(.release, .middle),
-                user32.WM_RBUTTONDOWN => process_mouse_btn_event(.press, .right),
-                user32.WM_RBUTTONUP => process_mouse_btn_event(.release, .right),
+                user32.WM_LBUTTONDOWN => process_mouse_btn_event(.press, .left, lparam),
+                user32.WM_LBUTTONUP => process_mouse_btn_event(.release, .left, lparam),
+                user32.WM_MBUTTONDOWN => process_mouse_btn_event(.press, .middle, lparam),
+                user32.WM_MBUTTONUP => process_mouse_btn_event(.release, .middle, lparam),
+                user32.WM_RBUTTONDOWN => process_mouse_btn_event(.press, .right, lparam),
+                user32.WM_RBUTTONUP => process_mouse_btn_event(.release, .right, lparam),
                 user32.WM_XBUTTONDOWN, user32.WM_XBUTTONUP => {},
-                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => process_key_event(.press, wparam),
-                user32.WM_KEYUP, user32.WM_SYSKEYUP => process_key_event(.release, wparam), // TODO(hazeycode): key repeat events
+                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN =>
+                // TODO(hazeycode): key repeat events
+                process_key_event(.press, wparam),
+                user32.WM_KEYUP, user32.WM_SYSKEYUP => process_key_event(.release, wparam),
                 else => {},
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
@@ -444,15 +463,19 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             }) catch |err| log.warn("Failed to queue key event with error: {}", .{err});
         }
 
-        fn process_mouse_btn_event(action: MouseButtonEvent.Action, button: MouseButton) void {
-            var pos: POINT = undefined;
-            _ = zwin32.base.GetCursorPos(&pos);
+        fn process_mouse_btn_event(
+            action: MouseButtonEvent.Action,
+            button: MouseButton,
+            lParam: LPARAM,
+        ) void {
+            var pos_x = zwin32.base.GET_X_LPARAM(lParam);
+            var pos_y = zwin32.base.GET_Y_LPARAM(lParam);
             queue_event(.{
                 .mouse_button = .{
                     .action = action,
                     .button = button,
-                    .x = pos.x,
-                    .y = pos.y,
+                    .x = pos_x,
+                    .y = pos_y,
                 },
             }) catch |err| log.warn("Failed to queue mouse button event with error: {}", .{err});
         }
