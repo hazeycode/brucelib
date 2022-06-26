@@ -101,8 +101,11 @@ fn frame_prepare() void {
     // was presented
 }
 
-fn frame(input: platform.Input) !bool {
-    return (input.quit_requested == false);
+fn frame(input: platform.FrameInput) !bool {
+    for (input.window_events) |event| switch (event.action) {
+        .closed => return false,
+        else => {},
+    };
 }
 
 fn frame_end() void {
