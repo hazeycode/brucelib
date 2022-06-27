@@ -85,7 +85,7 @@ pub fn using(comptime config: ModuleConfig) type {
 
             debug_gui = try DebugGui.init(allocator);
 
-            Backend.sync();
+            Backend.flush();
         }
 
         pub fn deinit() void {
@@ -100,17 +100,11 @@ pub fn using(comptime config: ModuleConfig) type {
                 config.profile_marker_colour,
             );
             defer trace_zone.End();
-            Backend.flush();
+            Backend.sync();
         }
 
         pub fn end_frame() void {
-            const trace_zone = Profiler.zone_name_colour(
-                @src(),
-                "graphics.end_frame",
-                config.profile_marker_colour,
-            );
-            defer trace_zone.End();
-            Backend.sync();
+            Backend.flush();
         }
     };
 }

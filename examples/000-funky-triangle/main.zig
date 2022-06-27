@@ -18,7 +18,9 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    try platform.run(gpa.allocator(), .{
+    var root_allocator = gpa.allocator();
+
+    try platform.run(root_allocator, .{
         .title = "000-funky-triangle",
         .window_size = .{
             .width = 854,

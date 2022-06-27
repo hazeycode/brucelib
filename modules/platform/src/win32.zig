@@ -16,6 +16,7 @@ const WPARAM = zwin32.base.WPARAM;
 const LPARAM = zwin32.base.LPARAM;
 const LRESULT = zwin32.base.LRESULT;
 const HRESULT = zwin32.base.HRESULT;
+const HANDLE = zwin32.base.HANDLE;
 const HINSTANCE = zwin32.base.HINSTANCE;
 const HWND = zwin32.base.HWND;
 const RECT = zwin32.base.RECT;
@@ -71,6 +72,7 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         var frame_fn: FrameFn = undefined;
         var frame_end_fn: FrameEndFn = undefined;
 
+        var global_timer: std.time.Timer = undefined;
         var quit = false;
         var resize_swapchain_buffers = false;
         var window_width: u16 = undefined;
@@ -109,6 +111,11 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
 
         pub fn get_sample_rate() u32 {
             return audio_playback.interface.sample_rate;
+        }
+
+        /// Returns application uptime (in nanoseconds)
+        pub fn get_time() u64 {
+            return global_timer.read();
         }
 
         pub fn run(
@@ -218,10 +225,14 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 audio_playback.thread.detach();
             }
 
-            display.thread = try std.Thread.spawn(.{}, display_thread, .{main_mem_arena.allocator()});
+            display.thread = try std.Thread.spawn(
+                .{},
+                display_thread,
+                .{main_mem_arena.allocator()},
+            );
 
-            var timer = try std.time.Timer.start();
             while (quit == false) {
+                var input_frame_timer = try std.time.Timer.start();
                 {
                     const trace_zone = Profiler.zone_name_colour(
                         @src(),
@@ -299,14 +310,31 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     }
                 }
 
-                const elapsed = timer.lap();
-                const target = @floatToInt(
-                    u64,
-                    1.0 / @intToFloat(f32, run_config.target_input_poll_rate) * 1e9,
-                );
-                if (elapsed < target) {
-                    const remain = target - elapsed;
-                    std.time.sleep(remain);
+                { // Wait for time remaining (in one-hundred-nanoseconds) until target input frame time
+                    const elapsed = input_frame_timer.lap() / 100;
+                    const target = 10_000_000 / run_config.target_input_poll_rate;
+                    if (elapsed < target) {
+                        const remain = target - elapsed;
+                        const wait_object = @ptrCast(HANDLE, zwin32.base.CreateWaitableTimerExW(
+                            null,
+                            null,
+                            zwin32.base.CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+                            zwin32.base.EVENT_ALL_ACCESS,
+                        ));
+                        const due_time = -@intCast(i64, remain);
+                        if (zwin32.base.SetWaitableTimer(
+                            wait_object,
+                            &due_time,
+                            0,
+                            null,
+                            null,
+                            FALSE,
+                        ) > 0) {
+                            _ = try zwin32.base.WaitForSingleObject(wait_object, zwin32.base.INFINITE);
+                        } else {
+                            log.err("SetWaitableTimer failed with error: {}", .{kernel32.GetLastError()});
+                        }
+                    }
                 }
             }
 
@@ -332,6 +360,17 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 );
                 defer trace_zone.End();
 
+                {
+                    const trace_zone_present = Profiler.zone_name_colour(
+                        @src(),
+                        "platform.win32 present",
+                        module_config.profile_marker_colour,
+                    );
+                    defer trace_zone_present.End();
+
+                    try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
+                }
+
                 if (resize_swapchain_buffers) {
                     resize_swapchain_buffers = false;
 
@@ -351,6 +390,8 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 frame_prepare_fn();
 
                 var cpu_frame_timer = try std.time.Timer.start();
+
+                Profiler.frame_mark();
 
                 var frame_mem_arena = std.heap.ArenaAllocator.init(allocator);
                 defer frame_mem_arena.deinit();
@@ -381,22 +422,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
 
                 prev_cpu_elapsed = cpu_frame_timer.read();
 
-                {
-                    const trace_zone_present = Profiler.zone_name_colour(
-                        @src(),
-                        "platform.win32 present",
-                        module_config.profile_marker_colour,
-                    );
-                    defer trace_zone_present.End();
-
-                    try hrErrorOnFail(dxgi_swap_chain.?.Present(1, 0));
-
-                    frame_end_fn();
-                }
-
                 prev_frame_elapsed = timer.lap();
 
-                Profiler.frame_mark();
+                frame_end_fn();
             }
         }
 
