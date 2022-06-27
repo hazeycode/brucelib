@@ -48,7 +48,6 @@ pub fn using(comptime config: Config) type {
     return struct {
         const log = std.log.scoped(.@"graphics.DebugGui");
 
-        allocator: std.mem.Allocator,
         text_verts: std.ArrayList(TexturedVertex),
         uniform_colour_verts: std.ArrayList(Vertex),
         colour_verts_renderer: UniformColourVertsRenderer,
@@ -99,7 +98,6 @@ pub fn using(comptime config: Config) type {
                 @embedFile("../data/debugfont.pbm"),
             );
             return @This(){
-                .allocator = allocator,
                 .text_verts = std.ArrayList(TexturedVertex).init(allocator),
                 .uniform_colour_verts = std.ArrayList(Vertex).init(allocator),
                 .colour_verts_renderer = try UniformColourVertsRenderer.init(1e3),
@@ -144,7 +142,7 @@ pub fn using(comptime config: Config) type {
             self.uniform_colour_verts.shrinkRetainingCapacity(0);
         }
 
-        pub fn end(self: *@This()) !void {
+        pub fn end(self: *@This(), allocator: std.mem.Allocator) !void {
             // calculate bounding rect
             var rect = Rect{ .min_x = 0, .min_y = 0, .max_x = 0, .max_y = 0 };
             for (self.text_verts.items) |v| {
@@ -159,7 +157,7 @@ pub fn using(comptime config: Config) type {
             rect.max_y += @intToFloat(f32, margin);
 
             // draw background
-            try self.draw_colour_rect(Colour.from_rgba(0.13, 0.13, 0.13, 0.13), rect);
+            try self.draw_colour_rect(allocator, Colour.from_rgba(0.13, 0.13, 0.13, 0.13), rect);
 
             // draw all text
             try self.textured_verts_renderer.render(
@@ -171,6 +169,7 @@ pub fn using(comptime config: Config) type {
             // draw text cursor if there is an element with keyboard focus
             if (self.state.keyboard_focus > 0) {
                 try self.draw_colour_rect(
+                    allocator,
                     Colour.white,
                     .{
                         .min_x = self.state.text_cur_x - 1,
@@ -198,10 +197,11 @@ pub fn using(comptime config: Config) type {
 
         pub fn label(
             self: *@This(),
+            allocator: std.mem.Allocator,
             comptime fmt: []const u8,
             args: anytype,
         ) !void {
-            var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+            var temp_arena = std.heap.ArenaAllocator.init(allocator);
             defer temp_arena.deinit();
             const temp_allocator = temp_arena.allocator();
 
@@ -218,10 +218,16 @@ pub fn using(comptime config: Config) type {
             }
         }
 
-        pub fn toggle_button(self: *@This(), comptime fmt: []const u8, args: anytype, value_ptr: *bool) !void {
+        pub fn toggle_button(
+            self: *@This(),
+            allocator: std.mem.Allocator,
+            comptime fmt: []const u8,
+            args: anytype,
+            value_ptr: *bool,
+        ) !void {
             const id = 1; // TODO(hazeycode): obtain some sort of unique identifier
 
-            var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+            var temp_arena = std.heap.ArenaAllocator.init(allocator);
             defer temp_arena.deinit();
             const temp_allocator = temp_arena.allocator();
 
@@ -282,13 +288,14 @@ pub fn using(comptime config: Config) type {
 
         pub fn text_field(
             self: *@This(),
+            allocator: std.mem.Allocator,
             comptime T: type,
             comptime fmt: []const u8,
             value_ptr: *T,
         ) !void {
             const id = 2; // TODO(hazeycode): obtain some sort of unique identifier
 
-            var temp_arena = std.heap.ArenaAllocator.init(self.allocator);
+            var temp_arena = std.heap.ArenaAllocator.init(allocator);
             defer temp_arena.deinit();
             const temp_allocator = temp_arena.allocator();
 
@@ -360,9 +367,9 @@ pub fn using(comptime config: Config) type {
             }
         }
 
-        fn draw_colour_rect(self: *@This(), colour: Colour, rect: Rect) !void {
-            var verts = try self.allocator.alloc(Vertex, 6);
-            errdefer self.allocator.free(verts);
+        fn draw_colour_rect(self: *@This(), allocator: std.mem.Allocator, colour: Colour, rect: Rect) !void {
+            var verts = try allocator.alloc(Vertex, 6);
+            errdefer allocator.free(verts);
 
             std.mem.copy(Vertex, verts, &rect.vertices(winding_order));
 
@@ -373,12 +380,18 @@ pub fn using(comptime config: Config) type {
             );
         }
 
-        fn draw_colour_rect_outline(self: *@This(), colour: Colour, rect: Rect, weight: f32) !void {
+        fn draw_colour_rect_outline(
+            self: *@This(),
+            allocator: std.mem.Allocator,
+            colour: Colour,
+            rect: Rect,
+            weight: f32,
+        ) !void {
             const num_verts = 6;
             const num_sides = 4;
 
-            var verts = try self.allocator.alloc(Vertex, num_verts * num_sides);
-            errdefer self.allocator.free(verts);
+            var verts = try allocator.alloc(Vertex, num_verts * num_sides);
+            errdefer allocator.free(verts);
 
             { // left side
                 const side_rect = Rect{

@@ -152,12 +152,14 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
     );
 
     try graphics.debug_gui.label(
+        input.frame_arena_allocator,
         "{d:.2} ms update",
         .{@intToFloat(f32, input.debug_stats.prev_cpu_elapsed) / 1e6},
     );
 
     const prev_frame_time_ms = @intToFloat(f32, input.prev_frame_elapsed) / 1e6;
     try graphics.debug_gui.label(
+        input.frame_arena_allocator,
         "{d:.2} ms frame, {d:.0} FPS",
         .{ prev_frame_time_ms, 1e3 / prev_frame_time_ms },
     );
@@ -165,21 +167,21 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
     graphics.debug_gui.separator();
 
     if (audio_enabled) {
-        try graphics.debug_gui.text_field(f32, "{d:.2} Hz", &state.tone_hz);
+        try graphics.debug_gui.text_field(input.frame_arena_allocator, f32, "{d:.2} Hz", &state.tone_hz);
         graphics.debug_gui.same_line();
-        try graphics.debug_gui.toggle_button("mute", .{}, &state.mute);
+        try graphics.debug_gui.toggle_button(input.frame_arena_allocator, "mute", .{}, &state.mute);
 
         // try debug_gui.slider(u32, 20, 20_000, &state.tone_hz, 200);
 
         graphics.debug_gui.separator();
     }
 
-    try graphics.debug_gui.label("Mouse pos = ({}, {})", .{
+    try graphics.debug_gui.label(input.frame_arena_allocator, "Mouse pos = ({}, {})", .{
         @floatToInt(u16, graphics.debug_gui.state.input.mouse_x),
         @floatToInt(u16, graphics.debug_gui.state.input.mouse_y),
     });
 
-    try graphics.debug_gui.end();
+    try graphics.debug_gui.end(input.frame_arena_allocator);
 }
 
 /// Optional audio playback callback. If set it can be called at any time by the platform module
