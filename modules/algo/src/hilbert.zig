@@ -3,7 +3,7 @@
 const std = @import("std");
 const testing = std.testing;
 
-const benchmark = @import("bench").benchmark;
+const benchmark = @import("vendored/zig-bench/bench.zig").benchmark;
 
 pub const Point = [2]u32;
 

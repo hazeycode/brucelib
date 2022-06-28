@@ -19,7 +19,7 @@ pub fn using(comptime config: ModuleConfig) type {
     const Profiler = config.Profiler;
 
     return struct {
-        pub const zmath = @import("zmath");
+        pub const zmath = @import("vendored/zmath/src/zmath.zig");
 
         const common = @import("common.zig");
         pub const FenceHandle = common.FenceHandle;

@@ -4,11 +4,11 @@ const std = @import("std");
 const testing = std.testing;
 const sqrt = std.math.sqrt;
 
-const zmath = @import("zmath");
+const zmath = @import("vendored/zmath/zmath.zig");
 const Matrix = zmath.Mat;
 const determinant = zmath.determinant;
 
-const benchmark = @import("bench").benchmark;
+const benchmark = @import("vendored/zig-bench/bench.zig").benchmark;
 
 pub const Point = [2]f32;
 pub const Triangle = [3]Point;

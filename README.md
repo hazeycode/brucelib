@@ -26,7 +26,7 @@ Modules are designed to be used standalone or in combination with each other (se
 - Run all the tests with `zig build test`
 - Build and run an example: e.g. `zig build run-example-000`
 - List all available build targets with `zig build --help`
-- Each module has a build.zig (`modules/{module_name}/build.zig`) that exposes a `std.build.Pkg` and a `link` fn. See [build.zig](build.zig) for examples.
+- Each module has a build.zig (`modules/{module_name}/build.zig`) that exposes a `std.build.Pkg` and a `add_to` fn. See [build.zig](build.zig) for reference.
 
 Alternatively, take a look at [this project template](https://github.com/hazeycode/brucelib-begin)
 

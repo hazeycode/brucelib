@@ -8,7 +8,7 @@ const Colour = common.Colour;
 const BufferHandle = common.BufferHandle;
 const Topology = common.Topology;
 
-const zmath = @import("zmath");
+const zmath = @import("vendored/zmath/src/zmath.zig");
 const Matrix = zmath.Mat;
 const identity_matrix = zmath.identity;
 const mul = zmath.mul;

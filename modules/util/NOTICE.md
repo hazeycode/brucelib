@@ -2,9 +2,6 @@
 brucelib.util Apache 2.0 License
 ===============================================================================
 
-brucelib.util code, with exception to portions described later in this file, is
-licensed under the Apache 2.0 license.
-
  Copyright 2022 Chris Heyes
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +20,6 @@ licensed under the Apache 2.0 license.
 ===============================================================================
 ztracy MIT License
 ===============================================================================
-
-Code under the vendored/ztracy/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) and is licensed
-under the MIT license.
   
   MIT License
   
@@ -54,8 +47,6 @@ under the MIT license.
 ===============================================================================
 Tracy Profiler 3-clause BSD License
 ===============================================================================
-
-ztracy vendors Tracy source code which is licensed 3-clause BSD
 
   Copyright (c) 2017-2022, Bartosz Taudul <wolf@nereid.pl>
   All rights reserved.

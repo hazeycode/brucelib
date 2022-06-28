@@ -1,43 +1,26 @@
 const std = @import("std");
 
-const stb_image = @import("vendored/stb_image/build.zig");
-const zmesh = @import("vendored/zmesh/build.zig");
+const stb_image = @import("src/vendored/stb_image/build.zig");
+const zmesh = @import("src/vendored/zmesh/build.zig");
 
 pub const pkg = std.build.Pkg{
     .name = "brucelib.graphics",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
-    .dependencies = &.{
-        std.build.Pkg{
-            .name = "zwin32",
-            .source = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
-        },
-        std.build.Pkg{
-            .name = "zmath",
-            .source = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
-        },
-        std.build.Pkg{
-            .name = "zig-opengl",
-            .source = .{ .path = thisDir() ++ "/vendored/zig-opengl-exports/gl_4v4.zig" },
-        },
-        stb_image.pkg,
-        zmesh.pkg,
-    },
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
-    for (pkg.dependencies.?) |dep| ts.addPackage(dep);
+    ts.addIncludeDir(stb_image.include_dir);
     link(ts);
     return ts;
 }
 
-pub fn add_to(obj: *std.build.LibExeObjStep, dependencies: *std.StringHashMap(std.build.Pkg)) !void {
+pub fn add_to(obj: *std.build.LibExeObjStep) !void {
     obj.addPackage(pkg);
-    link(obj);
     obj.addIncludeDir(stb_image.include_dir);
-    for (pkg.dependencies.?) |dep| try dependencies.put(dep.name, dep);
+    link(obj);
 }
 
 pub fn link(obj: *std.build.LibExeObjStep) void {

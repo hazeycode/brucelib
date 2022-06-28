@@ -5,7 +5,7 @@
 
 const std = @import("std");
 
-const zmath = @import("zmath");
+const zmath = @import("vendored/zmath/src/zmath.zig");
 const orthographic = zmath.orthographicLh;
 const translation = zmath.translation;
 const scaling = zmath.scaling;

@@ -1,35 +1,19 @@
 const std = @import("std");
 
-const bench = std.build.Pkg{
-    .name = "bench",
-    .source = .{ .path = thisDir() ++ "/vendored/zig-bench/bench.zig" },
-};
-
-const zmath = std.build.Pkg{
-    .name = "zmath",
-    .source = .{ .path = thisDir() ++ "/vendored/zmath/src/zmath.zig" },
-};
-
 pub const pkg = std.build.Pkg{
     .name = "brucelib.algo",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
-    .dependencies = &.{
-        bench,
-        zmath,
-    },
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
-    for (pkg.dependencies.?) |dep| ts.addPackage(dep);
     return ts;
 }
 
-pub fn add_to(obj: *std.build.LibExeObjStep, dependencies: *std.StringHashMap(std.build.Pkg)) !void {
+pub fn add_to(obj: *std.build.LibExeObjStep) !void {
     obj.addPackage(pkg);
-    for (pkg.dependencies.?) |dep| try dependencies.put(dep.name, dep);
 }
 
 pub fn build(b: *std.build.Builder) void {

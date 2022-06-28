@@ -2,9 +2,6 @@
 brucelib.graphics Apache 2.0 License
 ===============================================================================
 
-brucelib.graphics code, with exception to portions described later in this
-file, is licensed under the Apache 2.0 license.
-
  Copyright 2022 Chris Heyes
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +21,6 @@ file, is licensed under the Apache 2.0 license.
 ===============================================================================
 zmath MIT License
 ===============================================================================
-
-Code under the vendored/zmath/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) and is licensed
-under the MIT license.
 
  MIT License
 
@@ -57,10 +50,6 @@ under the MIT license.
 zwin32 MIT License
 ===============================================================================
 
-Code under the vendored/zwin32/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) and is licensed
-under the MIT license.
-
  MIT License
 
  Copyright (c) 2021 Michal Ziulek
@@ -88,9 +77,6 @@ under the MIT license.
 stb_image MIT License
 ===============================================================================
 
-vendored/stb_image/stb_image.h is taken from stb
-(https://github.com/nothings/stb) and is licensed under the MIT license.
-
   Copyright (c) 2017 Sean Barrett
   Permission is hereby granted, free of charge, to any person obtaining a copy of
   this software and associated documentation files (the "Software"), to deal in
@@ -112,14 +98,6 @@ vendored/stb_image/stb_image.h is taken from stb
 ===============================================================================
 zmesh MIT License
 ===============================================================================
-
-Code under the vendored/zmesh/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) and is licensed
-under the MIT license.
-
-zmesh is a binding library for par shapes
-(https://github.com/prideout/par/blob/master/par_shapes.h)
-which is under the MIT license (see below)
 
  MIT License
 
@@ -148,10 +126,6 @@ which is under the MIT license (see below)
 ===============================================================================
 par_shapes MIT License
 ===============================================================================
-
-par_shapes is vendored along with zmesh
-
-  par_shapes is distributed under the MIT license:
  
   Copyright (c) 2019 Philip Rideout
  
@@ -179,8 +153,6 @@ par_shapes is vendored along with zmesh
 meshoptimizer MIT License
 ===============================================================================
 
-meshoptimizer is vendored along with zmesh
-
   Copyright (c) 2016-2021 Arseny Kapoulkine
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -205,8 +177,6 @@ meshoptimizer is vendored along with zmesh
 ===============================================================================
 cgltf MIT License
 ===============================================================================
-
-cgltf is vendored along with zmesh
 
   Copyright (c) 2018-2021 Johannes Kuhlmann
   

@@ -1,5 +1,5 @@
 const std = @import("std");
-const gl = @import("zig-opengl");
+const gl = @import("vendored/zig-opengl-exports/gl_4v4.zig");
 
 const log = std.log.scoped(.@"brucelib.graphics.opengl");
 

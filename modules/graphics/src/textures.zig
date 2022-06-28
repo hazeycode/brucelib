@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const stbi = @import("stb_image");
+const stbi = @cImport("vendored/stb_image/main.zig");
 
 const common = @import("common.zig");
 const TextureFormat = common.TextureFormat;

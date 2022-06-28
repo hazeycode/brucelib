@@ -1,13 +1,10 @@
 This is the umbrella NOTICE file for the brucelib monorepo. Module specific
-NOTICE files are also provided (https://github.com/hazeycode/brucelib)
+NOTICE files are also available (https://github.com/hazeycode/brucelib)
 
 
 ===============================================================================
 brucelib Apache 2.0 License
 ===============================================================================
-
-Code in this repository, with exception to the vendored code libaries described
-later in this file, is licensed under the Apache 2.0 license.
 
  Copyright 2022 Chris Heyes
 
@@ -28,9 +25,6 @@ later in this file, is licensed under the Apache 2.0 license.
 ===============================================================================
 zmath MIT License
 ===============================================================================
-
-zmath from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath)
-is licensed under the MIT license
 
  MIT License
 
@@ -60,9 +54,6 @@ is licensed under the MIT license
 zwin32 MIT License
 ===============================================================================
 
-zwin32 from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32)
-is licensed under the MIT license
-
  MIT License
 
  Copyright (c) 2021 Michal Ziulek
@@ -90,8 +81,6 @@ is licensed under the MIT license
 stb_image MIT License
 ===============================================================================
 
-stb_image.h from stb (https://github.com/nothings/stb) is licensed under the MIT license
-
   Copyright (c) 2017 Sean Barrett
   Permission is hereby granted, free of charge, to any person obtaining a copy of
   this software and associated documentation files (the "Software"), to deal in
@@ -113,13 +102,6 @@ stb_image.h from stb (https://github.com/nothings/stb) is licensed under the MIT
 ===============================================================================
 zmesh MIT License
 ===============================================================================
-
-zmesh from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh)
-is licensed under the MIT license
-
-zmesh is a binding library for par shapes
-(https://github.com/prideout/par/blob/master/par_shapes.h)
-which is under the MIT license (see below)
 
  MIT License
 
@@ -149,8 +131,6 @@ which is under the MIT license (see below)
 par_shapes MIT License
 ===============================================================================
 
-par_shapes is vendored along with zmesh
-
   par_shapes is distributed under the MIT license:
  
   Copyright (c) 2019 Philip Rideout
@@ -179,8 +159,6 @@ par_shapes is vendored along with zmesh
 meshoptimizer MIT License
 ===============================================================================
 
-meshoptimizer is vendored along with zmesh
-
   Copyright (c) 2016-2021 Arseny Kapoulkine
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -206,8 +184,6 @@ meshoptimizer is vendored along with zmesh
 ===============================================================================
 cgltf MIT License
 ===============================================================================
-
-cgltf is vendored along with zmesh
 
   Copyright (c) 2018-2021 Johannes Kuhlmann
   
@@ -249,9 +225,6 @@ zig-bench MIT License
 ===============================================================================
 ztracy MIT License
 ===============================================================================
-
-ztracy from zig-gamedev (https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy)
-is licensed under the MIT license
   
   MIT License
   
@@ -279,8 +252,6 @@ is licensed under the MIT license
 ===============================================================================
 Tracy Profiler 3-clause BSD License
 ===============================================================================
-
-ztracy vendors Tracy source code which is licensed 3-clause BSD
 
   Copyright (c) 2017-2022, Bartosz Taudul <wolf@nereid.pl>
   All rights reserved.

@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 
 const log = std.log.scoped(.@"brucelib.platform.win32");
 
-const zwin32 = @import("zwin32");
+const zwin32 = @import("vendored/zwin32/src/zwin32.zig");
 const BYTE = zwin32.base.BYTE;
 const UINT = zwin32.base.UINT;
 const WORD = zwin32.base.WORD;

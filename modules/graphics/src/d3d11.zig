@@ -16,21 +16,21 @@ const FenceHandle = common.FenceHandle;
 const FenceState = common.FenceState;
 const Topology = common.Topology;
 
-const win32 = @import("zwin32");
-const RECT = win32.base.RECT;
-const SIZE_T = win32.base.SIZE_T;
-const UINT64 = win32.base.UINT64;
-const BOOL = win32.base.BOOL;
-const TRUE = win32.base.TRUE;
-const FALSE = win32.base.FALSE;
-const UINT = win32.base.UINT;
-const FLOAT = win32.base.FLOAT;
-const S_OK = win32.base.S_OK;
-const dxgi = win32.dxgi;
-const d3d = win32.d3d;
-const d3d11 = win32.d3d11;
-const d3d11d = win32.d3d11d;
-const d3dcompiler = win32.d3dcompiler;
+const zwin32 = @import("vendored/zwin32/src/zwin32.zig");
+const RECT = zwin32.base.RECT;
+const SIZE_T = zwin32.base.SIZE_T;
+const UINT64 = zwin32.base.UINT64;
+const BOOL = zwin32.base.BOOL;
+const TRUE = zwin32.base.TRUE;
+const FALSE = zwin32.base.FALSE;
+const UINT = zwin32.base.UINT;
+const FLOAT = zwin32.base.FLOAT;
+const S_OK = zwin32.base.S_OK;
+const dxgi = zwin32.dxgi;
+const d3d = zwin32.d3d;
+const d3d11 = zwin32.d3d11;
+const d3d11d = zwin32.d3d11d;
+const d3dcompiler = zwin32.d3dcompiler;
 
 var device: *d3d11.IDevice = undefined;
 var device_context: *d3d11.IDeviceContext = undefined;
@@ -85,7 +85,7 @@ pub fn using_platform(comptime Platform: type) type {
             textures = TextureResourcesList.init(allocator);
 
             if (builtin.mode == .Debug) {
-                try win32.hrErrorOnFail(device.QueryInterface(
+                try zwin32.hrErrorOnFail(device.QueryInterface(
                     &d3d11d.IID_IInfoQueue,
                     @ptrCast(*?*anyopaque, &debug_info_queue),
                 ));
@@ -98,7 +98,7 @@ pub fn using_platform(comptime Platform: type) type {
                     var filter: d3d11d.INFO_QUEUE_FILTER = std.mem.zeroes(d3d11d.INFO_QUEUE_FILTER);
                     filter.DenyList.NumSeverities = deny_severities.len;
                     filter.DenyList.pSeverityList = &deny_severities;
-                    try win32.hrErrorOnFail(debug_info_queue.PushStorageFilter(&filter));
+                    try zwin32.hrErrorOnFail(debug_info_queue.PushStorageFilter(&filter));
                 }
             }
         }
@@ -178,7 +178,7 @@ pub fn using_platform(comptime Platform: type) type {
                         try temp_allocator.alloc(u8, buf_len),
                     );
                     var message = @ptrCast(*d3d11d.MESSAGE, message_buf);
-                    try win32.hrErrorOnFail(debug_info_queue.GetMessage(
+                    try zwin32.hrErrorOnFail(debug_info_queue.GetMessage(
                         i,
                         message,
                         &msg_size,
@@ -252,7 +252,7 @@ pub fn using_platform(comptime Platform: type) type {
             const subresource = d3d11.SUBRESOURCE_DATA{
                 .pSysMem = vertices.ptr,
             };
-            try win32.hrErrorOnFail(device.CreateBuffer(
+            try zwin32.hrErrorOnFail(device.CreateBuffer(
                 &desc,
                 &subresource,
                 &buffer,
@@ -268,7 +268,7 @@ pub fn using_platform(comptime Platform: type) type {
                 .BindFlags = d3d11.BIND_VERTEX_BUFFER,
                 .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
             };
-            try win32.hrErrorOnFail(device.CreateBuffer(
+            try zwin32.hrErrorOnFail(device.CreateBuffer(
                 &desc,
                 null,
                 &buffer,
@@ -288,7 +288,7 @@ pub fn using_platform(comptime Platform: type) type {
         ) ![]align(alignment) u8 {
             const vertex_buffer = @intToPtr(*d3d11.IResource, buffer_handle);
             var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
-            try win32.hrErrorOnFail(device_context.Map(
+            try zwin32.hrErrorOnFail(device_context.Map(
                 vertex_buffer,
                 0,
                 d3d11.MAP.WRITE_DISCARD,
@@ -375,7 +375,7 @@ pub fn using_platform(comptime Platform: type) type {
                         .rgba_u8 => width * 4,
                     },
                 };
-                try win32.hrErrorOnFail(device.CreateTexture2D(
+                try zwin32.hrErrorOnFail(device.CreateTexture2D(
                     &desc,
                     &subresouce_data,
                     &texture,
@@ -384,7 +384,7 @@ pub fn using_platform(comptime Platform: type) type {
 
             var shader_res_view: ?*d3d11.IShaderResourceView = null;
             {
-                try win32.hrErrorOnFail(device.CreateShaderResourceView(
+                try zwin32.hrErrorOnFail(device.CreateShaderResourceView(
                     @ptrCast(*d3d11.IResource, texture.?),
                     null,
                     &shader_res_view,
@@ -405,7 +405,7 @@ pub fn using_platform(comptime Platform: type) type {
                     .MinLOD = 0,
                     .MaxLOD = 0,
                 };
-                try win32.hrErrorOnFail(device.CreateSamplerState(
+                try zwin32.hrErrorOnFail(device.CreateSamplerState(
                     &desc,
                     &sampler_state,
                 ));
@@ -440,7 +440,7 @@ pub fn using_platform(comptime Platform: type) type {
                 .BindFlags = d3d11.BIND_CONSTANT_BUFFER,
                 .CPUAccessFlags = d3d11.CPU_ACCESS_WRITE,
             };
-            try win32.hrErrorOnFail(device.CreateBuffer(
+            try zwin32.hrErrorOnFail(device.CreateBuffer(
                 &desc,
                 null,
                 &buffer,
@@ -465,7 +465,7 @@ pub fn using_platform(comptime Platform: type) type {
             );
             const device_ctx = device_context;
             var subresource = std.mem.zeroes(d3d11.MAPPED_SUBRESOURCE);
-            try win32.hrErrorOnFail(device_ctx.Map(
+            try zwin32.hrErrorOnFail(device_ctx.Map(
                 constant_buffer,
                 0,
                 d3d11.MAP.WRITE_DISCARD,
@@ -500,7 +500,7 @@ pub fn using_platform(comptime Platform: type) type {
             const desc = d3d11.RASTERIZER_DESC{
                 .FrontCounterClockwise = TRUE,
             };
-            try win32.hrErrorOnFail(device.CreateRasterizerState(&desc, &res));
+            try zwin32.hrErrorOnFail(device.CreateRasterizerState(&desc, &res));
             return @ptrToInt(res);
         }
 
@@ -532,7 +532,7 @@ pub fn using_platform(comptime Platform: type) type {
                 .IndependentBlendEnable = FALSE,
                 .RenderTarget = rt_blend_descs,
             };
-            try win32.hrErrorOnFail(device.CreateBlendState(
+            try zwin32.hrErrorOnFail(device.CreateBlendState(
                 &desc,
                 &blend_state,
             ));
@@ -700,7 +700,7 @@ pub fn using_platform(comptime Platform: type) type {
 
 fn createInputLayout(desc: []const d3d11.INPUT_ELEMENT_DESC, vs_bytecode: *d3d.IBlob) !*d3d11.IInputLayout {
     var res: ?*d3d11.IInputLayout = null;
-    try win32.hrErrorOnFail(device.CreateInputLayout(
+    try zwin32.hrErrorOnFail(device.CreateInputLayout(
         @ptrCast(*const d3d11.INPUT_ELEMENT_DESC, desc.ptr),
         @intCast(UINT, desc.len),
         vs_bytecode.GetBufferPointer(),
@@ -712,7 +712,7 @@ fn createInputLayout(desc: []const d3d11.INPUT_ELEMENT_DESC, vs_bytecode: *d3d.I
 
 fn createVertexShader(bytecode: *d3d.IBlob) !*d3d11.IVertexShader {
     var res: ?*d3d11.IVertexShader = null;
-    try win32.hrErrorOnFail(device.CreateVertexShader(
+    try zwin32.hrErrorOnFail(device.CreateVertexShader(
         bytecode.GetBufferPointer(),
         bytecode.GetBufferSize(),
         null,
@@ -723,7 +723,7 @@ fn createVertexShader(bytecode: *d3d.IBlob) !*d3d11.IVertexShader {
 
 fn createPixelShader(bytecode: *d3d.IBlob) !*d3d11.IPixelShader {
     var res: ?*d3d11.IPixelShader = null;
-    try win32.hrErrorOnFail(device.CreatePixelShader(
+    try zwin32.hrErrorOnFail(device.CreatePixelShader(
         bytecode.GetBufferPointer(),
         bytecode.GetBufferSize(),
         null,
@@ -759,7 +759,7 @@ fn compileHLSL(source: [:0]const u8, entrypoint: [:0]const u8, target: [:0]const
         const err_msg = @ptrCast([*c]const u8, err_blob.GetBufferPointer());
         log.err("Failed to compile shader:\n{s}", .{err_msg});
         _ = err_blob.Release();
-        return win32.hrToError(compile_result);
+        return zwin32.hrToError(compile_result);
     }
 
     return blob;

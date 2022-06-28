@@ -13,4 +13,4 @@ Each vendored library is listed below with the license it is under; also see the
 
 | Name | Description | License |
 | :--- | :---------- | :------ |
-| [ztracy](src/vendored/ztracy) | [zig-gamedev's ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) is a Zig wrapper for the [Tracy Profiler](https://github.com/wolfpld/tracy) |MIT & BSD-3-Clause|
+| [ztracy](https://github.com/michal-z/zig-gamedev/tree/main/libs/ztracy) | A Zig wrapper for the [Tracy Profiler](https://github.com/wolfpld/tracy) from the [zig-gamedev project](https://github.com/michal-z/zig-gamedev) |MIT & BSD-3-Clause|

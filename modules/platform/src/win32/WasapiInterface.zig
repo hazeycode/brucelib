@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const zwin32 = @import("zwin32");
+const zwin32 = @import("../vendored/zwin32/src/zwin32.zig");
 const w = zwin32.base;
 const wasapi = zwin32.wasapi;
 const hrErrorOnFail = zwin32.hrErrorOnFail;

@@ -1,7 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const alsa = @import("zig-alsa");
+const alsa = @import("../vendored/zig-alsa/src/main.zig");
 
 pub const AlsaPlaybackInterface = @This();
 

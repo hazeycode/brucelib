@@ -2,9 +2,6 @@
 brucelib.algo Apache 2.0 License
 ===============================================================================
 
-brucelib.algorithms code, with exception to portions described later in this
-file, is licensed under the Apache 2.0 license.
-
     Copyright 2022 Chris Heyes
     
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +21,6 @@ file, is licensed under the Apache 2.0 license.
 ===============================================================================
 zmath MIT License
 ===============================================================================
-
-Code under the vendored/zmath/ directory is taken from zig-gamedev
-(https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) and is licensed
-under the MIT license.
 
     MIT License
     

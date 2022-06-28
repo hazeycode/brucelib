@@ -3,31 +3,20 @@ const std = @import("std");
 pub const pkg = std.build.Pkg{
     .name = "brucelib.platform",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
-    .dependencies = &.{
-        std.build.Pkg{
-            .name = "zwin32",
-            .source = .{ .path = thisDir() ++ "/vendored/zwin32/src/zwin32.zig" },
-        },
-        std.build.Pkg{
-            .name = "zig-alsa",
-            .source = .{ .path = thisDir() ++ "/vendored/zig-alsa/src/main.zig" },
-        },
-    },
+    .dependencies = &.{},
 };
 
 pub fn tests(b: *std.build.Builder, mode: std.builtin.Mode, target: std.zig.CrossTarget) *std.build.LibExeObjStep {
     const ts = b.addTest(pkg.source.path);
     ts.setBuildMode(mode);
     ts.setTarget(target);
-    for (pkg.dependencies.?) |dep| ts.addPackage(dep);
     link(ts);
     return ts;
 }
 
-pub fn add_to(obj: *std.build.LibExeObjStep, dependencies: *std.StringHashMap(std.build.Pkg)) !void {
+pub fn add_to(obj: *std.build.LibExeObjStep) !void {
     obj.addPackage(pkg);
     link(obj);
-    for (pkg.dependencies.?) |dep| try dependencies.put(dep.name, dep);
 }
 
 pub fn link(obj: *std.build.LibExeObjStep) void {
