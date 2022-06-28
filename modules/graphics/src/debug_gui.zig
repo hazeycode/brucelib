@@ -88,8 +88,8 @@ pub fn using(comptime config: Config) type {
             mouse_btn_down: bool = false,
             mouse_btn_was_pressed: bool = false,
             mouse_btn_was_released: bool = false,
-            mouse_x: f32 = undefined,
-            mouse_y: f32 = undefined,
+            mouse_x: f32 = 0,
+            mouse_y: f32 = 0,
         };
 
         pub fn init(allocator: std.mem.Allocator) !@This() {
@@ -267,6 +267,7 @@ pub fn using(comptime config: Config) type {
             }
 
             try self.draw_colour_rect(
+                allocator,
                 colour: {
                     if (id == self.state.active_id) {
                         if (self.state.input.mouse_btn_down) break :colour Colour.white;
@@ -275,7 +276,7 @@ pub fn using(comptime config: Config) type {
                 },
                 bounding_rect,
             );
-            try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
+            try self.draw_colour_rect_outline(allocator, Colour.white, bounding_rect, 1);
 
             self.cur_y += (bounding_rect.max_y - bounding_rect.min_y) + text_y_inset;
             self.prev_x_end = bounding_rect.max_x;
@@ -309,7 +310,7 @@ pub fn using(comptime config: Config) type {
                 -text_y_inset,
                 -text_y_inset,
             );
-            try self.draw_colour_rect_outline(Colour.white, bounding_rect, 1);
+            try self.draw_colour_rect_outline(allocator, Colour.white, bounding_rect, 1);
 
             const input = self.state.input;
             const mouse_over = text_rect.contains_point(input.mouse_x, input.mouse_y);
