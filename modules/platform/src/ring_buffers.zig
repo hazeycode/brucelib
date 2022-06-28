@@ -53,7 +53,9 @@ const testing = std.testing;
 const range = @import("comptime_range.zig").range;
 
 test "RingBufferStatic single-threaded producer-consumer" {
-    const capacity = 100;
+    @setEvalBranchQuota(100000);
+
+    const capacity = 10_000;
     var ring = RingBufferStatic(u64, capacity){};
     var counter: u64 = 0;
 
@@ -97,7 +99,7 @@ test "RingBufferStatic single-threaded producer-consumer" {
 }
 
 test "RingBufferStatic async producer" {
-    const capacity = 100;
+    const capacity = 10_000;
     const RingBuffer = RingBufferStatic(u64, capacity);
     var ring = RingBuffer{};
 
@@ -111,6 +113,7 @@ test "RingBufferStatic async producer" {
         }
 
         pub fn run(ring_buf: *RingBuffer) !void {
+            @setEvalBranchQuota(100000);
             var counter: u64 = 0;
             inline for (range(0, capacity - 1)) |_| {
                 while (true) {
