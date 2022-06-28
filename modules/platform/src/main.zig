@@ -11,4 +11,5 @@ pub usingnamespace backend;
 
 test {
     std.testing.refAllDecls(@This());
+    _ = @import("ring_buffers.zig");
 }
