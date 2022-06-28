@@ -20,9 +20,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         pub const FrameInput = common.FrameInput;
         pub const AudioPlaybackStream = common.AudioPlaybackStream;
         pub const WindowEvent = common.WindowEvent;
-        pub const KeyEvent = common.KeyEvent;
-        pub const MouseEvent = common.MouseEvent;
-        pub const GamepadEvent = common.GamepadEvent;
+        pub const KeyWindowEvent = common.KeyWindowEvent;
+        pub const MouseWindowEvent = common.MouseWindowEvent;
+        pub const GamepadPollEvent = common.GamepadPollEvent;
         pub const MouseButton = common.MouseButton;
         pub const Key = common.Key;
         pub const GamepadState = common.GamepadState;
@@ -46,9 +46,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         }{};
 
         var window_events_buffer = ring_buffers.RingBufferStatic(WindowEvent, 256){};
-        var key_events_buffer = ring_buffers.RingBufferStatic(KeyEvent, 256){};
-        var mouse_events_buffer = ring_buffers.RingBufferStatic(MouseEvent, 256){};
-        var gamepad_events_buffer = ring_buffers.RingBufferStatic(GamepadEvent, 1024){};
+        var key_window_events_buffer = ring_buffers.RingBufferStatic(KeyWindowEvent, 256){};
+        var mouse_window_events_buffer = ring_buffers.RingBufferStatic(MouseWindowEvent, 256){};
+        var gamepad_poll_events_buffer = ring_buffers.RingBufferStatic(GamepadPollEvent, 1024){};
 
         pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
             return X11.glx_get_proc_addr(?*const anyopaque, entry_point.ptr) catch null;
@@ -162,21 +162,25 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 var frame_mem_arena = std.heap.ArenaAllocator.init(main_mem_arena.allocator());
                 defer frame_mem_arena.deinit();
 
-                try windowing.poll_events(&window_events_buffer, &key_events_buffer, &mouse_events_buffer);
+                const mouse_screen_pos = windowing.get_mouse_pos();
+
+                try windowing.poll_events(&window_events_buffer, &key_window_events_buffer, &mouse_window_events_buffer);
 
                 const window_events = try window_events_buffer.drain(frame_mem_arena.allocator());
-                const key_events = try key_events_buffer.drain(frame_mem_arena.allocator());
-                const mouse_events = try mouse_events_buffer.drain(frame_mem_arena.allocator());
-                const gamepad_events = try gamepad_events_buffer.drain(frame_mem_arena.allocator());
+                const key_window_events = try key_window_events_buffer.drain(frame_mem_arena.allocator());
+                const mouse_window_events = try mouse_window_events_buffer.drain(frame_mem_arena.allocator());
+                const gamepad_poll_events = try gamepad_poll_events_buffer.drain(frame_mem_arena.allocator());
 
                 quit = !(try run_config.frame_fn(.{
                     .frame_arena_allocator = frame_mem_arena.allocator(),
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
                     .window_events = window_events,
-                    .key_events = key_events,
-                    .mouse_events = mouse_events,
-                    .gamepad_events = gamepad_events,
+                    .key_window_events = key_window_events,
+                    .mouse_window_events = mouse_window_events,
+                    .gamepad_poll_events = gamepad_poll_events,
+                    .mouse_screen_x = mouse_screen_pos.x,
+                    .mouse_screen_y = mouse_screen_pos.y,
                     .window_size = .{
                         .width = windowing.window_width,
                         .height = windowing.window_height,

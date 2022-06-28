@@ -12,6 +12,8 @@ pub const FrameFn = fn (FrameInput) anyerror!bool;
 pub const FrameEndFn = fn () void;
 pub const AudioPlaybackFn = fn (AudioPlaybackStream) anyerror!u32;
 
+pub const WindowId = u64;
+
 /// Defines the structure that is passed to the audio playback fn by the platform layer
 pub const AudioPlaybackStream = struct {
     /// The sample rate of the output stream
@@ -45,14 +47,17 @@ pub const FrameInput = struct {
     /// Window events that happened before the current frame
     window_events: []WindowEvent,
 
-    /// Keyboard events that happened before the current frame
-    key_events: []KeyEvent,
+    /// Keyboard events for a window that happened before the current frame
+    key_window_events: []KeyWindowEvent,
 
-    /// Mouse events that happened before the current frame
-    mouse_events: []MouseEvent,
+    /// Mouse events for a window that happened before the current frame
+    mouse_window_events: []MouseWindowEvent,
 
-    /// Gamepad events that happened before the current frame
-    gamepad_events: []GamepadEvent,
+    /// Gamepad poll events that happened before the current frame
+    gamepad_poll_events: []GamepadPollEvent,
+
+    mouse_screen_x: i32,
+    mouse_screen_y: i32,
 
     /// The current window size / framebuffer dimensions
     window_size: struct { width: u16, height: u16 },
@@ -65,33 +70,38 @@ pub const FrameInput = struct {
 };
 
 pub const WindowEvent = struct {
-    window_id: u32,
+    window_id: WindowId,
     action: enum { resized, closed },
     width: u16,
     height: u16,
 };
 
-pub const KeyEvent = struct {
+pub const KeyWindowEvent = struct {
     pub const Action = union(enum) {
         press: void,
         release: void,
         repeat: u32,
     };
+
+    window_id: WindowId,
     action: Action,
     key: Key,
 };
 
-pub const MouseEvent = struct {
+pub const MouseWindowEvent = struct {
     // TODO(hazeycode): Scroll wheel
-    pub const Action = enum { moved, button_pressed, button_released };
+    pub const Action = enum { button_pressed, button_released };
+
+    window_id: WindowId,
     action: Action,
     button: MouseButton,
     x: i32,
     y: i32,
 };
 
-pub const GamepadEvent = struct {
+pub const GamepadPollEvent = struct {
     pub const Action = enum { none, connected, disconnected };
+
     user_index: u32,
     action: Action,
     state: GamepadState,

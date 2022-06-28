@@ -48,9 +48,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
         pub const FrameInput = common.FrameInput;
         pub const AudioPlaybackStream = common.AudioPlaybackStream;
         pub const WindowEvent = common.WindowEvent;
-        pub const KeyEvent = common.KeyEvent;
-        pub const MouseEvent = common.MouseEvent;
-        pub const GamepadEvent = common.GamepadEvent;
+        pub const KeyWindowEvent = common.KeyWindowEvent;
+        pub const MouseWindowEvent = common.MouseWindowEvent;
+        pub const GamepadPollEvent = common.GamepadPollEvent;
         pub const Key = common.Key;
         pub const MouseButton = common.MouseButton;
         pub const GamepadState = common.GamepadState;
@@ -74,18 +74,19 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
 
         var global_timer: std.time.Timer = undefined;
         var quit = false;
+        var window: HWND = undefined;
         var resize_swapchain_buffers = false;
         var window_width: u16 = undefined;
         var window_height: u16 = undefined;
-        var mouse_x: i32 = undefined;
-        var mouse_y: i32 = undefined;
+        var mouse_screen_x: i32 = 0;
+        var mouse_screen_y: i32 = 0;
         var xinput_device_states: [xinput.XUSER_MAX_COUNT]bool = .{false} ** xinput.XUSER_MAX_COUNT;
         var xinput_states: [xinput.XUSER_MAX_COUNT]xinput.STATE = undefined;
 
-        var window_events_buffer = ring_buffers.RingBufferStatic(WindowEvent, 256){};
-        var key_events_buffer = ring_buffers.RingBufferStatic(KeyEvent, 256){};
-        var mouse_events_buffer = ring_buffers.RingBufferStatic(MouseEvent, 256){};
-        var gamepad_events_buffer = ring_buffers.RingBufferStatic(GamepadEvent, 1024){};
+        var window_events_buffer = ring_buffers.RingBufferStatic(WindowEvent, 64){};
+        var key_window_events_buffer = ring_buffers.RingBufferStatic(KeyWindowEvent, 128){};
+        var mouse_window_events_buffer = ring_buffers.RingBufferStatic(MouseWindowEvent, 128){};
+        var gamepad_poll_events_buffer = ring_buffers.RingBufferStatic(GamepadPollEvent, 1024){};
 
         var display = struct {
             thread: std.Thread = undefined,
@@ -184,13 +185,13 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
             };
             _ = try user32.registerClassExW(&wndclass);
 
-            const hwnd = try createWindow(
+            window = try createWindow(
                 hinstance,
                 utf16_title_ptr,
                 utf16_title_ptr,
             );
 
-            try create_device_and_swapchain(hwnd);
+            try create_device_and_swapchain(window);
             try create_render_target_view();
 
             const audio_enabled = (run_config.audio_playback != null);
@@ -250,11 +251,10 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                         }
                     }
 
-                    var pos: POINT = undefined;
-                    _ = zwin32.base.GetCursorPos(&pos);
-                    _ = zwin32.base.ScreenToClient(hwnd, &pos);
-                    mouse_x = pos.x;
-                    mouse_y = pos.y;
+                    var cursor_pos: POINT = undefined;
+                    _ = zwin32.base.GetCursorPos(&cursor_pos);
+                    mouse_screen_x = cursor_pos.x;
+                    mouse_screen_y = cursor_pos.y;
 
                     for (xinput_states) |*state, i| {
                         const prev_state = state.*;
@@ -397,9 +397,9 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                 defer frame_mem_arena.deinit();
 
                 const window_events = try window_events_buffer.drain(frame_mem_arena.allocator());
-                const key_events = try key_events_buffer.drain(frame_mem_arena.allocator());
-                const mouse_events = try mouse_events_buffer.drain(frame_mem_arena.allocator());
-                const gamepad_events = try gamepad_events_buffer.drain(frame_mem_arena.allocator());
+                const key_window_events = try key_window_events_buffer.drain(frame_mem_arena.allocator());
+                const mouse_window_events = try mouse_window_events_buffer.drain(frame_mem_arena.allocator());
+                const gamepad_poll_events = try gamepad_poll_events_buffer.drain(frame_mem_arena.allocator());
 
                 const target_frame_dt = @floatToInt(u64, (1 / @intToFloat(f64, target_framerate) * 1e9));
 
@@ -408,13 +408,12 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     .target_frame_dt = target_frame_dt,
                     .prev_frame_elapsed = prev_frame_elapsed,
                     .window_events = window_events,
-                    .key_events = key_events,
-                    .mouse_events = mouse_events,
-                    .gamepad_events = gamepad_events,
-                    .window_size = .{
-                        .width = window_width,
-                        .height = window_height,
-                    },
+                    .key_window_events = key_window_events,
+                    .mouse_window_events = mouse_window_events,
+                    .gamepad_poll_events = gamepad_poll_events,
+                    .mouse_screen_x = mouse_screen_x,
+                    .mouse_screen_y = mouse_screen_y,
+                    .window_size = .{ .width = window_width, .height = window_height },
                     .debug_stats = .{
                         .prev_cpu_elapsed = prev_cpu_elapsed,
                     },
@@ -506,55 +505,56 @@ pub fn using(comptime module_config: common.ModuleConfig) type {
                     window_height = zwin32.base.HIWORD(@intCast(DWORD, lparam));
                     resize_swapchain_buffers = true;
                     window_events_buffer.push(.{
-                        .window_id = 0, // TODO(hazeycode): support multiple windows
+                        .window_id = @ptrToInt(hwnd),
                         .action = .resized,
                         .width = window_width,
                         .height = window_height,
                     }) catch |err| log.err("Failed to queue window resize event with error: {}", .{err});
                 },
                 user32.WM_CLOSE => window_events_buffer.push(.{
-                    .window_id = 0, // TODO(hazeycode): support multiple windows
+                    .window_id = @ptrToInt(hwnd),
                     .action = .closed,
                     .width = window_width,
                     .height = window_height,
                 }) catch |err| log.err("Failed to queue window close event with error: {}", .{err}),
                 user32.WM_DESTROY => user32.postQuitMessage(0),
-                user32.WM_MOUSEMOVE => queue_mouse_event(.moved, .none, lparam),
-                user32.WM_LBUTTONDOWN => queue_mouse_event(.button_pressed, .left, lparam),
-                user32.WM_LBUTTONUP => queue_mouse_event(.button_released, .left, lparam),
-                user32.WM_MBUTTONDOWN => queue_mouse_event(.button_pressed, .middle, lparam),
-                user32.WM_MBUTTONUP => queue_mouse_event(.button_released, .middle, lparam),
-                user32.WM_RBUTTONDOWN => queue_mouse_event(.button_pressed, .right, lparam),
-                user32.WM_RBUTTONUP => queue_mouse_event(.button_released, .right, lparam),
+                user32.WM_LBUTTONDOWN => queue_mouse_button_event(hwnd, .button_pressed, .left),
+                user32.WM_LBUTTONUP => queue_mouse_button_event(hwnd, .button_released, .left),
+                user32.WM_MBUTTONDOWN => queue_mouse_button_event(hwnd, .button_pressed, .middle),
+                user32.WM_MBUTTONUP => queue_mouse_button_event(hwnd, .button_released, .middle),
+                user32.WM_RBUTTONDOWN => queue_mouse_button_event(hwnd, .button_pressed, .right),
+                user32.WM_RBUTTONUP => queue_mouse_button_event(hwnd, .button_released, .right),
                 user32.WM_XBUTTONDOWN, user32.WM_XBUTTONUP => {},
-                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => queue_key_event(.press, wparam), // TODO(hazeycode): key repeat events
-                user32.WM_KEYUP, user32.WM_SYSKEYUP => queue_key_event(.release, wparam),
+                user32.WM_KEYDOWN, user32.WM_SYSKEYDOWN => queue_key_event(hwnd, .press, wparam), // TODO(hazeycode): key repeat events
+                user32.WM_KEYUP, user32.WM_SYSKEYUP => queue_key_event(hwnd, .release, wparam),
                 else => {},
             }
             return user32.defWindowProcW(hwnd, msg, wparam, lparam);
         }
 
-        fn queue_key_event(action: KeyEvent.Action, keycode: WPARAM) void {
-            key_events_buffer.push(.{
+        fn queue_key_event(hwnd: HWND, action: KeyWindowEvent.Action, keycode: WPARAM) void {
+            key_window_events_buffer.push(.{
+                .window_id = @ptrToInt(hwnd),
                 .action = action,
                 .key = translate_keycode(keycode),
             }) catch |err| log.err("Failed to queue key event with error: {}", .{err});
         }
 
-        fn queue_mouse_event(action: MouseEvent.Action, button: MouseButton, lparam: LPARAM) void {
-            const scale: f32 = 1;
-            mouse_x = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_X_LPARAM(lparam)) * scale);
-            mouse_y = @floatToInt(i32, @intToFloat(f32, zwin32.base.GET_Y_LPARAM(lparam)) * scale);
-            mouse_events_buffer.push(.{
+        fn queue_mouse_button_event(hwnd: HWND, action: MouseWindowEvent.Action, button: MouseButton) void {
+            var cursor_pos: POINT = undefined;
+            _ = zwin32.base.GetCursorPos(&cursor_pos);
+            _ = zwin32.base.ScreenToClient(window, &cursor_pos);
+            mouse_window_events_buffer.push(.{
+                .window_id = @ptrToInt(hwnd),
                 .action = action,
                 .button = button,
-                .x = mouse_x,
-                .y = mouse_y,
-            }) catch |err| log.err("Failed to queue mouse event with error: {}", .{err});
+                .x = cursor_pos.x,
+                .y = cursor_pos.y,
+            }) catch |err| log.err("Failed to queue mouse button event with error: {}", .{err});
         }
 
-        fn queue_gamepad_event(user_index: u32, action: GamepadEvent.Action, state: GamepadState) void {
-            gamepad_events_buffer.push(.{
+        fn queue_gamepad_event(user_index: u32, action: GamepadPollEvent.Action, state: GamepadState) void {
+            gamepad_poll_events_buffer.push(.{
                 .user_index = user_index,
                 .action = action,
                 .state = state,

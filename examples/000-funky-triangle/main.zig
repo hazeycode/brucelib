@@ -123,33 +123,29 @@ fn funky_triangle(input: platform.FrameInput, render_list: *graphics.RenderList)
     );
 }
 
-fn map_debug_gui_input(debug_gui: *graphics.DebugGui, input: platform.FrameInput) void {
-    for (input.mouse_events) |event| {
-        switch (event.action) {
-            .button_pressed => {
-                debug_gui.state.input.mouse_btn_was_pressed = true;
-                debug_gui.state.input.mouse_btn_down = true;
-            },
-            .button_released => {
-                debug_gui.state.input.mouse_btn_was_released = true;
-                debug_gui.state.input.mouse_btn_down = false;
-            },
-            .moved => {},
-        }
-        debug_gui.state.input.mouse_x = @intToFloat(f32, event.x);
-        debug_gui.state.input.mouse_y = @intToFloat(f32, event.y);
-    }
-}
-
 fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) !void {
-    map_debug_gui_input(&graphics.debug_gui, input);
-
     try graphics.debug_gui.begin(
         render_list,
         @intToFloat(f32, input.window_size.width),
         @intToFloat(f32, input.window_size.height),
         &state.debug_gui,
     );
+
+    graphics.debug_gui.state.input = .{};
+    for (input.mouse_window_events) |event| {
+        switch (event.action) {
+            .button_pressed => {
+                graphics.debug_gui.state.input.mouse_btn_was_pressed = true;
+                graphics.debug_gui.state.input.mouse_btn_down = true;
+            },
+            .button_released => {
+                graphics.debug_gui.state.input.mouse_btn_was_released = true;
+                graphics.debug_gui.state.input.mouse_btn_down = false;
+            },
+        }
+        graphics.debug_gui.state.input.mouse_x = @intToFloat(f32, event.x);
+        graphics.debug_gui.state.input.mouse_y = @intToFloat(f32, event.y);
+    }
 
     try graphics.debug_gui.label(
         input.frame_arena_allocator,
@@ -176,10 +172,11 @@ fn debug_overlay(input: platform.FrameInput, render_list: *graphics.RenderList) 
         graphics.debug_gui.separator();
     }
 
-    try graphics.debug_gui.label(input.frame_arena_allocator, "Mouse pos = ({}, {})", .{
-        @floatToInt(u16, graphics.debug_gui.state.input.mouse_x),
-        @floatToInt(u16, graphics.debug_gui.state.input.mouse_y),
-    });
+    try graphics.debug_gui.label(
+        input.frame_arena_allocator,
+        "Mouse pos = ({}, {})",
+        .{ input.mouse_screen_x, input.mouse_screen_y },
+    );
 
     try graphics.debug_gui.end(input.frame_arena_allocator);
 }

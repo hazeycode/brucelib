@@ -4,7 +4,7 @@ const log = std.log.scoped(.@"brucelib.platform.linux.X11");
 
 const common = @import("../common.zig");
 const WindowEvent = common.WindowEvent;
-const KeyEvent = common.KeyEvent;
+const KeyWindowEvent = common.KeyWindowEvent;
 const MouseButton = common.MouseButton;
 const Key = common.Key;
 
@@ -320,7 +320,7 @@ pub fn poll_events(
                 const xcb_key_press_event = @ptrCast(*c.xcb_key_press_event_t, xcb_event);
                 if (translateKey(self.display, xcb_key_press_event.detail)) |key| {
                     const repeat = self.key_states[@enumToInt(key)];
-                    var action: KeyEvent.Action = undefined;
+                    var action: KeyWindowEvent.Action = undefined;
                     if (repeat == false) {
                         self.key_repeats[@enumToInt(key)] += 1;
                         action = .press;
@@ -329,7 +329,11 @@ pub fn poll_events(
                         action = .{ .repeat = self.key_repeats[@enumToInt(key)] };
                     }
                     self.key_states[@enumToInt(key)] = true;
-                    try key_events_buffer.push(.{ .action = action, .key = key });
+                    try key_events_buffer.push(.{
+                        .window_id = 0, // TODO(hazeycode): get the "active" window id to fill this in
+                        .action = action,
+                        .key = key,
+                    });
                 }
             },
             c.XCB_KEY_RELEASE => {
@@ -337,7 +341,11 @@ pub fn poll_events(
                 if (translateKey(self.display, xcb_key_release_event.detail)) |key| {
                     self.key_repeats[@enumToInt(key)] = 0;
                     self.key_states[@enumToInt(key)] = false;
-                    try key_events_buffer.push(.{ .action = .release, .key = key });
+                    try key_events_buffer.push(.{
+                        .window_id = 0, // TODO(hazeycode): get the "active" window id to fill this in
+                        .action = .release,
+                        .key = key,
+                    });
                 }
             },
             c.XCB_BUTTON_PRESS => {
@@ -350,6 +358,7 @@ pub fn poll_events(
                 };
                 if (maybe_mouse_button) |mouse_button| {
                     try mouse_events_buffer.push(.{
+                        .window_id = 0, // TODO(hazeycode): get the "active" window id to fill this in
                         .action = .button_pressed,
                         .button = mouse_button,
                         .x = xcb_button_press_event.event_x,
@@ -369,6 +378,7 @@ pub fn poll_events(
                 };
                 if (maybe_mouse_button) |mouse_button| {
                     try mouse_events_buffer.push(.{
+                        .window_id = 0, // TODO(hazeycode): get the "active" window id to fill this in
                         .action = .button_released,
                         .button = mouse_button,
                         .x = xcb_button_release_event.event_x,
@@ -377,15 +387,6 @@ pub fn poll_events(
                 } else {
                     log.info("Released unmapped mouse button {}", .{xcb_button_release_event.detail});
                 }
-            },
-            c.XCB_MOTION_NOTIFY => {
-                const xcb_motion_notify_event = @ptrCast(*c.xcb_motion_notify_event_t, xcb_event);
-                try mouse_events_buffer.push(.{
-                    .action = .moved,
-                    .button = .none,
-                    .x = xcb_motion_notify_event.event_x,
-                    .y = xcb_motion_notify_event.event_y,
-                });
             },
             else => {},
         }
