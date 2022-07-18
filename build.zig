@@ -15,22 +15,17 @@ pub fn build(b: *std.build.Builder) !void {
 
     const test_step = b.step("test", "Run all tests");
 
-    const platform_tests = platform.tests(b, mode, target_opts);
-    const graphics_tests = graphics.tests(b, mode, target_opts);
-    const audio_tests = audio.tests(b, mode, target_opts);
-    const algo_tests = algo.tests(b, mode, target_opts);
-
-    test_step.dependOn(&platform_tests.step);
-    test_step.dependOn(&graphics_tests.step);
-    test_step.dependOn(&audio_tests.step);
-    test_step.dependOn(&algo_tests.step);
+    test_step.dependOn(&platform.tests(b, mode, target_opts).step);
+    test_step.dependOn(&graphics.tests(b, mode, target_opts).step);
+    test_step.dependOn(&audio.tests(b, mode, target_opts).step);
+    test_step.dependOn(&algo.tests(b, mode, target_opts).step);
 
     const ztracy_enable = b.option(bool, "ztracy-enable", "Enable Tracy profiler markers") orelse false;
     const ztracy_options = util.ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
 
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
-        const dir = try build_root_dir.openDir("examples", .{ .iterate = true });
+        const dir = try build_root_dir.openIterableDir("examples", .{});
 
         var dir_it = dir.iterate();
         while (try dir_it.next()) |entry| {
