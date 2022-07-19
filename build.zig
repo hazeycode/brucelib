@@ -6,6 +6,16 @@ pub const audio = @import("modules/audio/build.zig");
 pub const algo = @import("modules/algo/build.zig");
 pub const util = @import("modules/util/build.zig");
 
+pub fn init_default_ztracy_options(b: *std.build.Builder) util.ztracy.BuildOptionsStep {
+    return util.ztracy.BuildOptionsStep.init(b, .{
+        .enable_ztracy = b.option(
+            bool,
+            "ztracy-enable",
+            "Enable Tracy profiler markers",
+        ) orelse false,
+    });
+}
+
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
@@ -19,9 +29,8 @@ pub fn build(b: *std.build.Builder) !void {
     test_step.dependOn(&graphics.tests(b, mode, target_opts).step);
     test_step.dependOn(&audio.tests(b, mode, target_opts).step);
     test_step.dependOn(&algo.tests(b, mode, target_opts).step);
-
-    const ztracy_enable = b.option(bool, "ztracy-enable", "Enable Tracy profiler markers") orelse false;
-    const ztracy_options = util.ztracy.BuildOptionsStep.init(b, .{ .enable_ztracy = ztracy_enable });
+    
+    const ztracy_options = init_default_ztracy_options(b);
 
     { // examples
         const build_root_dir = try std.fs.openDirAbsolute(b.build_root, .{});
@@ -41,9 +50,7 @@ pub fn build(b: *std.build.Builder) !void {
                     example.setTarget(target_opts);
                     example.setBuildMode(mode);
 
-                    try platform.add_to(
-                        example,
-                    );
+                    try platform.add_to(example);
                     try graphics.add_to(example);
                     try audio.add_to(example);
                     try algo.add_to(example);
