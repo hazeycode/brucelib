@@ -3,7 +3,17 @@
 
 This module **does not** handle graphics context creation. You must use some other means to do that, such as the [platform module](https://github.com/hazeycode/brucelib/tree/main/modules/platform)
 
-### Selecting a backend API
+
+### Backend API abstraction
+
+A backend API abstraction is lazily defined by the backend implementations weakly conforming to the same interface. The selected backend API is exported by the module.
+
+
+### Usage
+
+##### - Profvide a `Platform` interface, see [Example](#Example)
+
+##### - Select a backend API
 
 A backend graphics API can be selected by overriding the module config default e.g.
 ```zig
@@ -19,20 +29,12 @@ where `backend_api` is one of:
 .default // use the target platform default
 ```
 
-* Support for other backend APIs is planned.
+*Support for other backend APIs is planned.*
 
-
-### Backend API abstraction
-
-A backend API abstraction is lazily defined by the backend implementations weakly conforming to the same interface. The selected backend API is exported by the module.
-
-
-### Usage
-
-- Initilise the module with `init`, cleanup with `deinit`
-- Call `begin_frame` at the start of your frame
-- Use `sync` to force a CPU/GPU sync point (under review / development)
-- Initilise `RenderList`
+##### - Initilise the module with `init`, cleanup with `deinit`
+##### - Call `begin_frame` at the start of your frame
+##### - Initilise a [RenderList](#RenderList-API) and draw stuff with it, or it pass to one of the [built-in renderers](#Builtin-Renderers)
+##### - Call `end_frame` after all your renderlists for the frame have been submitted
 
 
 ### RenderList API
@@ -61,11 +63,11 @@ As a matter of convenience, the following builtin Renderers are provided, which 
 - (more planned)
 
 
-### Example usage
+### Example
 ```zig
 // import the graphics module, with the default configution (and backend).
 // A `Platform` interface is also specified, where the user can specify any or all of procs depending on
-// the target platform and graphics api. NOTE: brucelib.platform is a conforming interface
+// the target platform and graphics api. NOTE: [brucelib.platform]((https://github.com/hazeycode/brucelib/tree/main/modules/platform) is a conforming interface
 const graphics = @import("brucelib.graphics").using(.{
     .Platform = struct {
         pub fn get_opengl_proc_address(_: ?*const anyopaque, entry_point: [:0]const u8) ?*const anyopaque {
@@ -138,8 +140,8 @@ Each vendored library is listed below with the license it is under; also see the
 
 | Name | Description | License |
 | :--- | :---------- | :------ |
-| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
-| [zmath](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) | SIMD math library from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
-| [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h) | stb_image.h from Sean Barrett's [stb](https://github.com/nothings/stb) lib | MIT |
-| [zmesh](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) | Zig bindings for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h), [meshoptimizer](https://github.com/zeux/meshoptimizer) and [cgltf](https://github.com/jkuhlmann/cgltf) from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) | both MIT |
+| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from [Michal Ziulek's zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [zmath](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmath) | SIMD math library from [Michal Ziulek's zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h) | stb_image.h from [Sean Barrett's stb](https://github.com/nothings/stb) lib | MIT |
+| [zmesh](https://github.com/michal-z/zig-gamedev/tree/main/libs/zmesh) | Zig bindings for [par_shapes](https://github.com/prideout/par/blob/master/par_shapes.h), [meshoptimizer](https://github.com/zeux/meshoptimizer) and [cgltf](https://github.com/jkuhlmann/cgltf) from [Michal Ziulek's zig-gamedev](https://github.com/michal-z/zig-gamedev) | both MIT |
 
