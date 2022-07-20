@@ -1,7 +1,7 @@
 # brucelib.platform
 **WARNING: WORK IN PROGRESS**
 
-The platform module abstracts the target operating system and SDKs and provides an opaque interface for getting input events, create a graphics context, synchronise with the display refresh, write out audio for playback, etc.
+The platform module abstracts the target operating system and SDKs and provides an API for getting input events, create a graphics context, synchronise with the display refresh, write out audio for playback, etc.
 
 ### Supported platforms
 | Platform | Status |
@@ -16,7 +16,7 @@ The platform module abstracts the target operating system and SDKs and provides 
 
 \* Console platform backends are not public. Registered developers will be granted access on request.
 
-The platform module is configured with a Profiler. You can provide an `void` for none, your own type which conforms to the common interface, or use one provided by the [trace](https://github.com/hazeycode/brucelib/tree/main/modules/trace) module such as `trace.ZTracyProfiler`
+The platform module is configured with a Profiler. You can provide `void` for none, your own type which conforms to the common interface, or use one provided by the [util module](https://github.com/hazeycode/brucelib/tree/main/modules/util) such as `util.ZtracyProfiler`
 
 ### Minimal usage example
 ```zig
@@ -61,7 +61,7 @@ pub fn main() anyerror!void {
         /// returns false
         .deinit_fn = deinit,
 
-        /// Called at the before each frame
+        /// Called ahead of each frame request
         /// May be called either on the main thread or on a separate display thread depending on
         /// the target platform
         .frame_prepare_fn = frame_prepare,
@@ -75,7 +75,7 @@ pub fn main() anyerror!void {
         /// the target platform
         .frame_fn = frame,
 
-        /// Called after the frame has been presented
+        /// Called after the frame has been submitted to GPU
         /// May be called either on the main thread or on a separate display thread depending on
         /// the target platform
         .frame_end_fn = frame_end,
@@ -97,8 +97,7 @@ fn deinit(_: std.mem.Allocator) void {
 }
 
 fn frame_prepare() void {
-    // use this to flush any gpu submissions that were submitted after the last frame
-    // was presented
+    // use this to fence any previous gpu work that may be required for producing the next frame
 }
 
 fn frame(input: platform.FrameInput) !bool {
@@ -111,8 +110,7 @@ fn frame(input: platform.FrameInput) !bool {
 }
 
 fn frame_end() void {
-    // schedule work ahead of the next frame
-    // and do any nessesary synchronisation
+    // use this to preemptively schedule gpu work ahead of the next frame
 }
 
 fn audio_playback(_: platform.AudioPlaybackStream) !u32 {
@@ -128,6 +126,6 @@ Each vendored library is listed below with the license it is under; also see the
 
 | Name | Description | License |
 | :--- | :---------- | :------ |
-| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from Michal Ziulek's [zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
+| [zwin32](https://github.com/michal-z/zig-gamedev/tree/main/libs/zwin32) | Zig bindings for Win32 from [Michal Ziulek's zig-gamedev](https://github.com/michal-z/zig-gamedev) project | MIT |
 | [zig-alsa](https://github.com/hazeycode/zig-alsa) | Zig bindings for [ALSA](https://github.com/alsa-project/alsa-lib) | 0BSD |
 
